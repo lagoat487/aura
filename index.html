@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#070b14">
+  <meta name="description" content="AURA FC27: prototipo jugable de modo carrera de fútbol.">
+  <title>AURA FC27 — Modo Carrera</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./game.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <button class="brand" data-nav="home" aria-label="Ir al inicio">
+        <span class="brand-mark">A<span>27</span></span>
+        <span class="brand-caption">AURA FOOTBALL</span>
+      </button>
+      <nav id="topnav" class="nav" aria-label="Menú principal"></nav>
+      <div id="header-profile" class="header-profile"></div>
+    </header>
+    <main id="app" aria-live="polite"></main>
+    <footer class="footer">
+      <span>★ AURA FC27 · EDICIÓN CARRERA</span>
+      <span>Prototipo original · Datos y estadísticas de demostración · Guardado local</span>
+    </footer>
+  </div>
+  <div id="modal" class="modal-backdrop" hidden></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
