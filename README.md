@@ -7,7 +7,7 @@ Prototipo original de modo carrera de fútbol, jugable desde el navegador.
 1. Abre tu Codespace. Si estaba abierto antes de la actualización, ejecuta `git pull` en la rama que quieras probar.
 2. En la terminal ejecuta `python3 -m http.server 8000`.
 3. En **Puertos (PORTS)**, selecciona **Open in Browser / Abrir en navegador** para el puerto **8000**.
-4. Elige una competición y un club. La partida se guarda automáticamente en ese navegador.
+4. Elige una competición y un club. El progreso existe solo durante la sesión: al recargar se inicia desde cero.
 
 Si el puerto está ocupado puedes usar `python3 -m http.server 8080`. No hace falta instalar dependencias para jugar; también se puede abrir `index.html` directamente.
 
@@ -35,15 +35,11 @@ AURA incluye **1.248 futbolistas reales** del conjunto [FIFA World Cup 2026 – 
 
 También incluye mercado de fichajes y ventas, cantera, desarrollo de jugadores y guardado local.
 
-## Compatibilidad de guardados
+## Nueva carrera sin guardado
 
-Se mantiene la clave `aura-fc27-save-v1` de `localStorage`. Las nuevas carreras usan el formato **version 2**, con competición, participantes, calendario y marcadores persistidos.
+Esta edición no escribe ni lee partidas desde localStorage. Cada vez que abres o recargas el juego aparece la pantalla **Iniciar nueva carrera**, con selección de competición y equipo. Las partidas viejas que ya estaban en el almacenamiento del navegador se dejan intactas, pero no se cargan. El botón Nueva carrera reinicia la sesión actual.
 
-Un guardado **version 1** conserva su temporada de exhibición, jornadas, resultados, plantilla y presupuesto. Sus tablas rivales siguen siendo estimaciones y se indica en pantalla, porque esos guardados no contienen resultados de otros clubes. Al terminar esa temporada se archiva su balance y se permite comenzar el calendario completo de una competición que admita a tu club. No se inventan marcadores históricos ni se reinicia la temporada al cargarla.
-
-Las nuevas carreras de ligas externas guardan una **instantánea del catálogo de clubes** junto al calendario, para que su temporada pueda recuperarse sin conexión si los datos remotos dejan de estar disponibles. El guardado incluye sus jugadores y sus fichajes.
-
-Solo hay una carrera activa por navegador. **Nueva carrera** pide confirmar antes de sustituirla. Borrar los datos del navegador borra el progreso. La carga externa no reemplaza automáticamente la plantilla de una partida guardada.
+En Barça se priorizan los nombres reales incluidos localmente (Lamine Yamal, Pedri, Raphinha, etc.) para que ninguna base externa ocupe sus plazas. Plantillas incompletas se completan con canteranos explícitamente identificados.
 
 ## Límites actuales y siguiente prioridad
 
