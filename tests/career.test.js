@@ -57,10 +57,10 @@ test("new career selects a real league and advances all ten fixtures with one ac
   assert.match(app.html(), /PARTIDOS DE LA COMPETICIÓN/);
   app.click({ nav: "table" });
   assert.equal((app.html().match(/<tr class=/g) || []).length, 20);
-  const restored = boot(app.saved());
-  assert.deepEqual(restored.json("state.competition"), app.json("state.competition"));
-  assert.deepEqual(restored.json("seasonTable()"), app.json("seasonTable()"));
-  assert.deepEqual(restored.json("state.history"), app.json("state.history"));
+  assert.equal(app.saved(), undefined);
+  const reopened=boot();
+  assert.equal(reopened.run("state"),null);
+  assert.match(reopened.html(),/Iniciar nueva carrera/);
 });
 
 test("exhibition keeps the original 24 clubs and rejects cross-league careers", () => {
@@ -99,34 +99,20 @@ test("season end cannot simulate or reward another match; rollover keeps squad a
   assert.ok(app.run("Competitions.validateSeason(state.competition)"));
 });
 
-test("v1 saves keep their existing exhibition season, transfers and history until rollover", () => {
-  const app = boot();
-  app.run('state=createGame("barcelona","exhibition");state.version=1;delete state.competition;state.round=3;state.wins=2;state.draws=1;state.goals=5;state.against=1;state.budget=1234567;state.history=[{round:3,season:2026,rival:"liverpool",home:true,g1:2,g2:0,scorers:["Emilio Vega"]}];state.rosters.barcelona[0].overall=94;save()');
-  const previous = app.json("state");
-  const restored = boot(app.saved());
-  assert.equal(restored.run("state.version"), 1);
-  assert.equal(restored.run("state.round"), 3);
-  assert.equal(restored.run("state.budget"), 1234567);
-  assert.deepEqual(restored.json("state.history"), previous.history);
-  assert.deepEqual(restored.json("state.rosters.barcelona"), previous.rosters.barcelona);
-  assert.equal(restored.run("nextOpponent().id"), "boca");
-  assert.match(restored.html(), /tablas rivales son estimaciones/);
-  restored.run('state.round=46;startNextSeason("laliga")');
-  assert.equal(restored.run("state.version"), 2);
-  assert.equal(restored.run("state.competition.id"), "laliga");
-  assert.equal(restored.run("state.round"), 0);
-  assert.equal(restored.run("state.rosters.barcelona[0].overall"), 94);
-  assert.deepEqual(restored.json("state.seasonHistory[0].history"), previous.history);
+test("no automatic progress saves, and always opens new career",()=>{
+ const app=boot();app.click({action:"start"});app.click({action:"play"});
+ assert.equal(app.saved(),undefined);
+ const reopened=boot();
+ assert.equal(reopened.run("state"),null);
+ assert.match(reopened.html(),/Iniciar nueva carrera/);
 });
-
-test("a corrupt v2 calendar is not loaded or overwritten", () => {
-  const app = boot(); app.click({ action: "start" });
-  const broken = JSON.parse(app.saved()); broken.competition.fixtures.pop();
-  const serialized = JSON.stringify(broken), restored = boot(serialized);
-  assert.equal(restored.run("state"), null);
-  assert.equal(restored.saved(), serialized);
+test("Barcelona starts with actual real names, including Yamal and Pedri",()=>{
+ const app=boot();app.click({action:"start"});
+ const players=app.json("state.rosters.barcelona");
+ assert.ok(players.some(p=>p.real&&p.name==="Lamine Yamal"));
+ assert.ok(players.some(p=>p.real&&p.name==="Pedri"));
+ assert.ok(players.every(p=>p.real||p.academy));
 });
-
 test("old fictional first XI is replaced with real footballers without losing results and budget", () => {
   const app=boot();
   app.click({action:"start"});
@@ -142,7 +128,6 @@ test("old fictional first XI is replaced with real footballers without losing re
   assert.ok(names.some(n=>n.includes("Pedri")));
   assert.equal(app.run("state.budget"),oldBudget);
   assert.equal(app.run("state.round"),0);
-  assert.ok(app.run('localStorage.getItem(KEY+"-before-real-rosters")'));
-  const restored=boot(app.saved());
-  assert.ok(restored.json("state.rosters.barcelona").some(p=>p.real));
+  assert.equal(app.saved(),undefined);
+  assert.equal(boot().run("state"),null);
 });

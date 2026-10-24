@@ -22,7 +22,9 @@ function starterRoster(cid,seed,rating){
  const world=World.rosterFor(cid).length?World.rosterFor(cid):World.matchRoster(c);
  const fixed=Real.rosterFor(c);
  const unique=new Map();
- for(const p of [...world,...fixed])if(!unique.has(p.name.toLowerCase()))unique.set(p.name.toLowerCase(),{...p,club:cid});
+ // Prioritize bundled, attributed footballers so Lamine Yamal and Pedri remain in Barça.
+ const norm=name=>String(name||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+ for(const p of [...fixed,...world]){const key=norm(p.name);if(key&&!unique.has(key))unique.set(key,{...p,club:cid});}
  const result=[...unique.values()].slice(0,28);
  // Only generated academy players fill unavailable positions, labeled explicitly.
  const missing=Math.max(0,18-result.length);
@@ -42,30 +44,9 @@ function createGame(id, competitionId=selectedCompetition) {
     budget:c.budget, wins:0, draws:0, losses:0, goals:0, against:0, history:[], seasonHistory:[], rosters,
     news:["Bienvenido a "+c.name+". ¡Tu aventura comienza!"], savedAt:new Date().toISOString() };
 }
-function save(){if(!state)return;state.savedAt=new Date().toISOString();try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){notify("No se pudo guardar. Revisa el almacenamiento del navegador.")}}
-function load() {
-  try {
-    const x = JSON.parse(localStorage.getItem(KEY));
-    if(x?.worldSnapshot)World.registerSnapshot(x.worldSnapshot,clubs,Competitions.definitions);
-    if (!x || ![1,2].includes(x.version) || !clubs.some(c=>c.id===x.club) || !x.rosters ||
-        !Array.isArray(x.history) || !Array.isArray(x.news) || !Number.isInteger(x.round) || x.round<0) return null;
-    if (x.version===1 && (!legacyClubs.some(c=>c.id===x.club) || x.round>LEGACY_ROUNDS)) return null;
-    if (x.version===2) {
-      if (!Competitions.validateSeason(x.competition) || x.competition.season!==x.season ||
-          !x.competition.clubIds.includes(x.club) ||
-          !x.competition.clubIds.every(id=>clubs.some(c=>c.id===id))) return null;
-      x.round = Competitions.playedRounds(x.competition);
-      syncRecord(x);
-    }
-    (x.version===1?legacyClubs.map(c=>c.id):x.competition.clubIds).forEach((cid,i)=>{
-      if(!x.rosters[cid]){
-        const c=getClub(cid);
-        x.rosters[cid]=starterRoster(cid,(i+1)*84291,c.rating);
-      }
-    });
-    return x;
-  } catch { return null; }
-}
+// Session-only career: never read stored progress or write to localStorage.
+function save(){}
+function load(){return null}
 function totalRounds(){return state.version===1?LEGACY_ROUNDS:state.competition.fixtures.length}
 function competitionName(){return state.version===1?"Exhibición · guardado anterior":state.competition.name}
 function syncRecord(game) {
@@ -166,8 +147,8 @@ function rosterHtml(players,actions=true){return '<div class="table-wrap"><table
 function renderWelcome() {
   const definition=Competitions.getDefinition(selectedCompetition);
   const entrants=definition.clubIds.map(getClub);
-  return '<section class="hero"><span class="eyebrow">TU HISTORIA EMPIEZA AQUÍ</span><h1>EL FÚTBOL<br>ES TUYO.</h1><p>Construye una dinastía. Dirige tu club, descubre talentos, negocia fichajes y conquista la liga.</p><div class="hero-actions"><button class="btn primary" data-action="new">Nueva carrera →</button>'+
-    (load()?'<button class="btn" data-action="load">Continuar carrera</button>':'')+'</div></section>'+
+  return '<section class="hero"><span class="eyebrow">TU HISTORIA EMPIEZA AQUÍ</span><h1>EL FÚTBOL<br>ES TUYO.</h1><p>Construye una dinastía. Dirige tu club, descubre talentos, negocia fichajes y conquista la liga.</p><div class="hero-actions"><button class="btn primary" data-action="new">Iniciar nueva carrera →</button>'+
+    '<span class="pill">Sin guardado automático · cada visita comienza de cero</span>'+'</div></section>'+
     '<span class="eyebrow">1.248 futbolistas reales guardados localmente</span>'+heading("ELIGE TU COMPETICIÓN","Ligas reales de la base externa (instantánea septiembre 2026) cuando hay conexión. Fichajes y presupuestos: simulación.")+
     (World.isLoaded()?'<p class="notice">'+World.getStats().leagues+' ligas y '+World.getStats().players+' jugadores cargados desde un catálogo externo. Fotos sujetas a disponibilidad del proveedor.</p>':
       '<p class="notice">Catálogo mundial: '+(World.getError()?'no disponible; puedes usar LaLiga o exhibición sin conexión.':'cargando ligas y plantillas...')+'</p>')+
@@ -194,9 +175,6 @@ function realRosterCoverage(clubId){
 function refreshRealRoster(){
  if(!state)return;
  let changed=0,renamed=0;
- const before=JSON.stringify(state);
- // Preserve an undo copy before first roster migration.
- const backupKey=KEY+"-before-real-rosters";
  for(const cid of Object.keys(state.rosters)){
    const current=state.rosters[cid]||[],base=getClub(cid);
    const real=Real.rosterFor(base);
@@ -225,7 +203,6 @@ function refreshRealRoster(){
    }
  }
  if(changed||renamed){
-   try{if(!localStorage.getItem(backupKey))localStorage.setItem(backupKey,before)}catch(e){}
    state.news.unshift("Plantillas reales: "+changed+" futbolistas añadidos; "+renamed+" canteranos identificados.");
    state.news=state.news.slice(0,20);
    save();
@@ -237,7 +214,7 @@ function refreshRealRoster(){
  render();
 }
 function renderSquad(){let ps=clubPlayers(state.club).slice().sort((a,b)=>b.overall-a.overall);let eleven=ps.slice(0,11),rows=[eleven.slice(0,3),eleven.slice(3,6),eleven.slice(6,10),eleven.slice(10,11)],coverage=realRosterCoverage(state.club);return heading("Plantilla","Valoración media "+overall(state.club)+" · "+ps.length+" jugadores")+
- '<div class="notice"><b>Jugadores reales: '+coverage.real+' de '+ps.length+'</b> · '+coverage.generated+' jugadores generados. La base del Mundial 2026 solo cubre parte de las plantillas y sus medias son estimadas. <button class="btn primary small" data-action="real-roster">⚽ PONER JUGADORES REALES EN MI PLANTILLA</button></div>'+ '<div class="two-col"><div class="card"><h3>ONCE IDEAL · 4-3-3 (orientativo)</h3><div class="formation">'+rows.map(row=>'<div class="formation-row">'+row.map(p=>'<div class="player-dot"><b>'+p.overall+'</b><br>'+p.name.split(" ").pop()+'<br>'+p.pos+'</div>').join("")+'</div>').join("")+'</div></div><div>'+rosterHtml(ps)+'</div></div>'}
+ '<div class="notice"><b>Jugadores reales: '+coverage.real+' de '+ps.length+'</b> · '+coverage.generated+' canteranos de demostración. El progreso no se guarda al cerrar o recargar esta página. <button class="btn primary small" data-action="real-roster">⚽ PONER JUGADORES REALES EN MI PLANTILLA</button></div>'+ '<div class="two-col"><div class="card"><h3>ONCE IDEAL · 4-3-3 (orientativo)</h3><div class="formation">'+rows.map(row=>'<div class="formation-row">'+row.map(p=>'<div class="player-dot"><b>'+p.overall+'</b><br>'+p.name.split(" ").pop()+'<br>'+p.pos+'</div>').join("")+'</div>').join("")+'</div></div><div>'+rosterHtml(ps)+'</div></div>'}
 function localMarketResults(){
  const owned=new Set(Object.values(state.rosters).flat().map(p=>p.id));
  const ps=Real.search(marketSearch,50).filter(p=>!owned.has(p.id));
@@ -306,7 +283,7 @@ function findPlayer(id){
 function buy(id){let result=findPlayer(id);if(!result||result.cid===state.club)return;let {p,cid}=result;if(state.budget<p.value)return notify("No tienes presupuesto suficiente");if(clubPlayers(state.club).length>=28)return notify("Plantilla llena (máximo 28)");state.budget-=p.value;if(state.rosters[cid])state.rosters[cid]=state.rosters[cid].filter(x=>x.id!==p.id);p.club=state.club;state.rosters[state.club].push(p);state.news.unshift("Nuevo fichaje: "+p.name+" por "+money(p.value));save();notify("¡Fichaje confirmado! "+p.name);render()}
 function sell(id){let result=findPlayer(id);if(!result||result.cid!==state.club)return;let {p}=result;if(clubPlayers(state.club).length<=11)return notify("Debes mantener al menos 11 jugadores");openModal("Confirmar venta",'<p>¿Vender a <b>'+p.name+'</b> por su valor de mercado de <strong>'+money(p.value)+'</strong>?</p><button class="btn danger" id="confirmsell">Confirmar venta</button>');$("confirmsell").onclick=()=>{state.rosters[state.club]=clubPlayers(state.club).filter(x=>x.id!==p.id);state.budget+=p.value;state.news.unshift("Venta confirmada: "+p.name+" por "+money(p.value));save();closeModal();notify("¡Jugador vendido!");render()}}
 function train(id){let f=findPlayer(id);if(!f||f.cid!==state.club||state.budget<150000||f.p.overall>=f.p.potential)return;state.budget-=150000;f.p.overall++;state.news.unshift(f.p.name+" mejoró a "+f.p.overall+" de media");save();notify(f.p.name+" ganó +1 GRL");render()}
-function render(){let active=state?screen:"home";$("topnav").innerHTML=nav.map(([id,label])=>'<button class="'+(active===id?'active':'')+'" data-nav="'+id+'">'+label+'</button>').join("");$("header-profile").innerHTML=state?'<strong>'+myClub().name+'</strong>Jornada '+state.round+' · '+money(state.budget):'<strong>AURA FC27</strong>Modo carrera';$("app").innerHTML=!state?renderWelcome():({home:renderDashboard,career:renderDashboard,squad:renderSquad,market:renderMarket,calendar:renderCalendar,academy:renderAcademy,table:renderTable}[active]||renderDashboard)();}
+function render(){let active=state?screen:"home";$("topnav").innerHTML=nav.map(([id,label])=>'<button class="'+(active===id?'active':'')+'" data-nav="'+id+'">'+label+'</button>').join("");$("header-profile").innerHTML=state?'<strong>'+myClub().name+'</strong>Jornada '+state.round+' · '+money(state.budget):'<strong>AURA FC27</strong>Nueva carrera · sin guardado';$("app").innerHTML=!state?renderWelcome():({home:renderDashboard,career:renderDashboard,squad:renderSquad,market:renderMarket,calendar:renderCalendar,academy:renderAcademy,table:renderTable}[active]||renderDashboard)();}
 document.addEventListener("click",e=>{
   const t=e.target.closest("button");
   if(!t)return;
@@ -326,12 +303,11 @@ document.addEventListener("click",e=>{
   if(t.dataset.train)train(t.dataset.train);
   if(t.dataset.action==="new"){
     if(state){
-      openModal("Nueva carrera","<p>¿Empezar de nuevo? Se sustituirá el guardado anterior al comenzar la nueva carrera.</p><button id='confirmnew' class='btn danger'>Sí, empezar de nuevo</button>");
-      $("confirmnew").onclick=()=>{state=null;calendarRound=null;closeModal();render()};
+      openModal("Nueva carrera","<p>¿Empezar de cero? Se perderá el progreso de esta sesión. No se guarda automáticamente.</p><button id='confirmnew' class='btn danger'>Iniciar nueva carrera</button>");
+      $("confirmnew").onclick=()=>{state=null;screen="home";selected="barcelona";selectedCompetition="laliga";calendarRound=null;closeModal();render()};
     }else document.querySelector(".competition-picker")?.scrollIntoView({behavior:"smooth"});
   }
   if(t.dataset.action==="start"){state=createGame(selected);calendarRound=null;screen="career";save();render();window.scrollTo(0,0)}
-  if(t.dataset.action==="load"){state=load();if(state){screen="career";render()}else notify("No se encontró una partida guardada")}
   if(t.dataset.action==="play")playMatch();
   if(t.dataset.action==="real-roster")refreshRealRoster();
 });
@@ -349,7 +325,7 @@ document.addEventListener("change",e=>{
 });
 $("modal").addEventListener("click",e=>{if(e.target===$("modal"))closeModal()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal()});
-state=load();screen=state?"career":"home";render();
+state=null;screen="home";selected="barcelona";selectedCompetition="laliga";render();
 if(typeof fetch==="function")World.load(clubs,Competitions.definitions,fetch).then(()=>{
   if(!state)render();
 }).catch(()=>{if(!state)render()});
