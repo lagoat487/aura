@@ -126,3 +126,23 @@ test("a corrupt v2 calendar is not loaded or overwritten", () => {
   assert.equal(restored.run("state"), null);
   assert.equal(restored.saved(), serialized);
 });
+
+test("old fictional first XI is replaced with real footballers without losing results and budget", () => {
+  const app=boot();
+  app.click({action:"start"});
+  app.run('state.rosters.barcelona=genPlayers("barcelona",84291,87);state.round=0;state.budget=23456789;save()');
+  const oldNames=app.json("state.rosters.barcelona.map(p=>p.name)");
+  assert.ok(oldNames.includes("Rafael García") || oldNames.length===18);
+  const oldBudget=app.run("state.budget");
+  app.click({nav:"squad"});
+  assert.match(app.html(),/PONER JUGADORES REALES EN MI PLANTILLA/);
+  app.click({action:"real-roster"});
+  const names=app.json("state.rosters.barcelona.map(p=>p.name)");
+  assert.ok(names.some(n=>n.includes("Yamal")));
+  assert.ok(names.some(n=>n.includes("Pedri")));
+  assert.equal(app.run("state.budget"),oldBudget);
+  assert.equal(app.run("state.round"),0);
+  assert.ok(app.run('localStorage.getItem(KEY+"-before-real-rosters")'));
+  const restored=boot(app.saved());
+  assert.ok(restored.json("state.rosters.barcelona").some(p=>p.real));
+});
