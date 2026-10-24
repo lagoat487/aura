@@ -33,12 +33,12 @@ test("dynamic national leagues use real IDs, ratings and two-leg fixtures",()=>{
   assert.equal(data.definitions.length,2);
   assert.equal(data.definitions[0].clubIds.length,2);
   assert.equal(data.rosters.get(data.definitions[0].clubIds[0]).length,11);
+  const originals=Clubs.clubs.length;
+  World.integrate(data,Clubs.clubs,Competitions.definitions);
   const fixture=Competitions.createSeason(data.definitions[0],2026);
   assert.ok(Competitions.validateSeason(fixture));
   assert.equal(fixture.fixtures.length,2);
   assert.match([...data.rosters.values()][0][0].photo,/^https:\/\/cdn\.sofifa\.net\/players\//);
-  const originals=Clubs.clubs.length;
-  World.integrate(data,Clubs.clubs,Competitions.definitions);
   assert.equal(Clubs.clubs.length,originals+4);
   assert.equal(World.search("Paco").length,24); // Search is capped at 24
   assert.equal(World.matchRoster({id:"barcelona",name:"FC Barcelona"}).length,11);
