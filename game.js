@@ -5,6 +5,7 @@ const $=id=>document.getElementById(id);
 const { clubs, legacyClubs } = AuraClubs;
 const Competitions = AuraCompetitions;
 const World = AuraWorld;
+const Real = AuraRealPlayers;
 const LEGACY_ROUNDS = (legacyClubs.length - 1) * 2;
 const first=["Mateo","Leo","Andrés","Thiago","Gabriel","Nicolás","Santiago","Bruno","Lucas","Julián","Damián","Emilio","Diego","Enzo","David","Marco","Alan","Rafael","Sebastián","Cristian"];
 const last=["Rivera","Torres","García","Moreno","Silva","Méndez","Castro","Vargas","Díaz","Rojas","López","Martínez","Paredes","Suárez","Lara","Cruz","Pinto","Bustos","Paz","Vega"];
@@ -16,13 +17,25 @@ function seeded(seed){let t=seed>>>0;return()=>{t=(Math.imul(1664525,t)+10139042
 function genPlayers(cid,seed,rating,count=18){
 const rng=seeded(seed);return Array.from({length:count},(_,i)=>{let age=18+Math.floor(rng()*15),overall=clamp(rating-7+Math.floor(rng()*13)-(i>=11?4:0),58,93);
 return {id:cid+"-"+i,name:first[Math.floor(rng()*first.length)]+" "+last[Math.floor(rng()*last.length)],pos:pos[i%pos.length],age,overall,potential:clamp(overall+Math.floor(rng()*10),overall,95),value:Math.round((overall*overall*overall/130)*(age<23?1.3:1)*100),wage:Math.round(overall*overall*0.9),club:cid,form:65+Math.floor(rng()*31)};})}
+function starterRoster(cid,seed,rating){
+ const c=getClub(cid);
+ const world=World.rosterFor(cid).length?World.rosterFor(cid):World.matchRoster(c);
+ const fixed=Real.rosterFor(c);
+ const unique=new Map();
+ for(const p of [...world,...fixed])if(!unique.has(p.name.toLowerCase()))unique.set(p.name.toLowerCase(),{...p,club:cid});
+ const result=[...unique.values()].slice(0,28);
+ // Only generated academy players fill unavailable positions, labeled explicitly.
+ const missing=Math.max(0,18-result.length);
+ return result.concat(genPlayers(cid,seed,rating,missing).map((p,i)=>({
+   ...p,id:"academy:"+cid+":"+i,name:"Canterano "+(i+1),academy:true
+ })));
+}
 function createGame(id, competitionId=selectedCompetition) {
   const definition = Competitions.getDefinition(competitionId), c = getClub(id), rosters = {};
   if (!definition.clubIds.includes(id)) throw new Error("El club no pertenece a esta competición.");
   definition.clubIds.forEach((cid,i) => {
     const x=getClub(cid);
-    const source=World.rosterFor(cid).length?World.rosterFor(cid):World.matchRoster(x);
-    rosters[cid]=source.length>=11?source.map(p=>({...p,club:cid})):genPlayers(cid,(i+1)*84291,x.rating);
+    rosters[cid]=starterRoster(cid,(i+1)*84291,x.rating);
   });
   return { version:2, club:id, season:2026, round:0, competition:Competitions.createSeason(definition,2026),
     worldSnapshot:definition.external?{definition:{...definition},clubs:definition.clubIds.map(cid=>({...getClub(cid)}))}:undefined,
@@ -46,8 +59,8 @@ function load() {
     }
     (x.version===1?legacyClubs.map(c=>c.id):x.competition.clubIds).forEach((cid,i)=>{
       if(!x.rosters[cid]){
-        const c=getClub(cid),real=World.rosterFor(cid).length?World.rosterFor(cid):World.matchRoster(c);
-        x.rosters[cid]=real.length>=11?real.map(p=>({...p,club:cid})):genPlayers(cid,(i+1)*84291,c.rating);
+        const c=getClub(cid);
+        x.rosters[cid]=starterRoster(cid,(i+1)*84291,c.rating);
       }
     });
     return x;
@@ -155,7 +168,7 @@ function renderWelcome() {
   const entrants=definition.clubIds.map(getClub);
   return '<section class="hero"><span class="eyebrow">TU HISTORIA EMPIEZA AQUÍ</span><h1>EL FÚTBOL<br>ES TUYO.</h1><p>Construye una dinastía. Dirige tu club, descubre talentos, negocia fichajes y conquista la liga.</p><div class="hero-actions"><button class="btn primary" data-action="new">Nueva carrera →</button>'+
     (load()?'<button class="btn" data-action="load">Continuar carrera</button>':'')+'</div></section>'+
-    heading("ELIGE TU COMPETICIÓN","Ligas reales de la base externa (instantánea septiembre 2026) cuando hay conexión. Fichajes y presupuestos: simulación.")+
+    '<span class="eyebrow">1.248 futbolistas reales guardados localmente</span>'+heading("ELIGE TU COMPETICIÓN","Ligas reales de la base externa (instantánea septiembre 2026) cuando hay conexión. Fichajes y presupuestos: simulación.")+
     (World.isLoaded()?'<p class="notice">'+World.getStats().leagues+' ligas y '+World.getStats().players+' jugadores cargados desde un catálogo externo. Fotos sujetas a disponibilidad del proveedor.</p>':
       '<p class="notice">Catálogo mundial: '+(World.getError()?'no disponible; puedes usar LaLiga o exhibición sin conexión.':'cargando ligas y plantillas...')+'</p>')+
     '<div class="competition-picker">'+Competitions.definitions.map(c=>'<button class="card card-link '+
@@ -168,9 +181,36 @@ function renderWelcome() {
       ' · '+money(c.budget)+'</span></button>').join("")+'</div><div class="row" style="margin-top:18px"><button class="btn primary" data-action="start">Comenzar con '+getClub(selected).name+' →</button></div>';
 }
 function renderDashboard(){let c=myClub(),op=nextOpponent(),fixture=nextFixture();return legacyNotice()+'<div class="dashboard"><section class="hero"><span class="eyebrow">'+competitionName()+'</span><h1>'+c.name+'</h1><p>Temporada '+state.season+' · Jornada '+Math.min(state.round+1,totalRounds())+'/'+totalRounds()+' · '+c.city+'</p><div class="row"><span class="pill">Posición '+rank()+'º</span><span class="pill">Puntos '+(state.wins*3+state.draws)+'</span><span class="pill">Presupuesto '+money(state.budget)+'</span></div><div class="hero-actions"><button class="btn primary" data-action="play">'+(op?'Simular siguiente jornada ⚽':'Ver cierre de temporada →')+'</button><button class="btn" data-nav="squad">Gestionar plantilla</button><button class="btn" data-action="new">Nueva carrera</button></div><p>'+(op?'Próximo rival: <strong>'+op.name+'</strong> · '+(fixture.home===state.club?'Local':'Visitante'):'Temporada completada')+'</p></section><section class="card"><h3>CLASIFICACIÓN</h3>'+tableHtml(6)+'</section></div><div class="grid" style="margin-top:15px">'+[['squad','⚽ PLANTILLA','Gestiona tu once y tus estrellas.'],['market','↔ MERCADO','Compra y vende futbolistas.'],['calendar','▦ CALENDARIO','Resultados de toda la jornada.'],['academy','★ CANTERA','Forma a tus futuras estrellas.']].map(x=>'<button class="card card-link" data-nav="'+x[0]+'"><h3>'+x[1]+'</h3><p>'+x[2]+'</p><span class="accent">Explorar →</span></button>').join("")+'</div>'+heading("Noticias del club","Lo último en tu carrera")+'<div class="stack">'+state.news.slice(0,4).map(n=>'<div class="notice">'+n+'</div>').join("")+'</div>'}
-function renderSquad(){let ps=clubPlayers(state.club).slice().sort((a,b)=>b.overall-a.overall);let eleven=ps.slice(0,11),rows=[eleven.slice(0,3),eleven.slice(3,6),eleven.slice(6,10),eleven.slice(10,11)];return heading("Plantilla","Valoración media "+overall(state.club)+" · "+ps.length+" jugadores")+ '<div class="two-col"><div class="card"><h3>ONCE IDEAL · 4-3-3 (orientativo)</h3><div class="formation">'+rows.map(row=>'<div class="formation-row">'+row.map(p=>'<div class="player-dot"><b>'+p.overall+'</b><br>'+p.name.split(" ").pop()+'<br>'+p.pos+'</div>').join("")+'</div>').join("")+'</div></div><div>'+rosterHtml(ps)+'</div></div>'}
+function refreshRealRoster(){
+ if(!state)return;
+ let changed=0;
+ for(const cid of Object.keys(state.rosters)){
+   const current=state.rosters[cid]||[];
+   const base=getClub(cid),real=Real.rosterFor(base);
+   if(!real.length)continue;
+   const existing=new Set(current.filter(p=>!p.academy).map(p=>p.name.toLowerCase()));
+   const replacements=real.filter(p=>!existing.has(p.name.toLowerCase()));
+   let index=0;
+   for(let i=0;i<current.length&&index<replacements.length;i++){
+     if(current[i].academy || (/^[^:]+-\\d+$/.test(current[i].id)&&!current[i].real)){
+       current[i]={...replacements[index++],club:cid};changed++;
+     }
+   }
+   while(current.length<28&&index<replacements.length){current.push({...replacements[index++],club:cid});changed++}
+ }
+ if(changed){state.news.unshift("Plantillas actualizadas: "+changed+" futbolistas reales incorporados.");save()}
+ notify(changed?changed+" futbolistas reales añadidos sin perder progreso.":"No hay sustituciones disponibles.");render();
+}
+function renderSquad(){let ps=clubPlayers(state.club).slice().sort((a,b)=>b.overall-a.overall);let eleven=ps.slice(0,11),rows=[eleven.slice(0,3),eleven.slice(3,6),eleven.slice(6,10),eleven.slice(10,11)];return heading("Plantilla","Valoración media "+overall(state.club)+" · "+ps.length+" jugadores")+
+ '<div class="notice"><b>Futbolistas reales:</b> catálogo local de 1.248 convocados al Mundial 2026. Plantillas parciales y medias estimadas. <button class="btn small" data-action="real-roster">Actualizar jugadores reales</button></div>'+ '<div class="two-col"><div class="card"><h3>ONCE IDEAL · 4-3-3 (orientativo)</h3><div class="formation">'+rows.map(row=>'<div class="formation-row">'+row.map(p=>'<div class="player-dot"><b>'+p.overall+'</b><br>'+p.name.split(" ").pop()+'<br>'+p.pos+'</div>').join("")+'</div>').join("")+'</div></div><div>'+rosterHtml(ps)+'</div></div>'}
+function localMarketResults(){
+ const owned=new Set(Object.values(state.rosters).flat().map(p=>p.id));
+ const ps=Real.search(marketSearch,50).filter(p=>!owned.has(p.id));
+ if(!ps.length)return '<p class="save-info">No hay coincidencias en el catálogo local.</p>';
+ return '<div class="table-wrap"><table class="table"><tbody>'+ps.map(p=>'<tr><td>'+safeText(p.name)+'</td><td>'+safeText(p.sourceClub)+'</td><td>'+p.overall+'</td><td><button class="btn small" data-buy="'+safeText(p.id)+'">Fichar</button></td></tr>').join("")+'</tbody></table></div>';
+}
 function marketResults(){
-  if(!World.isLoaded())return '<p class="save-info">Búsqueda global disponible al cargar datos externos.</p>';
+  if(!World.isLoaded())return '<p class="save-info">Puedes buscar futbolistas reales del catálogo local sin conexión.</p>'+localMarketResults();
   if(marketSearch.trim().length<2)return '<p class="save-info">Escribe al menos 2 letras del jugador o del club.</p>';
   const owned=new Set(Object.values(state.rosters).flat().map(p=>p.id));
   const matches=World.search(marketSearch,36).filter(p=>!owned.has(p.id));
@@ -225,7 +265,7 @@ function renderTable(){return heading("Clasificación",competitionName()+" · Jo
     'diferencia de goles y goles a favor. Igualdad total: orden estable por club.</p>':'')}
 function findPlayer(id){
   for(const [cid,players] of Object.entries(state.rosters)){let p=players.find(x=>x.id===id);if(p)return{p,cid}}
-  const p=World.getPlayer(id);
+  const p=World.getPlayer(id)||Real.getPlayer(id);
   return p?{p:{...p},cid:p.club,external:true}:null;
 }
 function buy(id){let result=findPlayer(id);if(!result||result.cid===state.club)return;let {p,cid}=result;if(state.budget<p.value)return notify("No tienes presupuesto suficiente");if(clubPlayers(state.club).length>=28)return notify("Plantilla llena (máximo 28)");state.budget-=p.value;if(state.rosters[cid])state.rosters[cid]=state.rosters[cid].filter(x=>x.id!==p.id);p.club=state.club;state.rosters[state.club].push(p);state.news.unshift("Nuevo fichaje: "+p.name+" por "+money(p.value));save();notify("¡Fichaje confirmado! "+p.name);render()}
@@ -258,6 +298,7 @@ document.addEventListener("click",e=>{
   if(t.dataset.action==="start"){state=createGame(selected);calendarRound=null;screen="career";save();render();window.scrollTo(0,0)}
   if(t.dataset.action==="load"){state=load();if(state){screen="career";render()}else notify("No se encontró una partida guardada")}
   if(t.dataset.action==="play")playMatch();
+  if(t.dataset.action==="real-roster")refreshRealRoster();
 });
 document.addEventListener("input",e=>{
   if(e.target.id==="market-search"&&state){
