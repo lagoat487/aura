@@ -181,28 +181,63 @@ function renderWelcome() {
       ' · '+money(c.budget)+'</span></button>').join("")+'</div><div class="row" style="margin-top:18px"><button class="btn primary" data-action="start">Comenzar con '+getClub(selected).name+' →</button></div>';
 }
 function renderDashboard(){let c=myClub(),op=nextOpponent(),fixture=nextFixture();return legacyNotice()+'<div class="dashboard"><section class="hero"><span class="eyebrow">'+competitionName()+'</span><h1>'+c.name+'</h1><p>Temporada '+state.season+' · Jornada '+Math.min(state.round+1,totalRounds())+'/'+totalRounds()+' · '+c.city+'</p><div class="row"><span class="pill">Posición '+rank()+'º</span><span class="pill">Puntos '+(state.wins*3+state.draws)+'</span><span class="pill">Presupuesto '+money(state.budget)+'</span></div><div class="hero-actions"><button class="btn primary" data-action="play">'+(op?'Simular siguiente jornada ⚽':'Ver cierre de temporada →')+'</button><button class="btn" data-nav="squad">Gestionar plantilla</button><button class="btn" data-action="new">Nueva carrera</button></div><p>'+(op?'Próximo rival: <strong>'+op.name+'</strong> · '+(fixture.home===state.club?'Local':'Visitante'):'Temporada completada')+'</p></section><section class="card"><h3>CLASIFICACIÓN</h3>'+tableHtml(6)+'</section></div><div class="grid" style="margin-top:15px">'+[['squad','⚽ PLANTILLA','Gestiona tu once y tus estrellas.'],['market','↔ MERCADO','Compra y vende futbolistas.'],['calendar','▦ CALENDARIO','Resultados de toda la jornada.'],['academy','★ CANTERA','Forma a tus futuras estrellas.']].map(x=>'<button class="card card-link" data-nav="'+x[0]+'"><h3>'+x[1]+'</h3><p>'+x[2]+'</p><span class="accent">Explorar →</span></button>').join("")+'</div>'+heading("Noticias del club","Lo último en tu carrera")+'<div class="stack">'+state.news.slice(0,4).map(n=>'<div class="notice">'+n+'</div>').join("")+'</div>'}
+// Legacy save IDs are "<originClub>-<index>". Never replace signed players from other clubs.
+function isGeneratedOriginal(player,clubId){
+ const id=String(player?.id||"");
+ return !player?.real&&!player?.academy&&id.startsWith(clubId+"-")&&
+   /^\\d+$/.test(id.slice(clubId.length+1));
+}
+function realRosterCoverage(clubId){
+ const roster=state?.rosters?.[clubId]||[];
+ return {real:roster.filter(p=>p.real).length,generated:roster.filter(p=>isGeneratedOriginal(p,clubId)||p.academy).length};
+}
 function refreshRealRoster(){
  if(!state)return;
- let changed=0;
+ let changed=0,renamed=0;
+ const before=JSON.stringify(state);
+ // Preserve an undo copy before first roster migration.
+ const backupKey=KEY+"-before-real-rosters";
  for(const cid of Object.keys(state.rosters)){
-   const current=state.rosters[cid]||[];
-   const base=getClub(cid),real=Real.rosterFor(base);
+   const current=state.rosters[cid]||[],base=getClub(cid);
+   const real=Real.rosterFor(base);
    if(!real.length)continue;
-   const existing=new Set(current.filter(p=>!p.academy).map(p=>p.name.toLowerCase()));
-   const replacements=real.filter(p=>!existing.has(p.name.toLowerCase()));
+   const ownedIds=new Set(Object.values(state.rosters).flat().map(p=>p.id));
+   const additions=real.filter(p=>!ownedIds.has(p.id));
    let index=0;
-   for(let i=0;i<current.length&&index<replacements.length;i++){
-     if(current[i].academy || (/^[^:]+-\\d+$/.test(current[i].id)&&!current[i].real)){
-       current[i]={...replacements[index++],club:cid};changed++;
+   for(let i=0;i<current.length&&index<additions.length;i++){
+     if(isGeneratedOriginal(current[i],cid)||current[i].academy){
+       const added={...additions[index++],club:cid};
+       current[i]=added;ownedIds.add(added.id);changed++;
      }
    }
-   while(current.length<28&&index<replacements.length){current.push({...replacements[index++],club:cid});changed++}
+   while(current.length<28&&index<additions.length){
+     const added={...additions[index++],club:cid};
+     current.push(added);ownedIds.add(added.id);changed++;
+   }
+   // Remaining unverified names should never masquerade as real footballers.
+   let youthNumber=1;
+   for(const p of current){
+     if(isGeneratedOriginal(p,cid)){
+       p.name="Canterano "+youthNumber++;
+       p.academy=true;
+       renamed++;
+     }
+   }
  }
- if(changed){state.news.unshift("Plantillas actualizadas: "+changed+" futbolistas reales incorporados.");save()}
- notify(changed?changed+" futbolistas reales añadidos sin perder progreso.":"No hay sustituciones disponibles.");render();
+ if(changed||renamed){
+   try{if(!localStorage.getItem(backupKey))localStorage.setItem(backupKey,before)}catch(e){}
+   state.news.unshift("Plantillas reales: "+changed+" futbolistas añadidos; "+renamed+" canteranos identificados.");
+   state.news=state.news.slice(0,20);
+   save();
+ }
+ const coverage=realRosterCoverage(state.club);
+ notify(changed||renamed?
+   "Plantilla actualizada: "+coverage.real+" jugadores reales en tu equipo.":
+   "Sin cambios: "+coverage.real+" jugadores reales en tu equipo.");
+ render();
 }
-function renderSquad(){let ps=clubPlayers(state.club).slice().sort((a,b)=>b.overall-a.overall);let eleven=ps.slice(0,11),rows=[eleven.slice(0,3),eleven.slice(3,6),eleven.slice(6,10),eleven.slice(10,11)];return heading("Plantilla","Valoración media "+overall(state.club)+" · "+ps.length+" jugadores")+
- '<div class="notice"><b>Futbolistas reales:</b> catálogo local de 1.248 convocados al Mundial 2026. Plantillas parciales y medias estimadas. <button class="btn small" data-action="real-roster">Actualizar jugadores reales</button></div>'+ '<div class="two-col"><div class="card"><h3>ONCE IDEAL · 4-3-3 (orientativo)</h3><div class="formation">'+rows.map(row=>'<div class="formation-row">'+row.map(p=>'<div class="player-dot"><b>'+p.overall+'</b><br>'+p.name.split(" ").pop()+'<br>'+p.pos+'</div>').join("")+'</div>').join("")+'</div></div><div>'+rosterHtml(ps)+'</div></div>'}
+function renderSquad(){let ps=clubPlayers(state.club).slice().sort((a,b)=>b.overall-a.overall);let eleven=ps.slice(0,11),rows=[eleven.slice(0,3),eleven.slice(3,6),eleven.slice(6,10),eleven.slice(10,11)],coverage=realRosterCoverage(state.club);return heading("Plantilla","Valoración media "+overall(state.club)+" · "+ps.length+" jugadores")+
+ '<div class="notice"><b>Jugadores reales: '+coverage.real+' de '+ps.length+'</b> · '+coverage.generated+' jugadores generados. La base del Mundial 2026 solo cubre parte de las plantillas y sus medias son estimadas. <button class="btn primary small" data-action="real-roster">⚽ PONER JUGADORES REALES EN MI PLANTILLA</button></div>'+ '<div class="two-col"><div class="card"><h3>ONCE IDEAL · 4-3-3 (orientativo)</h3><div class="formation">'+rows.map(row=>'<div class="formation-row">'+row.map(p=>'<div class="player-dot"><b>'+p.overall+'</b><br>'+p.name.split(" ").pop()+'<br>'+p.pos+'</div>').join("")+'</div>').join("")+'</div></div><div>'+rosterHtml(ps)+'</div></div>'}
 function localMarketResults(){
  const owned=new Set(Object.values(state.rosters).flat().map(p=>p.id));
  const ps=Real.search(marketSearch,50).filter(p=>!owned.has(p.id));
