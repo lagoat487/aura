@@ -11,6 +11,15 @@ Prototipo original de modo carrera de fútbol, jugable desde el navegador.
 
 Si el puerto está ocupado puedes usar `python3 -m http.server 8080`. No hace falta instalar dependencias para jugar; también se puede abrir `index.html` directamente.
 
+## Jugadores reales incluidos en el juego
+
+AURA incluye **1.248 futbolistas reales** del conjunto [FIFA World Cup 2026 – Player Dataset](https://github.com/matyuschenko/fifa-wc2026-players), acreditado bajo **CC BY 4.0** y recopilado el 10 de septiembre de 2026 según su README. Se incluyen nombre, posición original y club informado por la fuente. No es una base completa de todas las plantillas mundiales ni refleja necesariamente cada traspaso actual.
+
+- Los jugadores reales de este catálogo aparecen en las carreras nuevas **sin necesitar conexión**. Los clubes cuyos jugadores no están cubiertos conservan canteranos marcados como tales.
+- En **Plantilla → Actualizar jugadores reales** se pueden sustituir futbolistas genéricos por los disponibles sin reiniciar la temporada. Los jugadores ya identificados como reales, comprados o desarrollados no son borrados deliberadamente.
+- El buscador local permite localizar futbolistas del Mundial por nombre o club incluso si el catálogo más amplio no carga.
+- Los GRL, potenciales y valores económicos sin fuente específica son **estimaciones del videojuego**, no los oficiales de FC27. No hay caras 3D licenciadas; las imágenes de terceros siguen siendo opcionales.
+
 ## Competiciones implementadas
 
 - **LaLiga**: 20 clubes por nombre, con participantes de referencia de la edición **2026/27**; 38 jornadas, 380 partidos, 19 de local y 19 de visitante por club.
@@ -54,6 +63,7 @@ La base de valoraciones enlazada es un proyecto tercero: [EA FC ANALYSIS](https:
 | `competitions.js` | Definiciones, calendarios, resultados, validación y clasificación; usable en navegador y Node. |
 | `game.js` | Carrera, simulación, mercado, cantera, interfaz y compatibilidad de guardados. |
 | `world.js` | Importación opcional de ligas/plantillas de terceros, búsqueda y perfiles de jugadores. |
+| `real-players.js` | Base local acreditada de 1.248 futbolistas del Mundial 2026 y búsqueda sin conexión. |
 | `index.html`, `styles.css` | Carga de scripts en orden, selector de competición y presentación. |
 | `tests/` | Propiedades del calendario, tablas, empates, persistencia y regresiones de carrera. |
 
