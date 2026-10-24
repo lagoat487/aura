@@ -185,7 +185,7 @@ function renderDashboard(){let c=myClub(),op=nextOpponent(),fixture=nextFixture(
 function isGeneratedOriginal(player,clubId){
  const id=String(player?.id||"");
  return !player?.real&&!player?.academy&&id.startsWith(clubId+"-")&&
-   /^\\d+$/.test(id.slice(clubId.length+1));
+   /^\d+$/.test(id.slice(clubId.length+1));
 }
 function realRosterCoverage(clubId){
  const roster=state?.rosters?.[clubId]||[];
