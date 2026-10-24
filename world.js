@@ -127,7 +127,35 @@
     if(!definitions.some(old=>old.id===d.id))definitions.push({...d,clubIds:d.clubIds.slice()});
     return true;
   }
+  const aliases={
+    barcelona:["FC Barcelona","Barcelona"],madrid:["Real Madrid","Real Madrid CF"],
+    atletico:["Atlético de Madrid","Atlético Madrid"],city:["Manchester City"],
+    liverpool:["Liverpool"],munich:["FC Bayern München","Bayern Munich","Bayern Múnich"],
+    paris:["Paris Saint-Germain","Paris SG"],london:["Chelsea"],milan:["Inter","Inter Milan"],
+    acmilan:["AC Milan","Milan"],united:["Manchester United"],juventus:["Juventus"],
+    dortmund:["Borussia Dortmund"],arsenal:["Arsenal"],betis:["Real Betis"],
+    sociedad:["Real Sociedad"],athletic:["Athletic Club"],villarreal:["Villarreal CF"],
+    valencia:["Valencia CF"],sevilla:["Sevilla FC"],celta:["Celta Vigo","RC Celta"],
+    getafe:["Getafe CF"],osasuna:["CA Osasuna"],rayo:["Rayo Vallecano"],
+    espanyol:["RCD Espanyol"],alaves:["Deportivo Alavés"],elche:["Elche CF"],
+    levante:["Levante UD"],flamengo:["Flamengo"],palmeiras:["Palmeiras"],
+    boca:["Boca Juniors"],river:["River Plate"],guayaquil:["Barcelona SC"],
+    quito:["LDU Quito","Liga de Quito"],idv:["Independiente del Valle"],
+    emelec:["Emelec"],nacional:["Atlético Nacional"],america:["América de Cali"]
+  };
   function rosterFor(cid){return catalog.get(cid)?.map(x=>({...x}))||[]}
+  function matchRoster(club){
+    if(!club)return [];
+    const names=(aliases[club.id]||[]).concat([club.name]).map(slug);
+    for(const name of names){
+      const matches=[...clubsById.values()].filter(c=>slug(c.name)===name);
+      if(matches.length){
+        matches.sort((a,b)=>(catalog.get(b.id)?.length||0)-(catalog.get(a.id)?.length||0));
+        return rosterFor(matches[0].id);
+      }
+    }
+    return [];
+  }
   function search(q,limit=24){
     const term=clean(q).toLocaleLowerCase();
     if(term.length<2)return [];
@@ -154,6 +182,6 @@
     }catch(err){loadError=String(err.message||err);throw err}
   }
   return {DATA_URL,SNAPSHOT,decodeCSV,build,integrate,registerSnapshot,
-    rosterFor,search,load,getPlayer:id=>playersById.get(id),getStats:()=>({...stats}),
+    rosterFor,matchRoster,search,load,getPlayer:id=>playersById.get(id),getStats:()=>({...stats}),
     isLoaded:()=>loaded,getError:()=>loadError};
 });
