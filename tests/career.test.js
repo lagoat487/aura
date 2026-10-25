@@ -21,7 +21,7 @@ function boot(saved) {
     localStorage: { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value) },
     setTimeout() {}, clearTimeout() {},
   });
-  for (const file of ["clubs.js", "competitions.js", "world.js", "real-players.js", "game.js"]) {
+  for (const file of ["clubs.js", "competitions.js", "world.js", "real-players.js", "squad.js", "negotiations.js", "career-ui.js", "game.js"]) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, "..", file), "utf8"), context, { filename: file });
   }
   return {
@@ -113,6 +113,14 @@ test("Barcelona starts with actual real names, including Yamal and Pedri",()=>{
  assert.ok(players.some(p=>p.real&&p.name==="Pedri"));
  assert.ok(players.every(p=>p.real||p.academy));
 });
+test("market search includes rival-club footballers and excludes the manager's own squad",()=>{
+ const app=boot();app.click({action:"start"});
+ app.run('marketSearch="Mbapp"');
+ assert.match(app.run("marketResults()"),/Kylian Mbappé/);
+ const own=app.run('clubPlayers(state.club).find(p=>p.name==="Pedri").id');
+ app.run('marketSearch="Pedri"');
+ assert.ok(!app.run("marketResults()").includes('data-buy="'+own+'"'));
+});
 test("old fictional first XI is replaced with real footballers without losing results and budget", () => {
   const app=boot();
   app.click({action:"start"});
@@ -131,3 +139,4 @@ test("old fictional first XI is replaced with real footballers without losing re
   assert.equal(app.saved(),undefined);
   assert.equal(boot().run("state"),null);
 });
+

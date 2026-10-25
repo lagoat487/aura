@@ -33,13 +33,27 @@ AURA incluye **1.248 futbolistas reales** del conjunto [FIFA World Cup 2026 – 
 - Desempates de LaLiga por enfrentamientos directos completos, diferencia de goles general y goles a favor, con miniliga para empates múltiples. Hasta completar los duelos directos se usa diferencia de goles general. No se modelan tarjetas de juego limpio ni un desempate en campo neutral: una igualdad total se ordena por ID de club.
 - Cierre de temporada con campeón, archivo del balance anterior y comienzo de otra temporada con tu plantilla y presupuesto.
 
-También incluye mercado de fichajes y ventas, cantera, desarrollo de jugadores y guardado local.
+También incluye mercado de fichajes y ventas por negociación, cantera y desarrollo de jugadores. La carrera dura la sesión actual, sin guardado automático.
 
 ## Nueva carrera sin guardado
 
 Esta edición no escribe ni lee partidas desde localStorage. Cada vez que abres o recargas el juego aparece la pantalla **Iniciar nueva carrera**, con selección de competición y equipo. Las partidas viejas que ya estaban en el almacenamiento del navegador se dejan intactas, pero no se cargan. El botón Nueva carrera reinicia la sesión actual.
 
 En Barça se priorizan los nombres reales incluidos localmente (Lamine Yamal, Pedri, Raphinha, etc.) para que ninguna base externa ocupe sus plazas. Plantillas incompletas se completan con canteranos explícitamente identificados.
+
+## Plantilla y negociaciones · actualización 25 de octubre de 2026
+
+La plantilla tiene una hoja de equipo editable y una central de contratos, con una interfaz original inspirada en el modo carrera de FC27.
+
+- Elige entre cinco formaciones, arrastra jugadores para intercambiar posiciones o selecciona **Cambiar jugador** y el destino. **Mejor once** elige por posición, valoración y estado. El capitán también se puede cambiar.
+- La simulación usa el **once seleccionado**: fuera de posición, energía y moral influyen en su valoración efectiva. Los suplentes no reciben apariciones; los roles importantes incumplidos durante varias jornadas afectan a la moral.
+- Cada ficha muestra rol, sueldo, contrato, moral, energía, apariciones y valor. **Renovar contrato** y **Negociar venta** abren llamadas de negociación.
+- Para fichar, busca por jugador o club y pulsa **Negociar**: consulta de disponibilidad, acuerdo con el club, contrato con el agente y firma. También hay contraofertas, medidor de tensión y ruptura de conversaciones.
+- Negocia importe, porcentaje de futura venta, sueldo, rol, duración, prima, comisión del agente y cláusula de salida. Las cláusulas existentes se tienen en cuenta al comprar y los porcentajes anteriores se descuentan al vender.
+- El presupuesto y la propiedad del jugador cambian **solo al confirmar la operación**. Se vuelve a comprobar el dinero, el tope salarial y el tamaño de plantilla antes de firmar; cerrar o retirar una llamada no cobra dinero.
+- La central del mercado permite retomar operaciones pausadas y ver las cerradas. Al avanzar jornadas pueden aparecer ofertas rivales y perderse un fichaje sin cargos. El fichaje confirmado tiene una presentación y acceso directo a su ficha.
+
+Consulta las [reglas y límites del sistema](docs/career-management.md). Todas las operaciones y contratos son parte de la simulación de AURA, no un servicio de fichajes reales.
 
 ## Límites actuales y siguiente prioridad
 
@@ -60,7 +74,11 @@ La base de valoraciones enlazada es un proyecto tercero: [EA FC ANALYSIS](https:
 | `game.js` | Carrera, simulación, mercado, cantera, interfaz y compatibilidad de guardados. |
 | `world.js` | Importación opcional de ligas/plantillas de terceros, búsqueda y perfiles de jugadores. |
 | `real-players.js` | Base local acreditada de 1.248 futbolistas del Mundial 2026 y búsqueda sin conexión. |
-| `index.html`, `styles.css` | Carga de scripts en orden, selector de competición y presentación. |
+| `squad.js` | Formaciones, once editable, capitán, posición, energía, moral y masa salarial. |
+| `negotiations.js` | Máquina de estados de compras, ventas y renovaciones; validación y liquidación de acuerdos. |
+| `career-ui.js`, `career.css` | Hoja de equipo, central de contratos, llamadas, ofertas y presentación de fichajes. |
+| `index.html`, `styles.css` | Carga de scripts en orden, selector de competición y presentación general. |
 | `tests/` | Propiedades del calendario, tablas, empates, persistencia y regresiones de carrera. |
 
 Para comprobar el proyecto, con **Node 22 o superior**: `npm test` o `node --test`. No requiere `npm install`. GitHub Actions ejecuta estas pruebas en pushes y pull requests. Las pruebas no requieren descargar datos ni imágenes en tiempo de ejecución. Ver [catálogo mundial y sus límites](docs/world-catalog.md).
+
