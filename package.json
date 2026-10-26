@@ -2,7 +2,8 @@
   "name": "aura-fc27",
   "private": true,
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "build": "node scripts/build.cjs"
   },
   "engines": {
     "node": ">=22"

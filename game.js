@@ -24,7 +24,11 @@ function starterRoster(cid,seed,rating){
  const unique=new Map();
  // Prioritize bundled, attributed footballers so Lamine Yamal and Pedri remain in Barça.
  const norm=name=>String(name||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
- for(const p of [...fixed,...world]){const key=norm(p.name);if(key&&!unique.has(key))unique.set(key,{...p,club:cid});}
+ for(const p of [...fixed,...world]){
+   const name=Real.canonicalName(p.name),key=norm(name);
+   if(key&&!unique.has(key))unique.set(key,{...p,name,club:cid});
+   else if(key&&p.photo&&!unique.get(key).photo)unique.get(key).photo=p.photo;
+ }
  const result=[...unique.values()].slice(0,28);
  // Only generated academy players fill unavailable positions, labeled explicitly.
  const missing=Math.max(0,18-result.length);
@@ -90,7 +94,8 @@ function startNextSeason(competitionId) {
   state.news.unshift("Comienza la temporada "+state.season+" · "+definition.name);
   save(); closeModal(); render();
 }
-function playMatch() {
+function playMatch(suppliedScore=null,matchDetails=null) {
+  if(suppliedScore&&(!Number.isInteger(suppliedScore.home)||!Number.isInteger(suppliedScore.away)||suppliedScore.home<0||suppliedScore.away<0))throw Error("Resultado inválido");
   if(state.round>=totalRounds()) {
     const eligible=Competitions.definitions.filter(c=>c.clubIds.includes(state.club));
     const champion=seasonTable()[0];
@@ -106,11 +111,12 @@ function playMatch() {
   const fixture=nextFixture(), rival=nextOpponent(), home=fixture.home===state.club;
   let score;
   if(state.version===2) {
-    Competitions.simulateNextRound(state.competition,simulateFixture);
+    Competitions.simulateNextRound(state.competition,(homeId,awayId)=>
+      suppliedScore&&homeId===fixture.home&&awayId===fixture.away?suppliedScore:simulateFixture(homeId,awayId));
     state.round=Competitions.playedRounds(state.competition); syncRecord(state);
     score=fixture.score;
   } else {
-    score=simulateFixture(fixture.home,fixture.away); state.round++;
+    score=suppliedScore||simulateFixture(fixture.home,fixture.away); state.round++;
   }
   const g1=home?score.home:score.away, g2=home?score.away:score.home;
   if(state.version===1) {
@@ -118,8 +124,8 @@ function playMatch() {
     if(g1>g2)state.wins++;else if(g1===g2)state.draws++;else state.losses++;
   }
   const names=AuraSquad.players(state).filter(x=>["DC","EI","ED","MCO","SD"].includes(x.pos));
-  const scorers=Array.from({length:g1},()=>names[Math.floor(rand()*names.length)]?.name||"Jugador");
-  state.history.unshift({round:state.round,season:state.season,rival:rival.id,home,g1,g2,scorers});
+  const scorers=matchDetails?matchDetails.goals.filter(g=>g.team===0).map(g=>g.name):Array.from({length:g1},()=>names[Math.floor(rand()*names.length)]?.name||"Jugador");
+  state.history.unshift({round:state.round,season:state.season,rival:rival.id,home,g1,g2,scorers,...(matchDetails?{match:matchDetails}:{})});
   const reward=g1>g2?900000:g1===g2?400000:150000; state.budget+=reward;
   state.news.unshift((g1>g2?"¡Victoria! ":g1===g2?"Empate. ":"Derrota. ")+myClub().name+" "+g1+" - "+g2+" "+rival.name);
   state.news=state.news.slice(0,20);
@@ -147,24 +153,8 @@ function portrait(player){return player.photo&&/^https:\/\/cdn\.sofifa\.net\/pla
   '<img class="player-face" src="'+player.photo+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':
   '<span class="player-face placeholder">⚽</span>'}
 function rosterHtml(players,actions=true){return '<div class="table-wrap"><table class="table"><thead><tr><th>Jugador</th><th>POS</th><th>Edad</th><th>GRL</th><th>POT</th><th>Valor</th>'+(actions?'<th>Acción</th>':'')+'</tr></thead><tbody>'+players.map(p=>'<tr><td><div class="face-name">'+portrait(p)+'<span>'+safeText(p.name)+'</span></div></td><td>'+safeText(p.pos)+'</td><td>'+p.age+'</td><td class="accent"><b>'+p.overall+'</b></td><td>'+p.potential+'</td><td>'+money(p.value)+'</td>'+(actions?'<td><button class="btn small" data-sell="'+safeText(p.id)+'">Vender</button></td>':'')+'</tr>').join("")+'</tbody></table></div>'}
-function renderWelcome() {
-  const definition=Competitions.getDefinition(selectedCompetition);
-  const entrants=definition.clubIds.map(getClub);
-  return '<section class="hero"><span class="eyebrow">TU HISTORIA EMPIEZA AQUÍ</span><h1>EL FÚTBOL<br>ES TUYO.</h1><p>Construye una dinastía. Dirige tu club, descubre talentos, negocia fichajes y conquista la liga.</p><div class="hero-actions"><button class="btn primary" data-action="new">Iniciar nueva carrera →</button>'+
-    '<span class="pill">Sin guardado automático · cada visita comienza de cero</span>'+'</div></section>'+
-    '<span class="eyebrow">1.248 futbolistas reales guardados localmente</span>'+heading("ELIGE TU COMPETICIÓN","Ligas reales de la base externa (instantánea septiembre 2026) cuando hay conexión. Fichajes y presupuestos: simulación.")+
-    (World.isLoaded()?'<p class="notice">'+World.getStats().leagues+' ligas y '+World.getStats().players+' jugadores cargados desde un catálogo externo. Fotos sujetas a disponibilidad del proveedor.</p>':
-      '<p class="notice">Catálogo mundial: '+(World.getError()?'no disponible; puedes usar LaLiga o exhibición sin conexión.':'cargando ligas y plantillas...')+'</p>')+
-    '<div class="competition-picker">'+Competitions.definitions.map(c=>'<button class="card card-link '+
-      (selectedCompetition===c.id?'selected':'')+'" data-competition="'+c.id+'" aria-pressed="'+(selectedCompetition===c.id)+
-      '"><span class="eyebrow">'+c.country+'</span><h3>'+c.name+'</h3><p>'+c.clubIds.length+' clubes · '+
-      ((c.clubIds.length-1)*2)+' jornadas · ida y vuelta</p></button>').join("")+'</div>'+
-    heading("ELIGE TU DESTINO",definition.name+(definition.referenceSeason?' · Clubes de referencia '+definition.referenceSeason:'')+
-      ' · Calendario generado para tu carrera')+'<div class="club-picker">'+entrants.map(c=>'<button class="club-option '+
-      (selected===c.id?'selected':'')+'" data-pick="'+c.id+'"><strong>'+c.name+'</strong><span>'+c.city+' · GRL '+c.rating+
-      ' · '+money(c.budget)+'</span></button>').join("")+'</div><div class="row" style="margin-top:18px"><button class="btn primary" data-action="start">Comenzar con '+getClub(selected).name+' →</button></div>';
-}
-function renderDashboard(){let c=myClub(),op=nextOpponent(),fixture=nextFixture();return legacyNotice()+'<div class="dashboard"><section class="hero"><span class="eyebrow">'+competitionName()+'</span><h1>'+c.name+'</h1><p>Temporada '+state.season+' · Jornada '+Math.min(state.round+1,totalRounds())+'/'+totalRounds()+' · '+c.city+'</p><div class="row"><span class="pill">Posición '+rank()+'º</span><span class="pill">Puntos '+(state.wins*3+state.draws)+'</span><span class="pill">Presupuesto '+money(state.budget)+'</span></div><div class="hero-actions"><button class="btn primary" data-action="play">'+(op?'Simular siguiente jornada ⚽':'Ver cierre de temporada →')+'</button><button class="btn" data-nav="squad">Gestionar plantilla</button><button class="btn" data-action="new">Nueva carrera</button></div><p>'+(op?'Próximo rival: <strong>'+op.name+'</strong> · '+(fixture.home===state.club?'Local':'Visitante'):'Temporada completada')+'</p></section><section class="card"><h3>CLASIFICACIÓN</h3>'+tableHtml(6)+'</section></div><div class="grid" style="margin-top:15px">'+[['squad','⚽ PLANTILLA','Gestiona tu once y tus estrellas.'],['market','↔ MERCADO','Compra y vende futbolistas.'],['calendar','▦ CALENDARIO','Resultados de toda la jornada.'],['academy','★ CANTERA','Forma a tus futuras estrellas.']].map(x=>'<button class="card card-link" data-nav="'+x[0]+'"><h3>'+x[1]+'</h3><p>'+x[2]+'</p><span class="accent">Explorar →</span></button>').join("")+'</div>'+heading("Noticias del club","Lo último en tu carrera")+'<div class="stack">'+state.news.slice(0,4).map(n=>'<div class="notice">'+n+'</div>').join("")+'</div>'}
+function renderWelcome(){return AuraEvolution.welcome()}
+function renderDashboard(){return AuraEvolution.dashboard()}
 // Legacy save IDs are "<originClub>-<index>". Never replace signed players from other clubs.
 function isGeneratedOriginal(player,clubId){
  const id=String(player?.id||"");
@@ -222,11 +212,12 @@ function localMarketResults(){
 }
 function marketResults(){
   if(marketSearch.trim().length<2)return '<p class="save-info">Escribe al menos 2 letras del jugador o del club.</p>';
-  const owned=new Set(clubPlayers(state.club).map(p=>p.id)),seen=new Set(),q=marketSearch.toLocaleLowerCase();
+  const identity=p=>Real.canonicalName(p.name).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+  const owned=new Set(clubPlayers(state.club).map(p=>p.id)),ownedNames=new Set(clubPlayers(state.club).map(identity)),seen=new Set(),q=marketSearch.toLocaleLowerCase();
   const existing=Object.entries(state.rosters).filter(([cid])=>cid!==state.club).flatMap(([,ps])=>ps)
     .filter(p=>p.name.toLocaleLowerCase().includes(q)||getClub(p.club).name.toLocaleLowerCase().includes(q));
   const matches=[...existing,...World.search(marketSearch,50),...Real.search(marketSearch,50)]
-    .filter(p=>{if(owned.has(p.id)||seen.has(p.id))return false;seen.add(p.id);return true})
+    .filter(p=>{const key=identity(p);if(owned.has(p.id)||ownedNames.has(key)||seen.has(key))return false;seen.add(key);return true})
     .slice(0,50).map(p=>findPlayer(p.id)?.p||p);
   if(!matches.length)return '<p class="save-info">No encontramos jugadores disponibles con ese nombre.</p>';
   return '<div class="table-wrap"><table class="table"><thead><tr><th>Jugador</th><th>Club</th><th>GRL</th><th>Valor</th><th>Negociar</th></tr></thead><tbody>'+
@@ -286,10 +277,11 @@ function findPlayer(id){
 function buy(id){AuraCareerUI.start(id,"buy")}
 function sell(id){AuraCareerUI.start(id,"sell")}
 function train(id){let f=findPlayer(id);if(!f||f.cid!==state.club||state.budget<150000||f.p.overall>=f.p.potential)return;state.budget-=150000;f.p.overall++;state.news.unshift(f.p.name+" mejoró a "+f.p.overall+" de media");save();notify(f.p.name+" ganó +1 GRL");render()}
-function render(){let active=state?screen:"home";$("topnav").innerHTML=nav.map(([id,label])=>'<button class="'+(active===id?'active':'')+'" data-nav="'+id+'">'+label+'</button>').join("");$("header-profile").innerHTML=state?'<strong>'+myClub().name+'</strong>Jornada '+state.round+' · '+money(state.budget):'<strong>AURA FC27</strong>Nueva carrera · sin guardado';$("app").innerHTML=!state?renderWelcome():({home:renderDashboard,career:renderDashboard,squad:renderSquad,market:renderMarket,calendar:renderCalendar,academy:renderAcademy,table:renderTable}[active]||renderDashboard)();}
+function render(){AuraEvolution.stopPreview();let active=state?screen:"home";$("topnav").innerHTML=nav.map(([id,label])=>'<button class="'+(active===id?'active':'')+'" data-nav="'+id+'">'+label+'</button>').join("");$("header-profile").innerHTML=state?'<strong>'+myClub().name+'</strong>Jornada '+state.round+' · '+money(state.budget):'<strong>EVOLUTION 2.0</strong>Tu próxima gran historia';$("app").innerHTML=!state?renderWelcome():({home:renderDashboard,career:renderDashboard,squad:renderSquad,market:renderMarket,calendar:renderCalendar,academy:renderAcademy,table:renderTable}[active]||renderDashboard)();AuraEvolution.afterRender();}
 document.addEventListener("click",e=>{
   const t=e.target.closest("button");
   if(!t)return;
+  if(AuraEvolution.handleClick(t))return;
   if(state&&AuraCareerUI.handleClick(t))return;
   if(t.dataset.nav){
     if(!state&&t.dataset.nav!=="home"){notify("Primero crea una carrera");return}
@@ -316,6 +308,7 @@ document.addEventListener("click",e=>{
   if(t.dataset.action==="real-roster")refreshRealRoster();
 });
 document.addEventListener("input",e=>{
+  AuraEvolution.input(e);
   if(state)AuraCareerUI.input(e);
   if(e.target.id==="market-search"&&state){
     marketSearch=String(e.target.value).slice(0,80);
@@ -323,6 +316,7 @@ document.addEventListener("input",e=>{
   }
 });
 document.addEventListener("change",e=>{
+  AuraEvolution.change(e);
   if(state)AuraCareerUI.change(e);
   if(e.target.id==="calendar-round"&&state?.version===2){
     const index=Number(e.target.value);
