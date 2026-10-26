@@ -21,16 +21,30 @@
    "Vinicius Junior":["Vinícius Júnior",90,"EI"],
    "Frenkie De Jong":["Frenkie de Jong",86,"MC"],
    "Ruben Dias":["Rúben Dias",86,"DFC"],
-   "Federico Santiago Valverde Dipetta":["Federico Valverde",89,"MC"]
+   "Federico Santiago Valverde Dipetta":["Federico Valverde",89,"MC"],
+   "Jules Olivier Kounde":["Jules Koundé",86,"LD"],
+   "Frenkie DE Jong":["Frenkie de Jong",86,"MC"],
+   "João Pedro Cavaco Cancelo":["João Cancelo",82,"LI"],
+   "Eric García Martret":["Eric García",81,"DFC"],
+   "Ferran Torres García":["Ferran Torres",82,"DC"],
+   "Daniel Olmo Carvajal":["Dani Olmo",84,"MCO"],
+   "Joan Garcia Pons":["Joan García",84,"POR"],
+   "Pau Cubarsi I Paredes":["Pau Cubarsí",85,"DFC"],
+   "Ronald Federico Araújo DA Silva":["Ronald Araújo",85,"DFC"],
+   "Hamza Mohamed Abdelkarim E Selim":["Hamza Abdelkarim",65,"DC"]
  };
  const special={"Lamine Yamal":[91,"ED"],"Pedri":[89,"MC"],"Raphinha":[89,"EI"],"Jules Koundé":[86,"LD"],"Frenkie De Jong":[86,"MC"],"Joan García":[84,"POR"],"Pau Cubarsí":[85,"DFC"],"Ronald Araújo":[85,"DFC"],"Dani Olmo":[84,"MCO"],"Ferran Torres":[82,"DC"],"Gavi":[83,"MC"],"Marcus Rashford":[84,"EI"],"João Cancelo":[82,"LD"],"Eric García":[81,"DFC"],"Kylian Mbappé":[91,"DC"],"Vinícius Júnior":[90,"EI"],"Jude Bellingham":[90,"MCO"],"Federico Valverde":[89,"MC"],"Thibaut Courtois":[90,"POR"],"Arda Güler":[84,"MCO"],"Brahim Díaz":[82,"ED"],"Erling Haaland":[91,"DC"],"Rodri":[90,"MCD"],"Rúben Dias":[86,"DFC"],"Virgil Van Dijk":[90,"DFC"],"Mohamed Salah":[89,"ED"],"Florian Wirtz":[89,"MCO"],"Alisson":[89,"POR"],"Alexander Isak":[87,"DC"],"Alexis Mac Allister":[86,"MC"]};
  const defaultPos={GK:"POR",DF:"DFC",MF:"MC",FW:"DC"};
  const bySource=new Map(),all=[];
  function bounded(n,a,b){return Math.max(a,Math.min(b,n))}
  function key(n){return n.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase()}
+ const featuredByKey=new Map(Object.entries(featuredAliases).map(([n,v])=>[key(n),v]));
+ const specialByKey=new Map(Object.entries(special).map(([n,v])=>[key(n),v]));
+ function canonicalName(name){return featuredByKey.get(key(String(name||"")))?.[0]||String(name||"");}
  function defaultOverall(id,clubRating,year){
    let hash=0;for(const c of id)hash=(Math.imul(31,hash)+c.charCodeAt(0))|0;
-   return bounded(Math.round(clubRating)-5+Math.abs(hash%10)+(year>=2003?1:0),55,90);
+   const age=2026-year,ceiling=age<=19?72:age<=22?79:age>=35?84:88;
+   return bounded(Math.round(clubRating)-7+Math.abs(hash%10)-(age>=35?4:0),55,ceiling);
  }
  rows.forEach((row,i)=>{
    const [name,sourceClubIndex,sourcePos,year]=row;
@@ -41,8 +55,8 @@
  });
  function makePlayer(entry,club){
    const target=club||{id:"free-agent",rating:74};
-   const featured=featuredAliases[entry.name]||null;
-   const preferred=featured?[featured[1],featured[2]]:(special[entry.name]||special[key(entry.name)]||null);
+   const featured=featuredByKey.get(key(entry.name))||null;
+   const preferred=featured?[featured[1],featured[2]]:(specialByKey.get(key(entry.name))||null);
    const overall=preferred?preferred[0]:defaultOverall(entry.id,target.rating||74,entry.year);
    const age=bounded(2026-entry.year,16,45);
    const potential=bounded(overall+(age<=21?8:age<=24?5:age<29?2:0),overall,95);
@@ -69,7 +83,8 @@
    return entry?makePlayer(entry,club):null;
  }
  return {SOURCE:"https://github.com/matyuschenko/fifa-wc2026-players",
-   snapshot:"2026-09-10",rosterFor,search,getPlayer,
+   snapshot:"2026-09-10",rosterFor,search,getPlayer,canonicalName,
+   allPlayers:()=>all.map(p=>makePlayer(p,{id:"wc-market:"+p.sourceClub,rating:78})),
    available:()=>all.length,sourceClubCount:()=>bySource.size,
    clubCoverage:club=>rosterFor(club).length};
 });

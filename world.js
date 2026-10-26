@@ -12,7 +12,11 @@
   const allowed=["player_id","common_name","first_name","last_name","overall_rating",
     "position","club","league","gender","birthdate","nationality"];
   const countries={"Premier League":"Inglaterra","LaLiga EA SPORTS":"España",
-    "LaLiga":"España","Bundesliga":"Alemania","Serie A":"Italia","Ligue 1":"Francia"};
+    "LaLiga":"España","LALIGA EA SPORTS":"España","LALIGA HYPERMOTION":"España",
+    "Bundesliga":"Alemania","Bundesliga 2":"Alemania","Serie A":"Italia","Serie A Enilive":"Italia",
+    "Ligue 1":"Francia","Ligue 1 McDonalds":"Francia","LPF":"Argentina","Eredivisie":"Países Bajos",
+    "EFL Championship":"Inglaterra","EFL League One":"Inglaterra","EFL League Two":"Inglaterra",
+    "Liga Portugal":"Portugal","MLS":"Estados Unidos","Liga BBVA MX":"México"};
   const positions={GK:"POR",RB:"LD",RWB:"LD",LB:"LI",LWB:"LI",CB:"DFC",
     CDM:"MCD",CM:"MC",CAM:"MCO",RM:"MD",LM:"MI",RW:"ED",LW:"EI",CF:"SD",ST:"DC"};
   let loaded=false,loadError=null,catalog=new Map(),clubsById=new Map(),playersById=new Map();
@@ -55,7 +59,9 @@
     if(!/^\d{3,9}$/.test(id)||!Number.isInteger(overall)||overall<1||overall>99)return null;
     const name=clean(row.common_name)||clean([row.first_name,row.last_name].filter(Boolean).join(" "));
     if(!name)return null;
-    const birth=String(row.birthdate||"");
+    const rawBirth=String(row.birthdate||"");
+    const parts=/^(\d{2})[-/](\d{2})[-/](\d{4})$/.exec(rawBirth);
+    const birth=parts?parts[3]+"-"+parts[2]+"-"+parts[1]:rawBirth;
     const y=Number(birth.slice(0,4));
     const age=y>=1960&&y<=2012?2026-y-(birth.slice(5,10)>"09-12"?1:0):24;
     const potential=Math.min(99,overall+(age<21?7:age<24?4:age<27?2:0));
@@ -96,7 +102,7 @@
         const rating=Math.round(top.reduce((sum,p)=>sum+p.overall,0)/top.length);
         const budget=Math.round(Math.max(1000000,(rating-55)**2*90000));
         const c={id:team.id,name:team.name,city:entry.name,rating,budget,
-          reference:SNAPSHOT};
+          reference:SNAPSHOT,gender:entry.gender};
         if(!existingClubIds.has(c.id))newClubs.push(c);
         clubIds.push(c.id);
         generatedPlayers.set(c.id,team.players);
@@ -150,7 +156,7 @@
     for(const name of names){
       const matches=[...clubsById.values()].filter(c=>slug(c.name)===name);
       if(matches.length){
-        matches.sort((a,b)=>(catalog.get(b.id)?.length||0)-(catalog.get(a.id)?.length||0));
+        matches.sort((a,b)=>Number(b.gender==="men")-Number(a.gender==="men")||(catalog.get(b.id)?.length||0)-(catalog.get(a.id)?.length||0));
         return rosterFor(matches[0].id);
       }
     }
@@ -171,6 +177,13 @@
   }
   async function load(clubs,definitions,fetcher){
     if(loaded)return stats;
+    if(typeof globalThis!=="undefined"&&globalThis.AuraBundledWorld){
+      const bundle=globalThis.AuraBundledWorld;
+      const rows=bundle.rows.map(values=>Object.fromEntries(bundle.columns.map((key,i)=>[key,String(values[i]??"")])));
+      const data=build(rows,clubs,definitions);
+      if(!data.stats.players)throw Error("El catálogo incluido no tiene plantillas completas");
+      return integrate(data,clubs,definitions);
+    }
     if(typeof fetcher!=="function")throw Error("Fetch no disponible");
     try{
       const response=await fetcher(DATA_URL);
@@ -183,5 +196,6 @@
   }
   return {DATA_URL,SNAPSHOT,decodeCSV,build,integrate,registerSnapshot,
     rosterFor,matchRoster,search,load,getPlayer:id=>playersById.get(id),getStats:()=>({...stats}),
+    allPlayers:()=>[...playersById.values()].map(p=>({...p})),
     isLoaded:()=>loaded,getError:()=>loadError};
 });

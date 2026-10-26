@@ -1,66 +1,83 @@
-# AURA FC27 ⚽
+# AURA / Evolution 2.0
 
-Prototipo original de modo carrera de fútbol, jugable desde el navegador.
+Fútbol de navegador con partidos 3D de once contra once, modo carrera, plantilla editable, negociaciones por etapas y Draft XI gratuito. Actualiza el proyecto AURA existente e integra la gestión de plantilla y fichajes que estaba en la rama `codex/negotiations-squad-20261025`.
 
-## Cómo jugar en GitHub Codespaces
+![AURA Evolution: inicio y estadio](docs/aura-evolution-preview-20261026.jpg)
 
-1. Abre tu Codespace. Si estaba abierto antes de la actualización, ejecuta `git pull` en la rama que quieras probar.
-2. En la terminal ejecuta `python3 -m http.server 8000`.
-3. En **Puertos (PORTS)**, selecciona **Open in Browser / Abrir en navegador** para el puerto **8000**.
-4. Elige una competición y un club. El progreso existe solo durante la sesión: al recargar se inicia desde cero.
+## Jugar
 
-Si el puerto está ocupado puedes usar `python3 -m http.server 8080`. No hace falta instalar dependencias para jugar; también se puede abrir `index.html` directamente.
+Abre `index.html` o sirve el repositorio en tu Codespace con `python3 -m http.server 8000` y abre el puerto 8000. No necesitas instalar paquetes para jugar: el motor gráfico y el catálogo están incluidos. Los retratos opcionales siguen dependiendo de un proveedor externo.
 
-## Jugadores reales incluidos en el juego
+- **Carrera:** selecciona competición y club. **Jugar partido 3D** disputa tu siguiente jornada; **Simular jornada** calcula los resultados inmediatamente.
+- **Partido rápido:** elige dos equipos y juega contra la IA.
+- **Draft XI:** elige uno de cinco futbolistas por posición, completa once jugadores distintos y juega un amistoso contra Real Madrid. Sin monedas, compras ni premios de pago.
 
-AURA incluye **1.248 futbolistas reales** del conjunto [FIFA World Cup 2026 – Player Dataset](https://github.com/matyuschenko/fifa-wc2026-players), acreditado bajo **CC BY 4.0** y recopilado el 10 de septiembre de 2026 según su README. Se incluyen nombre, posición original y club informado por la fuente. No es una base completa de todas las plantillas mundiales ni refleja necesariamente cada traspaso actual.
+La carrera permanece en memoria durante la sesión. Recargar siempre vuelve a **Iniciar nueva carrera**, sin leer ni escribir `localStorage`.
 
-- Los jugadores reales de este catálogo aparecen en las carreras nuevas **sin necesitar conexión**. Los clubes cuyos jugadores no están cubiertos conservan canteranos marcados como tales.
-- En **Plantilla → Actualizar jugadores reales** se pueden sustituir futbolistas genéricos por los disponibles sin reiniciar la temporada. Los jugadores ya identificados como reales, comprados o desarrollados no son borrados deliberadamente.
-- El buscador local permite localizar futbolistas del Mundial por nombre o club incluso si el catálogo más amplio no carga.
-- Los GRL, potenciales y valores económicos sin fuente específica son **estimaciones del videojuego**, no los oficiales de FC27. No hay caras 3D licenciadas; las imágenes de terceros siguen siendo opcionales.
+## Controles
 
-## Competiciones implementadas
+| Acción | Teclado | Mando estándar |
+| --- | --- | --- |
+| Mover | WASD o flechas | Stick izquierdo |
+| Disparar | Mantener y soltar J | B / círculo |
+| Pase | K | A / cruz |
+| Pase al espacio | L | Y / triángulo |
+| Entrada | Espacio | X / cuadrado |
+| Cambiar jugador | E | LB / L1 |
+| Sprint | Shift | RB / R1 |
+| Cambiar cámara | C | Botón en pantalla |
+| Pausa | P o Escape | Start / Options |
 
-- **LaLiga**: 20 clubes por nombre, con participantes de referencia de la edición **2026/27**; 38 jornadas, 380 partidos, 19 de local y 19 de visitante por club.
-- **Liga internacional de exhibición**: los 24 clubes originales, 46 jornadas y 552 partidos. Es una competición ficticia separada.
-- **Catálogo mundial opcional**: al abrir el juego con conexión, `world.js` descarga un CSV externo de plantillas del **12 de septiembre de 2026**. Agrupa competiciones por liga y categoría, y permite elegir cualquiera que tenga al menos dos clubes con once jugadores. **El número exacto de ligas y jugadores cargados aparece en pantalla**; no se promete que estén todas las ligas ni todos los futbolistas del mundo.
-- **Plantillas**: cuando el catálogo proporciona jugadores para un club, muestra sus nombres, posiciones y valoraciones de la instantánea y busca un retrato en un servicio externo. Las imágenes pueden faltar; no son escaneos 3D. Los clubes sin correspondencia conservan las plantillas ficticias.
-- **Buscador mundial de mercado**: permite encontrar futbolistas externos por nombre o club. El valor, salario y potencial usados para fichajes son cálculos ficticios, no importes oficiales.
-- Calendario completo generado al crear la temporada. **No reproduce las fechas ni el orden del calendario oficial**.
-- Cada avance simula toda la jornada y guarda sus resultados. Clasificación, calendario y balance de tu club salen de los mismos marcadores: 3 puntos por victoria, 1 por empate y 0 por derrota.
-- Consulta los diez partidos de cada jornada de LaLiga desde Calendario, o los doce de exhibición. Clasificación muestra todos los participantes.
-- Desempates de LaLiga por enfrentamientos directos completos, diferencia de goles general y goles a favor, con miniliga para empates múltiples. Hasta completar los duelos directos se usa diferencia de goles general. No se modelan tarjetas de juego limpio ni un desempate en campo neutral: una igualdad total se ordena por ID de club.
-- Cierre de temporada con campeón, archivo del balance anterior y comienzo de otra temporada con tu plantilla y presupuesto.
+En pantalla táctil aparecen un joystick y botones. El equipo dirigido ataca hacia la derecha en la primera parte y hacia la izquierda en la segunda. Hay tres cámaras: transmisión, amplia y táctica.
 
-También incluye mercado de fichajes y ventas, cantera, desarrollo de jugadores y guardado local.
+Antes de jugar puedes elegir 2, 3, 5 u 8 minutos de duración total, tres dificultades, noche/atardecer/día y tres calidades gráficas. El reloj transforma esa duración en 90 minutos de fútbol. El descanso, las celebraciones y la pausa no consumen tiempo de partido.
 
-## Nueva carrera sin guardado
+## Partidos y gráficos
 
-Esta edición no escribe ni lee partidas desde localStorage. Cada vez que abres o recargas el juego aparece la pantalla **Iniciar nueva carrera**, con selección de competición y equipo. Las partidas viejas que ya estaban en el almacenamiento del navegador se dejan intactas, pero no se cargan. El botón Nueva carrera reinicia la sesión actual.
+`match-engine.js` separa la simulación de los gráficos. Incluye 22 futbolistas, movimiento con energía, balón, pases, tiros con potencia, entradas, porteros, reinicios al salir el balón, goles, cambio de campo y estadísticas.
 
-En Barça se priorizan los nombres reales incluidos localmente (Lamine Yamal, Pedri, Raphinha, etc.) para que ninguna base externa ocupe sus plazas. Plantillas incompletas se completan con canteranos explícitamente identificados.
+`match-graphics.js` utiliza **Three.js / WebGL**, incluido localmente bajo licencia MIT. El estadio, las gradas, los espectadores, las redes, los modelos y las texturas son geometría y dibujos originales generados por código. Los jugadores son estilizados; las insignias son representaciones originales, no escudos oficiales.
 
-## Límites actuales y siguiente prioridad
+`software-graphics.js` dibuja el mismo partido con proyección 3D sobre Canvas 2D cuando WebGL está desactivado. Se indica **3D compatible · sin aceleración gráfica** dentro del partido.
 
-Sin conexión, el juego conserva LaLiga y exhibición con jugadores de demostración. Con conexión puede cargar las plantillas externas, pero la cobertura y su disponibilidad dependen del catálogo remoto. Los participantes de cada liga externa representan una **instantánea del proveedor**, no una lista verificada de inscripciones oficiales; sus calendarios se generan para el videojuego. Las reglas de desempate de ligas externas se aproximan con puntos, diferencia de goles y goles a favor, sin reglas regionales específicas.
+Esta actualización **no utiliza Unreal Engine**. Unreal no estaba instalado en el entorno. Una aplicación Unreal para navegador necesita una compilación nativa e infraestructura de Pixel Streaming; no se activa añadiendo una dependencia al HTML. No se han contratado servidores ni creado cuentas.
 
-**No incluye licencias oficiales, escudos, caras 3D, partidos 3D controlables, multijugador, copas, Champions League, Libertadores, Sudamericana, ascensos/descensos ni clasificación continental**. Las siguientes temporadas mantienen los participantes de su liga seleccionada.
+El fútbol es arcade: no hay fuera de juego, faltas, penaltis, tarjetas, lesiones ni sustituciones durante el partido. No hay multijugador en línea ni animaciones de un juego comercial.
 
-La mejora siguiente es implementar copas y clasificación continental, junto a reglas específicas por país. Solo añadir los nombres de clubes no equivale a reproducir sus competiciones oficiales.
+## Carrera, plantilla y mercado
 
-La base de valoraciones enlazada es un proyecto tercero: [EA FC ANALYSIS](https://github.com/LakshmiKanth11/EA_FC_ANALYSIS). El enlace al CSV no implica una licencia para redistribuirlo; los rostros se solicitan al CDN de SoFIFA y pueden estar ausentes o sujetos a condiciones de uso. Para una distribución pública/comercial hay que verificar derechos sobre marcas, datos e imágenes. Cambiar únicamente los nombres de la exhibición no implementa esas competiciones. Ver [diseño, fuentes y alcance](docs/competitions.md).
+- Cinco formaciones, once editable por selección o arrastre, suplentes, capitán y selección automática por posición. Los partidos 3D usan ese once y sus posiciones de partida.
+- Moral, energía, roles, contratos, salarios y apariciones. La simulación utiliza la fuerza efectiva del once.
+- Cuatro estilos de movimiento para tus compañeros en 3D: equilibrado, posesión, presión y contraataque.
+- Fichajes: consulta → acuerdo con el club → contrato con el agente → firma. Incluye contraofertas, tensión, ventas, renovaciones y ofertas rivales al avanzar jornadas.
+- El presupuesto cambia solo al confirmar una firma, después de validar dinero, propiedad, capacidad y tope salarial. Las llamadas pausadas se pueden retomar.
+- El resultado jugado sustituye únicamente el marcador del encuentro del usuario; los demás se simulan. Se mantiene la orientación local/visitante del calendario.
+- Salir sin resultado no avanza la jornada ni entrega ingresos. Un mismo resultado no puede confirmarse dos veces.
 
-## Estructura y comprobaciones
+Reglas de contratos: [docs/career-management.md](docs/career-management.md). Los salarios actúan como tope de contratación, sin descuento semanal automático.
 
-| Archivo | Responsabilidad |
-| --- | --- |
-| `clubs.js` | Catálogo de clubes e IDs estables; datos de juego separados de reglas. |
-| `competitions.js` | Definiciones, calendarios, resultados, validación y clasificación; usable en navegador y Node. |
-| `game.js` | Carrera, simulación, mercado, cantera, interfaz y compatibilidad de guardados. |
-| `world.js` | Importación opcional de ligas/plantillas de terceros, búsqueda y perfiles de jugadores. |
-| `real-players.js` | Base local acreditada de 1.248 futbolistas del Mundial 2026 y búsqueda sin conexión. |
-| `index.html`, `styles.css` | Carga de scripts en orden, selector de competición y presentación. |
-| `tests/` | Propiedades del calendario, tablas, empates, persistencia y regresiones de carrera. |
+## Datos y alcance
 
-Para comprobar el proyecto, con **Node 22 o superior**: `npm test` o `node --test`. No requiere `npm install`. GitHub Actions ejecuta estas pruebas en pushes y pull requests. Las pruebas no requieren descargar datos ni imágenes en tiempo de ejecución. Ver [catálogo mundial y sus límites](docs/world-catalog.md).
+La instantánea ampliada incluida acepta **19.423 jugadores, 739 clubes y 49 agrupaciones de competición**. Conserva además LaLiga y la exhibición originales. Algunas agrupaciones externas tienen cobertura parcial o representan torneos internacionales; todas se juegan con formato de liga de ida y vuelta de AURA.
+
+Fuentes:
+
+- [EA FC ANALYSIS](https://github.com/LakshmiKanth11/EA_FC_ANALYSIS): instantánea declarada del 12 de septiembre de 2026. Se incluyen solo identidad, posición, GRL, club, liga, género, nacimiento y nacionalidad. Es una base de terceros, **no una lista de inscritos oficiales verificada**, y puede contener errores o traspasos desactualizados.
+- [FIFA WC2026 Players](https://github.com/matyuschenko/fifa-wc2026-players): 1.248 identidades del Mundial, atribuidas bajo CC BY 4.0. Las posiciones específicas, GRL y precios que ese origen no proporciona son estimaciones originales de AURA. Se normalizan nombres formales conocidos para evitar duplicados.
+
+Se interpretan correctamente cumpleaños ISO y día-mes-año. Los retratos opcionales enlazan a SoFIFA; si faltan se muestran iniciales. No hay caras 3D escaneadas ni licencias oficiales. Presupuestos, salarios, valores y potenciales pertenecen al videojuego. Los calendarios no reproducen las fechas oficiales.
+
+No hay ascensos, descensos, copas con formato oficial ni clasificación continental. Las siguientes temporadas mantienen los participantes de la liga seleccionada. Detalles: [docs/world-catalog.md](docs/world-catalog.md).
+
+## Verificación
+
+Con Node 22 o superior:
+
+```sh
+npm test
+npm run build
+```
+
+Las pruebas verifican partidos, goles válidos, controles del modelo, porteros, pausa, cambio de campo, determinismo, calendarios, plantilla, Draft XI, catálogo sin red, presupuesto y negociaciones. El build comprueba sintaxis y reúne solo los archivos de ejecución en `dist/`.
+
+La revisión de navegador usa Canvas 3D cuando el navegador de pruebas tiene WebGL desactivado. La ejecución acelerada debe comprobarse en un dispositivo compatible con WebGL. Licencia de Three.js: [vendor/THREE-LICENSE.txt](vendor/THREE-LICENSE.txt).
