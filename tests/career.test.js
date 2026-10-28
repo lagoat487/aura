@@ -21,7 +21,7 @@ function boot(saved) {
     localStorage: { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value) },
     setTimeout() {}, clearTimeout() {},
   });
-  for (const file of ["clubs.js", "competitions.js", "world.js", "real-players.js", "squad.js", "progression.js", "negotiations.js", "career-ui.js", "progression-ui.js", "match-engine.js", "match-graphics.js", "match-ui.js", "evolution-ui.js", "game.js"]) {
+  for (const file of ["clubs.js", "competitions.js", "world.js", "real-players.js", "roster-sync.js", "club-badges.js", "squad.js", "progression.js", "negotiations.js", "career-ui.js", "progression-ui.js", "match-engine.js", "match-graphics.js", "match-ui.js", "evolution-ui.js", "game.js"]) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, "..", file), "utf8"), context, { filename: file });
   }
   return {
@@ -201,5 +201,27 @@ test("career substitutions keep slot ratings and credit both starter and substit
  assert.equal(app.run('clubPlayers(state.club).find(p=>p.id===sub.id).appearances'),1);
  assert.equal(app.run('state.history[0].match.participants[0].length'),12);
  assert.equal(app.run('state.progression.training.round'),1);
+});
+
+test("new careers, quick teams, roster preview and market share current memberships",async()=>{
+ const app=boot();app.run(fs.readFileSync(path.join(__dirname,"..","data/world-rosters.js"),"utf8"));
+ await app.run("World.load(clubs,Competitions.definitions)");app.run("render()");
+ app.click({evo:"view-roster",club:"barcelona"});
+ assert.match(app.node("modal").innerHTML,/Gabriel Jesus/);
+ assert.doesNotMatch(app.node("modal").innerHTML,/Ronald Ara/);
+ app.click({action:"start"});
+ assert.equal(app.run("clubPlayers(state.club).length"),27);
+ assert.equal(app.run('clubPlayers(state.club).some(p=>p.name.includes("Araújo"))'),false);
+ assert.equal(app.run('AuraArena.team(getClub("liverpool")).players.concat(AuraArena.team(getClub("liverpool")).bench).filter(p=>p.name==="Ronald Araújo").length'),1);
+ app.run('marketSearch="araujo"');
+ assert.match(app.run("marketResults()"),/Ronald Araújo/);
+ assert.match(app.run("marketResults()"),/Liverpool/);
+ assert.equal(app.run('AuraEvolution.pool().filter(p=>p.name==="Ronald Araújo").length'),1);
+ const names=app.json('clubPlayers(state.club).map(p=>p.name)');
+ app.click({action:"real-roster"});
+ assert.deepEqual(app.json('clubPlayers(state.club).map(p=>p.name)'),names);
+ app.run('globalThis.sold=clubPlayers(state.club).find(p=>p.name==="Rodri");state.departedPlayers={[sold.id]:{...sold,club:"outside-league"}};state.rosters[state.club]=clubPlayers(state.club).filter(p=>p.id!==sold.id)');
+ app.click({action:"real-roster"});
+ assert.equal(app.run('clubPlayers(state.club).some(p=>p.id===sold.id)'),false);
 });
 

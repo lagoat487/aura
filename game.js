@@ -19,17 +19,8 @@ const rng=seeded(seed);return Array.from({length:count},(_,i)=>{let age=18+Math.
 return {id:cid+"-"+i,name:first[Math.floor(rng()*first.length)]+" "+last[Math.floor(rng()*last.length)],pos:pos[i%pos.length],age,overall,potential:clamp(overall+Math.floor(rng()*10),overall,95),value:Math.round((overall*overall*overall/130)*(age<23?1.3:1)*100),wage:Math.round(overall*overall*0.9),club:cid,form:65+Math.floor(rng()*31)};})}
 function starterRoster(cid,seed,rating){
  const c=getClub(cid);
- const world=World.rosterFor(cid).length?World.rosterFor(cid):World.matchRoster(c);
- const fixed=Real.rosterFor(c);
- const unique=new Map();
- // Prioritize bundled, attributed footballers so Lamine Yamal and Pedri remain in Barça.
- const norm=name=>String(name||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
- for(const p of [...fixed,...world]){
-   const name=Real.canonicalName(p.name),key=norm(name);
-   if(key&&!unique.has(key))unique.set(key,{...p,name,club:cid});
-   else if(key&&p.photo&&!unique.get(key).photo)unique.get(key).photo=p.photo;
- }
- const result=[...unique.values()].slice(0,28);
+ // Use one reconciled membership source, never union old and new club lists.
+ const result=AuraRosterSync.rosterFor(c).slice(0,28).map(p=>({...p,club:cid}));
  // Only generated academy players fill unavailable positions, labeled explicitly.
  const missing=Math.max(0,18-result.length);
  return result.concat(genPlayers(cid,seed,rating,missing).map((p,i)=>({
@@ -149,7 +140,7 @@ function openModal(title,body){if($("modal").hidden)modalReturnFocus=document.ac
 function closeModal(){$("modal").hidden=true;$("modal").innerHTML="";modalReturnFocus?.focus?.();modalReturnFocus=null}
 function card(title,body){return '<article class="card"><h3>'+title+'</h3>'+body+'</article>'}
 function heading(title,desc){return '<div class="section-head"><div><span class="eyebrow">AURA FOOTBALL · '+(state?'TEMPORADA '+state.season:'NUEVA EXPERIENCIA')+'</span><h1>'+title+'</h1><p>'+desc+'</p></div></div>'}
-function tableHtml(limit=Infinity){let arr=seasonTable().slice(0,limit);return '<div class="table-wrap"><table class="table"><thead><tr><th>POS</th><th>Club</th><th>PJ</th><th>G</th><th>E</th><th>P</th><th>GF</th><th>GC</th><th>DG</th><th>PTS</th></tr></thead><tbody>'+arr.map((x,i)=>'<tr class="'+(x.id===state.club?'highlight':'')+'"><td>'+(i+1)+'</td><td>'+x.name+'</td><td>'+x.p+'</td><td>'+x.w+'</td><td>'+x.d+'</td><td>'+x.l+'</td><td>'+x.gf+'</td><td>'+x.ga+'</td><td>'+(x.gf-x.ga)+'</td><td><strong>'+x.pts+'</strong></td></tr>').join("")+'</tbody></table></div>'}
+function tableHtml(limit=Infinity){let arr=seasonTable().slice(0,limit);return '<div class="table-wrap"><table class="table"><thead><tr><th>POS</th><th>Club</th><th>PJ</th><th>G</th><th>E</th><th>P</th><th>GF</th><th>GC</th><th>DG</th><th>PTS</th></tr></thead><tbody>'+arr.map((x,i)=>'<tr class="'+(x.id===state.club?'highlight':'')+'"><td>'+(i+1)+'</td><td><span class="table-club">'+AuraEvolution.badge(x,23)+safeText(x.name)+'</span></td><td>'+x.p+'</td><td>'+x.w+'</td><td>'+x.d+'</td><td>'+x.l+'</td><td>'+x.gf+'</td><td>'+x.ga+'</td><td>'+(x.gf-x.ga)+'</td><td><strong>'+x.pts+'</strong></td></tr>').join("")+'</tbody></table></div>'}
 function safeText(value){return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function portrait(player){return player.photo&&/^https:\/\/cdn\.sofifa\.net\/players\/\d+\/\d+\/26_120\.png$/.test(player.photo)?
   '<img class="player-face" src="'+player.photo+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':
@@ -172,10 +163,11 @@ function refreshRealRoster(){
  let changed=0,renamed=0;
  for(const cid of Object.keys(state.rosters)){
    const current=state.rosters[cid]||[],base=getClub(cid);
-   const real=Real.rosterFor(base);
+   const real=AuraRosterSync.rosterFor(base);
    if(!real.length)continue;
-   const ownedIds=new Set(Object.values(state.rosters).flat().map(p=>p.id));
-   const additions=real.filter(p=>!ownedIds.has(p.id));
+   const accounted=Object.values(state.rosters).flat().concat(Object.values(state.departedPlayers||{}));
+   const ownedIds=new Set(accounted.map(p=>p.id)),ownedNames=new Set(accounted.map(p=>AuraRosterSync.key(p)));
+   const additions=real.filter(p=>!ownedIds.has(p.id)&&!ownedNames.has(AuraRosterSync.key(p)));
    let index=0;
    for(let i=0;i<current.length&&index<additions.length;i++){
      if(isGeneratedOriginal(current[i],cid)||current[i].academy){
@@ -214,11 +206,11 @@ function localMarketResults(){
 }
 function marketResults(){
   if(marketSearch.trim().length<2)return '<p class="save-info">Escribe al menos 2 letras del jugador o del club.</p>';
-  const identity=p=>Real.canonicalName(p.name).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
-  const owned=new Set(clubPlayers(state.club).map(p=>p.id)),ownedNames=new Set(clubPlayers(state.club).map(identity)),seen=new Set(),q=marketSearch.toLocaleLowerCase();
+  const identity=p=>AuraRosterSync.key(p);
+  const owned=new Set(clubPlayers(state.club).map(p=>p.id)),ownedNames=new Set(clubPlayers(state.club).map(identity)),seen=new Set(),q=AuraRosterSync.key(marketSearch);
   const existing=Object.entries(state.rosters).filter(([cid])=>cid!==state.club).flatMap(([,ps])=>ps)
-    .filter(p=>p.name.toLocaleLowerCase().includes(q)||getClub(p.club).name.toLocaleLowerCase().includes(q));
-  const matches=[...existing,...World.search(marketSearch,50),...Real.search(marketSearch,50)]
+    .filter(p=>AuraRosterSync.key(p.name).includes(q)||AuraRosterSync.key(getClub(p.club).name).includes(q));
+  const matches=[...existing,...AuraRosterSync.search(marketSearch,50)]
     .filter(p=>{const key=identity(p);if(owned.has(p.id)||ownedNames.has(key)||seen.has(key))return false;seen.add(key);return true})
     .slice(0,50).map(p=>findPlayer(p.id)?.p||p);
   if(!matches.length)return '<p class="save-info">No encontramos jugadores disponibles con ese nombre.</p>';
@@ -234,8 +226,9 @@ function renderMarket(){
     pool.slice(0,75).map(p=>'<tr><td><div class="face-name">'+portrait(p)+safeText(p.name)+'</div></td><td>'+safeText(getClub(p.club).name)+'</td><td>'+safeText(p.pos)+'</td><td class="accent">'+p.overall+'</td><td>'+money(p.value)+'</td><td><button class="btn small" data-buy="'+safeText(p.id)+'" '+(state.budget<=0?'disabled':'')+'>Negociar</button></td></tr>').join("")+'</tbody></table></div>';
 }
 function fixtureHtml(game) {
-  return '<div class="statline"><span>Jornada '+game.round+'</span><b>'+getClub(game.home).name+' '+
-    (game.score?game.score.home+' — '+game.score.away:'vs')+' '+getClub(game.away).name+'</b></div>';
+  const home=getClub(game.home),away=getClub(game.away);
+  return '<div class="statline"><span>Jornada '+game.round+'</span><b class="fixture-versus"><span class="fixture-club">'+AuraEvolution.badge(home,22)+safeText(home.name)+'</span> '+
+    (game.score?game.score.home+' — '+game.score.away:'vs')+' <span class="fixture-club">'+AuraEvolution.badge(away,22)+safeText(away.name)+'</span></b></div>';
 }
 function legacyNotice() {
   return state.version===1?'<div class="notice legacy-notice">Guardado anterior: se conserva tu temporada de exhibición y su progreso. Las tablas rivales son estimaciones. El calendario completo se activará en la próxima temporada.</div>':'';
@@ -273,13 +266,13 @@ function renderTable(){return heading("Clasificación",competitionName()+" · Jo
 function findPlayer(id){
   for(const [cid,players] of Object.entries(state.rosters)){let p=players.find(x=>x.id===id);if(p)return{p,cid}}
   if(state.departedPlayers?.[id]){const p=state.departedPlayers[id];return {p,cid:p.club,external:true}}
-  const p=World.getPlayer(id)||Real.getPlayer(id);
+  const p=AuraRosterSync.getPlayer(id);
   return p?{p:{...p},cid:p.club,external:true}:null;
 }
 function buy(id){AuraCareerUI.start(id,"buy")}
 function sell(id){AuraCareerUI.start(id,"sell")}
 function train(id){const result=AuraProgression.train(state,id,"balanced");notify(result.error||result.message);save();render()}
-function render(){AuraEvolution.stopPreview();let active=state?screen:"home";$("topnav").innerHTML=nav.map(([id,label])=>'<button class="'+(active===id?'active':'')+'" '+(active===id?'aria-current="page" ':'')+'data-nav="'+id+'">'+label+'</button>').join("");$("header-profile").innerHTML=state?'<strong>'+myClub().name+'</strong>Jornada '+state.round+' · '+money(state.budget):'<strong>NEXT SEASON 3.0</strong>Tu próxima gran historia';$("app").innerHTML=!state?renderWelcome():({home:renderDashboard,career:renderDashboard,squad:renderSquad,market:renderMarket,calendar:renderCalendar,academy:renderAcademy,table:renderTable}[active]||renderDashboard)();AuraEvolution.afterRender();}
+function render(){AuraEvolution.stopPreview();let active=state?screen:"home";$("topnav").innerHTML=nav.map(([id,label])=>'<button class="'+(active===id?'active':'')+'" '+(active===id?'aria-current="page" ':'')+'data-nav="'+id+'">'+label+'</button>').join("");$("header-profile").innerHTML=state?'<strong>'+myClub().name+'</strong>Jornada '+state.round+' · '+money(state.budget):'<strong>CLUB EDITION 3.1</strong>Tu próxima gran historia';$("app").innerHTML=!state?renderWelcome():({home:renderDashboard,career:renderDashboard,squad:renderSquad,market:renderMarket,calendar:renderCalendar,academy:renderAcademy,table:renderTable}[active]||renderDashboard)();AuraEvolution.afterRender();}
 document.addEventListener("click",e=>{
   const t=e.target.closest("button");
   if(!t)return;
