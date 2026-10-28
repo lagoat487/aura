@@ -136,9 +136,9 @@
   const aliases={
     barcelona:["FC Barcelona","Barcelona"],madrid:["Real Madrid","Real Madrid CF"],
     atletico:["Atlético de Madrid","Atlético Madrid"],city:["Manchester City"],
-    liverpool:["Liverpool"],munich:["FC Bayern München","Bayern Munich","Bayern Múnich"],
+    liverpool:["Liverpool","Liverpool FC"],munich:["FC Bayern München","Bayern Munich","Bayern Múnich"],
     paris:["Paris Saint-Germain","Paris SG"],london:["Chelsea"],milan:["Inter","Inter Milan"],
-    acmilan:["AC Milan","Milan"],united:["Manchester United"],juventus:["Juventus"],
+    acmilan:["AC Milan","Milan"],united:["Manchester United","Man Utd"],juventus:["Juventus"],
     dortmund:["Borussia Dortmund"],arsenal:["Arsenal"],betis:["Real Betis"],
     sociedad:["Real Sociedad"],athletic:["Athletic Club"],villarreal:["Villarreal CF"],
     valencia:["Valencia CF"],sevilla:["Sevilla FC"],celta:["Celta Vigo","RC Celta"],
@@ -150,18 +150,21 @@
     emelec:["Emelec"],nacional:["Atlético Nacional"],america:["América de Cali"]
   };
   function rosterFor(cid){return catalog.get(cid)?.map(x=>({...x}))||[]}
-  function matchRoster(club){
-    if(!club)return [];
+  function matchingClub(club){
+    if(!club)return null;
+    if(clubsById.has(club.id))return clubsById.get(club.id);
+    const gender=club.gender||"men";
     const names=(aliases[club.id]||[]).concat([club.name]).map(slug);
     for(const name of names){
-      const matches=[...clubsById.values()].filter(c=>slug(c.name)===name);
+      const matches=[...clubsById.values()].filter(c=>c.gender===gender&&slug(c.name)===name);
       if(matches.length){
-        matches.sort((a,b)=>Number(b.gender==="men")-Number(a.gender==="men")||(catalog.get(b.id)?.length||0)-(catalog.get(a.id)?.length||0));
-        return rosterFor(matches[0].id);
+        matches.sort((a,b)=>(catalog.get(b.id)?.length||0)-(catalog.get(a.id)?.length||0));
+        return matches[0];
       }
     }
-    return [];
+    return null;
   }
+  function matchRoster(club){const match=matchingClub(club);return match?rosterFor(match.id):[];}
   function search(q,limit=24){
     const term=clean(q).toLocaleLowerCase();
     if(term.length<2)return [];
@@ -195,7 +198,7 @@
     }catch(err){loadError=String(err.message||err);throw err}
   }
   return {DATA_URL,SNAPSHOT,decodeCSV,build,integrate,registerSnapshot,
-    rosterFor,matchRoster,search,load,getPlayer:id=>playersById.get(id),getStats:()=>({...stats}),
+    rosterFor,matchRoster,matchingClub,search,load,getPlayer:id=>playersById.get(id),getClub:id=>clubsById.get(id)||null,getStats:()=>({...stats}),
     allPlayers:()=>[...playersById.values()].map(p=>({...p})),
     isLoaded:()=>loaded,getError:()=>loadError};
 });

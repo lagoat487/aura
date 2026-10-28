@@ -90,10 +90,11 @@
     if(a>=0)sheet.xi[a]=second;if(b>=0)sheet.xi[b]=first;
     ensure(game);return true;
   }
-  function afterMatch(game,won,drew){
+  function afterMatch(game,won,drew,participants=null){
     const sheet=ensure(game);
+    const appeared=new Set(Array.isArray(participants)?participants:sheet.xi);
     for(const p of game.rosters[game.club]){
-      const played=sheet.xi.includes(p.id);
+      const played=appeared.has(p.id);
       if(played){p.appearances++;p.benched=0}else p.benched++;
       p.fitness=bound(p.fitness+(played?-3:7),50,100);
       const unhappy=!played&&p.benched>=3&&roles.indexOf(p.role)>=3;

@@ -1,0 +1,12 @@
+/* Local club crests; the existing monogram remains if an asset is unavailable. */
+.club-badge.authentic{background:transparent!important;clip-path:none!important;box-shadow:none!important;border:0!important;border-radius:0!important;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;overflow:visible}
+.club-badge.authentic:before,.club-badge.authentic:after{display:none!important}
+.club-badge.authentic>span{display:none!important}
+.club-badge>img{display:block;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 3px 4px #0004)}
+.club-badge>img[hidden]{display:none}
+.table-club,.fixture-club{display:inline-flex;gap:10px;align-items:center;vertical-align:middle}
+.table-club .club-badge,.fixture-club .club-badge{vertical-align:middle}
+.fixture-club{gap:7px}.fixture-versus{display:inline-flex;align-items:center;gap:12px;flex-wrap:wrap}
+.scoreboard-team .scoreboard-crest{width:26px;height:30px;object-fit:contain;flex-shrink:0}
+.club-roster-modal a{color:var(--accent,#d4ff77);text-underline-offset:3px}
+@media(max-width:600px){.fixture-versus{gap:8px}.scoreboard-team .scoreboard-crest{width:20px;height:24px}.table-club{gap:7px}}
