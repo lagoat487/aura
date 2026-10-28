@@ -1,6 +1,15 @@
-# AURA / Evolution 2.0
+# AURA / Next Season 3.0
 
-Fútbol de navegador con partidos 3D de once contra once, modo carrera, plantilla editable, negociaciones por etapas y Draft XI gratuito. Actualiza el proyecto AURA existente e integra la gestión de plantilla y fichajes que estaba en la rama `codex/negotiations-squad-20261025`.
+Fútbol de navegador con partidos 3D de once contra once, modo carrera, plantilla editable, negociaciones por etapas y Draft XI gratuito. Next Season 3.0 renueva los menús y añade gestión durante el partido, desarrollo de futbolistas, objetivos de directiva y una red de ojeadores.
+
+## Novedades de Next Season
+
+- **Presentación:** nueva identidad grafito, naranja y lima, estadio 3D en el inicio, progreso de temporada y resumen de confianza directiva. Diseño adaptable a móvil.
+- **Partidos:** pases que valoran dirección, espacios y líneas de intercepción; desmarques del receptor; coberturas defensivas y porteros que anticipan la trayectoria. La presión rival y la fatiga afectan a los tiros.
+- **Plan de partido:** pausa con P, Escape o el botón en pantalla. Cambia entre equilibrado, posesión, presión alta y contraataque; realiza hasta cinco sustituciones. Un jugador sustituido no puede regresar. Los cambios respetan la energía, el puesto y el rendimiento efectivo del futbolista.
+- **Desarrollo:** tres sesiones por jornada, una por jugador. Equilibrado entrega 25 EXP y consume 6 de energía; intensivo entrega 40 EXP y consume 12; recuperación devuelve 12 de energía. Cada 100 EXP suma un punto de GRL hasta el potencial. Las sesiones se renuevan tras disputar o simular una jornada.
+- **Directiva:** tres objetivos de temporada con recompensas que solo se reciben una vez: victorias, desarrollo e incorporación de un juvenil. La confianza es un indicador informativo; no hay despidos.
+- **Ojeadores:** rutas de Ecuador, España y Brasil. Un informe por jornada con tres juveniles ficticios identificados como cantera generada. Máximo dos incorporaciones por temporada; se valida presupuesto, límite de 28 jugadores y margen salarial. El informe nuevo reemplaza al anterior.
 
 ![AURA Evolution: inicio y estadio](docs/aura-evolution-preview-20261026.jpg)
 
@@ -42,12 +51,12 @@ Antes de jugar puedes elegir 2, 3, 5 u 8 minutos de duración total, tres dificu
 
 Esta actualización **no utiliza Unreal Engine**. Unreal no estaba instalado en el entorno. Una aplicación Unreal para navegador necesita una compilación nativa e infraestructura de Pixel Streaming; no se activa añadiendo una dependencia al HTML. No se han contratado servidores ni creado cuentas.
 
-El fútbol es arcade: no hay fuera de juego, faltas, penaltis, tarjetas, lesiones ni sustituciones durante el partido. No hay multijugador en línea ni animaciones de un juego comercial.
+El fútbol es arcade: no hay fuera de juego, faltas, penaltis, tarjetas ni lesiones. No hay multijugador en línea ni animaciones de un juego comercial.
 
 ## Carrera, plantilla y mercado
 
 - Cinco formaciones, once editable por selección o arrastre, suplentes, capitán y selección automática por posición. Los partidos 3D usan ese once y sus posiciones de partida.
-- Moral, energía, roles, contratos, salarios y apariciones. La simulación utiliza la fuerza efectiva del once.
+- Moral, energía, roles, contratos, salarios y apariciones. Tanto los titulares como quienes entran durante un partido jugado reciben una aparición. La simulación y el partido 3D utilizan el rendimiento efectivo del once.
 - Cuatro estilos de movimiento para tus compañeros en 3D: equilibrado, posesión, presión y contraataque.
 - Fichajes: consulta → acuerdo con el club → contrato con el agente → firma. Incluye contraofertas, tensión, ventas, renovaciones y ofertas rivales al avanzar jornadas.
 - El presupuesto cambia solo al confirmar una firma, después de validar dinero, propiedad, capacidad y tope salarial. Las llamadas pausadas se pueden retomar.
@@ -78,6 +87,6 @@ npm test
 npm run build
 ```
 
-Las pruebas verifican partidos, goles válidos, controles del modelo, porteros, pausa, cambio de campo, determinismo, calendarios, plantilla, Draft XI, catálogo sin red, presupuesto y negociaciones. El build comprueba sintaxis y reúne solo los archivos de ejecución en `dist/`.
+Las pruebas verifican partidos, goles válidos, controles del modelo, porteros, pausa, sustituciones, cambio de campo, determinismo, calendarios, plantilla, Draft XI, catálogo sin red, presupuesto, negociaciones, entrenamiento, ojeo y recompensas. El build comprueba sintaxis y reúne solo los archivos de ejecución en `dist/`.
 
 La revisión de navegador usa Canvas 3D cuando el navegador de pruebas tiene WebGL desactivado. La ejecución acelerada debe comprobarse en un dispositivo compatible con WebGL. Licencia de Three.js: [vendor/THREE-LICENSE.txt](vendor/THREE-LICENSE.txt).

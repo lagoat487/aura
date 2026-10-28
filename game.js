@@ -92,6 +92,7 @@ function startNextSeason(competitionId) {
   state.wins=state.draws=state.losses=state.goals=state.against=0;
   state.history=[]; state.budget+=12000000; calendarRound=null;
   state.news.unshift("Comienza la temporada "+state.season+" · "+definition.name);
+  AuraProgression.initialize(state);
   save(); closeModal(); render();
 }
 function playMatch(suppliedScore=null,matchDetails=null) {
@@ -130,7 +131,8 @@ function playMatch(suppliedScore=null,matchDetails=null) {
   state.news.unshift((g1>g2?"¡Victoria! ":g1===g2?"Empate. ":"Derrota. ")+myClub().name+" "+g1+" - "+g2+" "+rival.name);
   state.news=state.news.slice(0,20);
   clubPlayers(state.club).forEach(p=>{p.form=clamp(p.form+(g1>g2?2:-2),55,100);if(rand()<.09&&p.age<27)p.overall=Math.min(p.potential,p.overall+1)});
-  AuraSquad.afterMatch(state,g1>g2,g1===g2);
+  AuraSquad.afterMatch(state,g1>g2,g1===g2,matchDetails?.participants?.[0]);
+  AuraProgression.afterMatch(state);
   AuraNegotiations.tick(state,clubs);
   save(); render();
   openModal("FINAL DEL PARTIDO",'<div class="score"><div class="eyebrow">'+competitionName()+' · JORNADA '+state.round+
@@ -140,7 +142,7 @@ function playMatch(suppliedScore=null,matchDetails=null) {
   $("continue").onclick=()=>{closeModal();render()};
 }
 function rank(){return seasonTable().findIndex(c=>c.id===state.club)+1}
-const nav=[["home","Inicio"],["career","Carrera"],["squad","Plantilla"],["market","Mercado"],["calendar","Calendario"],["academy","Cantera"],["table","Clasificación"]];
+const nav=[["home","Inicio"],["career","Carrera"],["squad","Plantilla"],["market","Mercado"],["calendar","Calendario"],["academy","Desarrollo"],["table","Clasificación"]];
 function notify(msg){let el=$("toast");el.textContent=msg;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),3500)}
 let modalReturnFocus=null;
 function openModal(title,body){if($("modal").hidden)modalReturnFocus=document.activeElement;$("modal").hidden=false;$("modal").innerHTML='<section class="modal" role="dialog" aria-modal="true" aria-label="'+title+'"><div class="row spread"><h2>'+title+'</h2><button class="btn small" id="closemodal" aria-label="Cerrar ventana">✕</button></div>'+body+'</section>';$("closemodal").onclick=closeModal;$("closemodal").focus?.()}
@@ -263,7 +265,7 @@ function renderCalendar() {
     card("PRÓXIMOS PARTIDOS",future||'<p>La temporada ha terminado.</p>')+'</div><div class="row" style="margin-top:16px"><button class="btn primary" data-action="play">'+
     (state.round<totalRounds()?'Simular siguiente jornada →':'Ver cierre de temporada →')+'</button></div>';
 }
-function renderAcademy(){let youth=clubPlayers(state.club).filter(p=>p.age<=22).sort((a,b)=>b.potential-a.potential);return heading("Cantera y desarrollo","Entrena a tus promesas y aumenta sus medias")+'<div class="notice">El entrenamiento cuesta €150.000 y puede aumentar +1 GRL, sin superar el potencial.</div><div class="grid" style="margin-top:15px">'+youth.map(p=>'<div class="card"><span class="eyebrow">'+p.pos+' · '+p.age+' años</span><h3 style="margin-top:10px">'+p.name+'</h3><div class="big accent">'+p.overall+'</div><p>Potencial: <b>'+p.potential+'</b></p><button class="btn small" data-train="'+p.id+'" '+(p.overall>=p.potential||state.budget<150000?'disabled':'')+'>Entrenar €150.000</button></div>').join("")+'</div>'}
+function renderAcademy(){return AuraProgressionUI.render()}
 function renderTable(){return heading("Clasificación",competitionName()+" · Jornada "+state.round)+legacyNotice()+tableHtml()+
   (state.version===2?'<p class="save-info">Resultados simulados de tu carrera. Desempates: '+
     (state.competition.tieBreak==='head-to-head'?'enfrentamientos directos completos, ':'')+
@@ -276,12 +278,13 @@ function findPlayer(id){
 }
 function buy(id){AuraCareerUI.start(id,"buy")}
 function sell(id){AuraCareerUI.start(id,"sell")}
-function train(id){let f=findPlayer(id);if(!f||f.cid!==state.club||state.budget<150000||f.p.overall>=f.p.potential)return;state.budget-=150000;f.p.overall++;state.news.unshift(f.p.name+" mejoró a "+f.p.overall+" de media");save();notify(f.p.name+" ganó +1 GRL");render()}
-function render(){AuraEvolution.stopPreview();let active=state?screen:"home";$("topnav").innerHTML=nav.map(([id,label])=>'<button class="'+(active===id?'active':'')+'" data-nav="'+id+'">'+label+'</button>').join("");$("header-profile").innerHTML=state?'<strong>'+myClub().name+'</strong>Jornada '+state.round+' · '+money(state.budget):'<strong>EVOLUTION 2.0</strong>Tu próxima gran historia';$("app").innerHTML=!state?renderWelcome():({home:renderDashboard,career:renderDashboard,squad:renderSquad,market:renderMarket,calendar:renderCalendar,academy:renderAcademy,table:renderTable}[active]||renderDashboard)();AuraEvolution.afterRender();}
+function train(id){const result=AuraProgression.train(state,id,"balanced");notify(result.error||result.message);save();render()}
+function render(){AuraEvolution.stopPreview();let active=state?screen:"home";$("topnav").innerHTML=nav.map(([id,label])=>'<button class="'+(active===id?'active':'')+'" '+(active===id?'aria-current="page" ':'')+'data-nav="'+id+'">'+label+'</button>').join("");$("header-profile").innerHTML=state?'<strong>'+myClub().name+'</strong>Jornada '+state.round+' · '+money(state.budget):'<strong>NEXT SEASON 3.0</strong>Tu próxima gran historia';$("app").innerHTML=!state?renderWelcome():({home:renderDashboard,career:renderDashboard,squad:renderSquad,market:renderMarket,calendar:renderCalendar,academy:renderAcademy,table:renderTable}[active]||renderDashboard)();AuraEvolution.afterRender();}
 document.addEventListener("click",e=>{
   const t=e.target.closest("button");
   if(!t)return;
   if(AuraEvolution.handleClick(t))return;
+  if(state&&AuraProgressionUI.handleClick(t))return;
   if(state&&AuraCareerUI.handleClick(t))return;
   if(t.dataset.nav){
     if(!state&&t.dataset.nav!=="home"){notify("Primero crea una carrera");return}
@@ -300,10 +303,10 @@ document.addEventListener("click",e=>{
   if(t.dataset.action==="new"){
     if(state){
       openModal("Nueva carrera","<p>¿Empezar de cero? Se perderá el progreso de esta sesión. No se guarda automáticamente.</p><button id='confirmnew' class='btn danger'>Iniciar nueva carrera</button>");
-      $("confirmnew").onclick=()=>{state=null;screen="home";selected="barcelona";selectedCompetition="laliga";calendarRound=null;AuraCareerUI.reset();closeModal();render()};
+      $("confirmnew").onclick=()=>{state=null;screen="home";selected="barcelona";selectedCompetition="laliga";calendarRound=null;AuraCareerUI.reset();AuraProgressionUI.reset();closeModal();render()};
     }else document.querySelector(".competition-picker")?.scrollIntoView({behavior:"smooth"});
   }
-  if(t.dataset.action==="start"){state=createGame(selected);AuraCareerUI.reset();AuraSquad.ensure(state);calendarRound=null;screen="career";save();render();window.scrollTo(0,0)}
+  if(t.dataset.action==="start"){state=createGame(selected);AuraCareerUI.reset();AuraProgressionUI.reset();AuraSquad.ensure(state);AuraProgression.initialize(state);calendarRound=null;screen="career";save();render();window.scrollTo(0,0)}
   if(t.dataset.action==="play")playMatch();
   if(t.dataset.action==="real-roster")refreshRealRoster();
 });
@@ -318,6 +321,7 @@ document.addEventListener("input",e=>{
 document.addEventListener("change",e=>{
   AuraEvolution.change(e);
   if(state)AuraCareerUI.change(e);
+  if(state)AuraProgressionUI.change(e);
   if(e.target.id==="calendar-round"&&state?.version===2){
     const index=Number(e.target.value);
     if(Number.isInteger(index)&&index>=0&&index<totalRounds()){calendarRound=index;render()}

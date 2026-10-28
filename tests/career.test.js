@@ -21,7 +21,7 @@ function boot(saved) {
     localStorage: { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value) },
     setTimeout() {}, clearTimeout() {},
   });
-  for (const file of ["clubs.js", "competitions.js", "world.js", "real-players.js", "squad.js", "negotiations.js", "career-ui.js", "match-engine.js", "match-graphics.js", "match-ui.js", "evolution-ui.js", "game.js"]) {
+  for (const file of ["clubs.js", "competitions.js", "world.js", "real-players.js", "squad.js", "progression.js", "negotiations.js", "career-ui.js", "progression-ui.js", "match-engine.js", "match-graphics.js", "match-ui.js", "evolution-ui.js", "game.js"]) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, "..", file), "utf8"), context, { filename: file });
   }
   return {
@@ -186,5 +186,20 @@ test("opening or abandoning a playable match leaves the career unchanged and com
  app.run('pendingMatch.onFinish({home:2,away:1,goals:[{team:0,name:"Pedri",minute:10},{team:0,name:"Pedri",minute:31}],stats:[{shots:4},{shots:2}]})');
  assert.equal(app.run("state.round"),1);const finished=app.json("state");
  app.run('pendingMatch.onFinish({home:2,away:1,goals:[],stats:[]})');assert.deepEqual(app.json("state"),finished);
+});
+
+test("career substitutions keep slot ratings and credit both starter and substitute appearances",()=>{
+ const app=boot();app.click({action:"start"});
+ app.run('globalThis.homeTeam=AuraArena.team(myClub(),state);globalThis.matchGame=AuraMatch.create({home:homeTeam,away:AuraArena.team(getClub("madrid"),state)});globalThis.sub=homeTeam.bench.find(p=>p.pos!=="POR");globalThis.outId=matchGame.players[9].id;');
+ assert.equal(app.run("sub.slotRatings.length"),11);
+ app.run('matchGame.paused=true;');
+ assert.equal(app.run('AuraMatch.substitute(matchGame,9,{id:sub.id})'),true);
+ assert.equal(app.run('matchGame.players[9].overall'),app.run('sub.slotRatings[9]'));
+ app.run('AuraArena.preMatch=(home,away,options)=>{globalThis.pendingMatch=options}');app.click({evo:"career-play"});
+ app.run('matchGame.phase="finished";pendingMatch.onFinish(AuraMatch.result(matchGame))');
+ assert.equal(app.run('clubPlayers(state.club).find(p=>p.id===outId).appearances'),1);
+ assert.equal(app.run('clubPlayers(state.club).find(p=>p.id===sub.id).appearances'),1);
+ assert.equal(app.run('state.history[0].match.participants[0].length'),12);
+ assert.equal(app.run('state.progression.training.round'),1);
 });
 

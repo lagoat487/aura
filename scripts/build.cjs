@@ -10,4 +10,4 @@ for(const file of new Set(files)){
   if(file.endsWith(".js")&&!file.startsWith("vendor/"))new Function(fs.readFileSync(src,"utf8"));
   fs.mkdirSync(path.dirname(target),{recursive:true});fs.copyFileSync(src,target);
 }
-console.log("AURA Evolution: "+new Set(files).size+" runtime files checked and copied to dist/.");
+console.log("AURA Next Season 3.0: "+new Set(files).size+" runtime files checked and copied to dist/.");
