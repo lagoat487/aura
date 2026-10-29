@@ -21,7 +21,7 @@ function boot(saved) {
     localStorage: { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value) },
     setTimeout() {}, clearTimeout() {},
   });
-  for (const file of ["clubs.js", "competitions.js", "world.js", "real-players.js", "roster-sync.js", "club-badges.js", "squad.js", "progression.js", "negotiations.js", "career-ui.js", "progression-ui.js", "match-engine.js", "match-graphics.js", "match-ui.js", "evolution-ui.js", "game.js"]) {
+  for (const file of ["clubs.js", "competitions.js", "world.js", "real-players.js", "world-tour.js", "roster-sync.js", "club-badges.js", "squad.js", "progression.js", "negotiations.js", "career-ui.js", "progression-ui.js", "match-engine.js", "match-graphics.js", "match-ui.js", "evolution-ui.js", "street.js", "tour-ui.js", "game.js"]) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, "..", file), "utf8"), context, { filename: file });
   }
   return {
@@ -33,6 +33,42 @@ function boot(saved) {
     saved: () => storage.get("aura-fc27-save-v1"),
   };
 }
+
+test("World Tour adds four working lobby modes while preserving manager, quick match and draft",()=>{
+ const app=boot();assert.equal((app.html().match(/data-evo-mode=/g)||[]).length,7);
+ for(const [mode,label] of [["pro","TU NOMBRE. TU CAMINO."],["cup","EL MUNDO TE ESPERA."],["ultimate","TU CLUB. TUS CARTAS."],["street","LA CALLE TIENE SUS REGLAS."]]){app.click({evoMode:mode});assert.ok(app.html().includes(label));}
+});
+test("player career creation puts the protagonist in the XI and commits a locked match once",()=>{
+ const app=boot();app.click({evoMode:"pro"});app.node("tour-pro-player").value="new";app.node("tour-pro-name").value="Emilio";app.node("tour-pro-pos").value="DC";app.click({tour:"start-pro"});
+ assert.equal(app.run('clubPlayers(state.club).find(p=>p.id===state.playerCareer.playerId).name'),"Emilio");assert.ok(app.run('AuraSquad.ensure(state).xi.includes(state.playerCareer.playerId)'));
+ app.run('AuraArena.preMatch=(home,away,options)=>{globalThis.pendingPro=options;globalThis.proTeam=home}');app.click({evo:"career-play"});assert.equal(app.run('pendingPro.playerLock'),app.run('state.playerCareer.playerId'));
+ app.run('pendingPro.onFinish({home:2,away:0,goals:[{team:0,name:"Emilio"},{team:0,name:"Emilio"}],stats:[]})');assert.equal(app.run('state.playerCareer.appearances'),1);assert.equal(app.run('state.playerCareer.goals'),2);assert.equal(app.run('state.round'),1);
+ const after=app.json('state');app.run('pendingPro.onFinish({home:2,away:0,goals:[],stats:[]})');assert.deepEqual(app.json('state'),after);
+});
+test("cup play commits the correct local and visiting score and cannot complete the same round twice",()=>{
+ const app=boot();app.click({evoMode:"cup"});app.click({tour:"cup-create"});
+ assert.equal(app.run('AuraTourUI.getCup().current.length'),16);const fixture=app.json('AuraTour.cupFixture(AuraTourUI.getCup())'),user=app.run('AuraTourUI.getCup().user');
+ app.run('AuraArena.preMatch=(home,away,options)=>{globalThis.pendingCup=options}');app.click({tour:"cup-play"});app.run('pendingCup.onFinish({home:3,away:0})');
+ const match=app.json('AuraTourUI.getCup().rounds[0].find(m=>m.home==='+JSON.stringify(user)+'||m.away==='+JSON.stringify(user)+')');assert.deepEqual(match.score,fixture.home===user?{home:3,away:0}:{home:0,away:3});assert.equal(match.winner,user);
+ app.run('pendingCup.onFinish({home:3,away:0})');assert.equal(app.run('AuraTourUI.getCup().rounds.length'),1);
+});
+test("UT uses the selected XI, opening a pack spends session coins, and abandoning a match grants nothing",()=>{
+ const app=boot();app.click({evoMode:"ultimate"});app.click({tour:"ut-create"});assert.equal(app.run('AuraTourUI.getUltimate().coins'),10000);app.click({tour:"ut-pack"});assert.ok(app.run('AuraTourUI.getUltimate().coins<=8100'));assert.equal(app.run('AuraTourUI.getUltimate().lastPack.length'),3);
+ app.run('AuraArena.preMatch=(home,away,options)=>{globalThis.pendingUT=options;globalThis.utTeam=home}');const before=app.run('AuraTourUI.getUltimate().coins');app.click({tour:"ut-play"});assert.equal(app.run('AuraTourUI.getUltimate().coins'),before);assert.deepEqual(app.json('utTeam.players.map(p=>p.id)'),app.json('AuraTourUI.getUltimate().xi'));
+ app.run('pendingUT.onFinish({home:1,away:0})');assert.equal(app.run('AuraTourUI.getUltimate().coins'),before+1200);app.run('pendingUT.onFinish({home:1,away:0})');assert.equal(app.run('AuraTourUI.getUltimate().coins'),before+1200);
+});
+test("Kitu is in Barcelona SC and the market finds his nickname; retirees stay retired after a roster refresh",()=>{
+ const app=boot();app.click({competition:"exhibition"});app.click({pick:"boca"});app.click({action:"start"});app.run('marketSearch="Kitu"');assert.match(app.run('marketResults()'),/Kitu/);
+ assert.equal(app.run('clubPlayers("guayaquil").find(p=>p.id===AuraTour.kitu.id).name'),"Damián ‘Kitu’ Díaz");
+ app.run('globalThis.retiring=clubPlayers(state.club).find(p=>p.real);retiring.age=44;AuraTour.rollover(state);refreshRealRoster()');assert.ok(app.run('!Object.values(state.rosters).flat().some(p=>p.id===retiring.id)'));
+ app.run('marketSearch=retiring.name');assert.ok(!app.run('marketResults()').includes('data-buy="'+app.run('retiring.id')+'"'));
+});
+
+test("roster refresh preserves the career protagonist, scouted youths and regenerated players",()=>{
+ const app=boot();app.click({evoMode:"pro"});app.click({tour:"start-pro"});
+ app.run('globalThis.proId=state.playerCareer.playerId;globalThis.youth={...clubPlayers(state.club)[0],id:"academy:scouted",name:"Mi canterano",real:false,academy:true,source:"Cantera generada de AURA"};globalThis.regen={...youth,id:"regen:test",regenOf:"Veterano",source:"Reencarnación"};state.rosters[state.club]=[...clubPlayers(state.club).slice(0,15),clubPlayers(state.club).find(p=>p.id===proId),youth,regen];refreshRealRoster()');
+ assert.ok(app.run('clubPlayers(state.club).some(p=>p.id===proId)'));assert.ok(app.run('clubPlayers(state.club).some(p=>p.id===youth.id)'));assert.ok(app.run('clubPlayers(state.club).some(p=>p.id===regen.id)'));
+});
 
 test("new career selects a real league and advances all ten fixtures with one action", () => {
   const app = boot();
@@ -80,7 +116,7 @@ test("exhibition keeps the original 24 clubs and rejects cross-league careers", 
   assert.ok(app.run("state.competition.clubIds.includes(state.club)"));
 });
 
-test("season end cannot simulate or reward another match; rollover keeps squad and budget", () => {
+test("season end cannot simulate or reward another match; rollover ages squads, creates regens and keeps budget", () => {
   const app = boot(); app.click({ action: "start" });
   app.run("for(let i=0;i<38;i++)playMatch()");
   const old = app.json("state"), oldTable = app.json("seasonTable()");
@@ -93,7 +129,11 @@ test("season end cannot simulate or reward another match; rollover keeps squad a
   assert.equal(app.run("state.season"), 2027);
   assert.equal(app.run("state.round"), 0);
   assert.equal(app.run("state.budget"), old.budget + 12000000);
-  assert.deepEqual(app.json("state.rosters"), old.rosters);
+  const updated=app.json("state.rosters");
+  for(const [cid,players] of Object.entries(old.rosters)){
+    assert.equal(updated[cid].length,players.length);
+    for(const player of players){const next=updated[cid].find(p=>p.id===player.id);if(next)assert.equal(next.age,player.age+1);else assert.ok(updated[cid].some(p=>p.regenOf===player.name&&p.age===17));}
+  }
   assert.deepEqual(app.json("state.seasonHistory[0].table"), oldTable);
   assert.ok(app.run("seasonTable().every(row=>row.p===0&&row.pts===0)"));
   assert.ok(app.run("Competitions.validateSeason(state.competition)"));

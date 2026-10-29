@@ -8,6 +8,7 @@ const AuraCareerUI=(()=>{
   const initials=p=>p.name.split(/\s+/).slice(0,2).map(s=>s[0]).join("").toUpperCase();
   const shortName=p=>p.name.length<19?p.name:p.name.split(/\s+/).slice(0,2).join(" ");
   function face(p,large=false){
+    if(typeof AuraTourUI!=="undefined")return AuraTourUI.face(p,large);
     const image=p.photo&&/^https:\/\/cdn\.sofifa\.net\/players\/\d+\/\d+\/26_120\.png$/.test(p.photo)?'<img src="'+p.photo+'" alt="" loading="lazy" onerror="this.hidden=true">':'';
     return '<span class="career-face '+(large?'large':'')+'" aria-hidden="true"><span>'+safeText(initials(p))+'</span>'+image+'</span>';
   }
@@ -15,7 +16,7 @@ const AuraCareerUI=(()=>{
   function current(){const ps=clubPlayers(state.club);return ps.find(p=>p.id===selectedPlayer)||ps[0]}
   function playerButton(p,kind="list",slot){
     const sheet=Squad.ensure(state),starting=sheet.xi.includes(p.id),active=p.id===selectedPlayer;
-    const label=kind==="pitch"?'<span class="shirt"><b>'+p.overall+'</b></span><span class="pitch-name">'+safeText(shortName(p))+'</span><span class="pitch-position">'+slot+(Squad.positionPenalty(p,slot)>3?' <i title="Fuera de su posición">!</i>':'')+(sheet.captain===p.id?' · C':'')+'</span>':
+    const label=kind==="pitch"?'<span class="shirt" style="--kit-a:'+AuraGraphics.kit(myClub())[0]+';--kit-b:'+AuraGraphics.kit(myClub())[1]+'"><b>'+p.overall+'</b></span><span class="pitch-name">'+safeText(shortName(p))+'</span><span class="pitch-position">'+slot+(Squad.positionPenalty(p,slot)>3?' <i title="Fuera de su posición">!</i>':'')+(sheet.captain===p.id?' · C':'')+'</span>':
       face(p)+'<span class="player-row-name"><strong>'+safeText(shortName(p))+'</strong><small>'+safeText(p.pos)+' · '+(starting?'Titular':'Suplente')+(sheet.captain===p.id?' · Capitán':'')+'</small></span><b class="rating-number">'+p.overall+'</b>';
     return '<button type="button" class="squad-player '+kind+' '+(active?'selected':'')+' '+(swapFrom===p.id?'swap-source':'')+'" data-squad-player="'+safeText(p.id)+'" draggable="true" aria-pressed="'+active+'" aria-label="'+safeText(p.name+', '+p.pos+', GRL '+p.overall)+'">'+label+'</button>';
   }
@@ -56,6 +57,7 @@ const AuraCareerUI=(()=>{
     return candidates[(player.id.length+state.round)%Math.max(1,candidates.length)]||clubs.find(c=>c.id!==state.club);
   }
   function start(id,mode="buy"){
+    if(mode==="sell"&&state.playerCareer?.playerId===id)return notify("Tu futbolista está en carrera de jugador. Gestiona a los demás desde la plantilla.");
     const found=findPlayer(id);if(!found)return notify("No se encontró al jugador.");
     const source=clubs.find(c=>c.id===found.cid),buyer=mode==="sell"?buyerFor(found.p):null;
     const result=Deals.start(state,found.p,{mode,sourceId:found.cid,sourceName:mode==="sell"?buyer.name:source?.name||found.p.sourceClub||"Club de origen",buyer,buyerRating:myClub().rating});

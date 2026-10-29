@@ -1,6 +1,23 @@
-# AURA 27 / Club Edition 3.1
+# AURA 27 / World Tour 4.0
 
-Fútbol de navegador con partidos 3D de once contra once, modo carrera, plantilla editable, negociaciones por etapas y Draft XI gratuito. Club Edition 3.1 añade plantillas reconciliadas, escudos de clubes incluidos y menús renovados.
+Fútbol de navegador con partidos 3D de once contra once, modo carrera, plantilla editable, negociaciones por etapas y Draft XI gratuito. World Tour 4.0 conserva Club Edition y añade cuatro modos, torneos, premios, nuevas generaciones y música original.
+
+## World Tour 4.0 · 28 de octubre de 2026
+
+- **Siete modos accesibles desde el inicio:** mánager, partido rápido, Draft XI, carrera de jugador, copas y selecciones, AURA UT y Calle / Volta.
+- **Carrera de jugador:** crea un futbolista o elige uno real de campo. En el partido controlas solo a ese jugador, incluso cuando pasa el balón. Gana EXP, GRL hasta su potencial, apariciones y goles. No incluye traspasos personales entre clubes ni narrativa cinematográfica.
+- **Copas:** Champions, Europa League, Conference League, Libertadores, Sudamericana, Mundial, Eurocopa, Copa América y Copa de Canteranos Sub-21. Torneos AURA de 8 o 16 participantes, eliminación directa a un partido y desempate automático por penaltis. Puedes jugar tu cruce o simular una ronda completa. No son sus formatos oficiales ni reproducen la clasificación real; se avanzan desde Copas.
+- **Premios de la liga:** once semanal por posición, jugador del mes cada cuatro jornadas y gala del Balón de Oro AURA al acabar la temporada. Las puntuaciones de una simulación se estiman a partir de goles y resultado. El ranking abarca la liga de la carrera, no todo el fútbol mundial.
+- **Reencarnaciones:** los futbolistas envejecen al cambiar de temporada. Algunos veteranos se retiran y generan juveniles ficticios de 17 años con la misma posición y nacionalidad, y potencial aproximado. Los retirados no pueden reimportarse mediante el botón de actualizar.
+- **Eventos:** molestias que reducen energía, apoyo de la afición que aumenta moral, patrocinadores y EXP sorpresa. Un evento o premio nunca se cobra dos veces por la misma jornada.
+- **AURA UT local:** once editable, colección por sesión, sobres de tres cartas, monedas exclusivamente de juego y recompensas por partidos contra la IA. Recargar reinicia la colección. No incluye mercado en línea, otros usuarios ni pagos.
+- **Calle / Volta:** arcade 2D original de tres contra tres en una cancha urbana, paredes con rebote, sin porteros; primero a cinco goles o dos minutos. WASD/flechas, J, K, E, Espacio y Shift; botones táctiles. No es el motor ni el modo licenciado de EA.
+- **Plantillas:** pertenencias del primer equipo de Barça, Real Madrid y Liverpool contrastadas con sus páginas oficiales. Kitu Díaz añadido en Barcelona SC, con búsqueda por apodo. La base mundial continúa fechada el 12/09/2026; no está actualizada en vivo.
+- **Valores:** modelo económico de AURA sensible a edad, GRL, potencial y forma, recalculado cada cuatro jornadas. Son estimaciones de juego, no cotizaciones de mercado verificadas.
+- **Identidad:** camisetas del once con los colores del club y retratos disponibles con conexión, con avatares ilustrados como respaldo. No se añaden caras 3D fotorealistas.
+- **Música:** electrónica original generada con Web Audio a 112 BPM. Actívala con ♫ Música. Se suspende durante los partidos y al ocultar la pestaña. No se incluyen canciones de FIFA Mobile 23.
+
+Alcance, fuentes y correspondencia con la lista pedida: [docs/world-tour.md](docs/world-tour.md).
 
 ## Novedades de Next Season
 
@@ -19,7 +36,7 @@ Fútbol de navegador con partidos 3D de once contra once, modo carrera, plantill
 - Escudos reales incluidos en el propio juego, con monograma de reserva para clubes sin correspondencia segura. Cobertura y procedencia: [docs/badge-sources.md](docs/badge-sources.md).
 - Menús Club Edition, selector de modos compacto, buscador de equipos en Partido rápido y agenda de las siguientes jornadas.
 
-La fuente global disponible sigue siendo la instantánea del **12 de septiembre de 2026**. El contraste oficial del Barça se realizó el **28 de octubre de 2026**. No se presenta el resto del catálogo como una actualización en vivo. Detalles y fuentes: [docs/roster-update.md](docs/roster-update.md).
+La fuente global disponible sigue siendo la instantánea del **12 de septiembre de 2026**. El contraste oficial de Barça, Real Madrid y Liverpool, más la incorporación de Kitu Díaz, se realizó el **28 de octubre de 2026**. No se presenta el resto del catálogo como una actualización en vivo. Detalles y fuentes: [docs/roster-update.md](docs/roster-update.md).
 
 ## Jugar
 
@@ -59,7 +76,7 @@ Antes de jugar puedes elegir 2, 3, 5 u 8 minutos de duración total, tres dificu
 
 Esta actualización **no utiliza Unreal Engine**. Unreal no estaba instalado en el entorno. Una aplicación Unreal para navegador necesita una compilación nativa e infraestructura de Pixel Streaming; no se activa añadiendo una dependencia al HTML. No se han contratado servidores ni creado cuentas.
 
-El fútbol es arcade: no hay fuera de juego, faltas, penaltis, tarjetas ni lesiones. No hay multijugador en línea ni animaciones de un juego comercial.
+El fútbol es arcade: no hay fuera de juego, faltas, penaltis jugables, tarjetas ni lesiones durante el partido. No hay multijugador en línea ni animaciones de un juego comercial.
 
 ## Carrera, plantilla y mercado
 
@@ -82,7 +99,7 @@ Fuentes:
 - [EA FC ANALYSIS](https://github.com/LakshmiKanth11/EA_FC_ANALYSIS): instantánea declarada del 12 de septiembre de 2026. Se incluyen solo identidad, posición, GRL, club, liga, género, nacimiento y nacionalidad. Es una base de terceros, **no una lista de inscritos oficiales verificada**, y puede contener errores o traspasos desactualizados.
 - [FIFA WC2026 Players](https://github.com/matyuschenko/fifa-wc2026-players): 1.248 identidades del Mundial, atribuidas bajo CC BY 4.0. Las posiciones específicas, GRL y precios que ese origen no proporciona son estimaciones originales de AURA. Se normalizan nombres formales conocidos para evitar duplicados.
 
-Se interpretan correctamente cumpleaños ISO y día-mes-año. Los retratos opcionales enlazan a SoFIFA; si faltan se muestran iniciales. No hay caras 3D escaneadas. AURA es un juego independiente; presupuestos, salarios, valores y potenciales pertenecen al videojuego. Los calendarios no reproducen las fechas oficiales.
+Se interpretan correctamente cumpleaños ISO y día-mes-año. Los retratos opcionales enlazan a SoFIFA; si faltan se muestran avatares ilustrados. No hay caras 3D escaneadas. AURA es un juego independiente; presupuestos, salarios, valores y potenciales pertenecen al videojuego. Los calendarios no reproducen las fechas oficiales.
 
 No hay ascensos, descensos, copas con formato oficial ni clasificación continental. Las siguientes temporadas mantienen los participantes de la liga seleccionada. Detalles: [docs/world-catalog.md](docs/world-catalog.md).
 

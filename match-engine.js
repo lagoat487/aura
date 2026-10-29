@@ -22,6 +22,7 @@
       benches:sides.map(t=>(t.bench||[]).filter(p=>p&&typeof p.id==="string").map(p=>({...p}))),
       participants:sides.map(t=>t.players.map(p=>p.id)),substitutions:[],
       difficulty:clamp(Number(options.difficulty)||1,.65,1.4),tactic:options.tactic||"balanced",goals:[],rng,seed:options.seed};
+    if(options.playerLock){const index=players.findIndex(p=>p.team===0&&p.id===options.playerLock);if(index<1)throw Error("El jugador de carrera debe ser titular y de campo.");game.playerLock=options.playerLock;}
     reset(game,0);return game;
   }
   function direction(game,team){return (team===0?1:-1)*(game.half===1?1:-1);}
@@ -31,7 +32,7 @@
     const taker=game.players.find(p=>p.team===kicking&&p.index===9),support=game.players.find(p=>p.team===kicking&&p.index===7);
     taker.x=-direction(game,kicking)*1.4;taker.z=0;support.x=-direction(game,kicking)*5;support.z=6;
     Object.assign(game.ball,{x:taker.x,y:.22,z:0,vx:0,vy:0,vz:0,owner:game.players.indexOf(taker),lastTouch:kicking,freeTime:0,lastKicker:null});
-    game.controlled=kicking===0?9:6;game.passTarget=null;game.passRun=null;game.ball.lastKickerIdentity=null;
+    game.controlled=game.playerLock?game.players.findIndex(p=>p.team===0&&p.id===game.playerLock):(kicking===0?9:6);game.passTarget=null;game.passRun=null;game.ball.lastKickerIdentity=null;
   }
   function nearest(game,team,point=game.ball,excludeKeeper=true){
     let best=null,bestD=Infinity;
@@ -44,7 +45,7 @@
       else game.stats[p.team].interceptions++;
     }
     b.owner=index;b.lastTouch=p.team;b.vx=b.vz=b.vy=0;b.y=.22;game.passTarget=null;game.passRun=null;
-    if(p.team===0)game.controlled=index;
+    if(p.team===0&&!game.playerLock)game.controlled=index;
   }
   function launch(game,p,target,speed,lift){
     const b=game.ball,dx=target.x-b.x,dz=target.z-b.z,len=Math.hypot(dx,dz)||1;
@@ -94,6 +95,7 @@
   function substitute(game,index,incoming){
     if(!game.paused||game.phase==="finished"||!Number.isInteger(index)||!game.players[index]||!incoming)return false;
     const p=game.players[index],team=p.team,bench=game.benches[team],candidate=bench.find(q=>q.id===incoming.id);
+    if(p.id===game.playerLock)return false;
     if(!candidate||!candidate.name||!candidate.pos||!Number.isFinite(candidate.overall)||candidate.overall<1||candidate.overall>99)return false;
     if(game.participants.flat().includes(candidate.id)||game.substitutions.filter(s=>s.team===team).length>=5)return false;
     if((p.index===0)!==(candidate.pos==="POR"))return false;
@@ -106,7 +108,7 @@
   }
   function action(game,type,input={}){
     if(game.phase!=="playing"||game.paused)return false;
-    if(type==="switch"){game.controlled=nearest(game,0)??game.controlled;return true;}
+    if(type==="switch"){if(game.playerLock)return false;game.controlled=nearest(game,0)??game.controlled;return true;}
     const index=game.controlled,p=game.players[index],b=game.ball;
     if(type==="tackle"){
       if(p.cooldown>0||b.owner===null)return false;

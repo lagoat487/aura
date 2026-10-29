@@ -46,7 +46,8 @@ test("all covered clubs prefer their newer catalog membership and never mix men 
 test("roster records are copies and status distinguishes global reference from verification",()=>{
  const roster=Sync.rosterFor(club("liverpool")),original=roster[0].name;roster[0].name="Changed in career";
  assert.equal(Sync.rosterFor(club("liverpool"))[0].name,original);
- const status=Sync.status(club("liverpool"));assert.equal(status.covered,true);assert.equal(status.snapshot,"2026-09-12");assert.equal(status.verifiedAt,undefined);assert.match(status.note,/no actualización en vivo/);
+ const status=Sync.status(club("liverpool"));assert.equal(status.covered,true);assert.equal(status.snapshot,"2026/27");assert.equal(status.verifiedAt,"2026-10-28");assert.match(status.source,/liverpoolfc/);
+ const reference=Sync.status(club("city"));assert.equal(reference.snapshot,"2026-09-12");assert.equal(reference.verifiedAt,undefined);assert.match(reference.note,/no actualización en vivo/);
  assert.equal(Sync.status({id:"unlisted",name:"Unknown FC"}).covered,false);
  assert.deepEqual(Sync.rosterFor({id:"unlisted-women",name:"Unknown FC",gender:"women"}),[]);
 });

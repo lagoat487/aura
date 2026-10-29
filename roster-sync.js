@@ -2,9 +2,9 @@
  * The small Barcelona patch is sourced separately; the global catalog is not live.
  */
 (function(root,factory){
-  const api=typeof module==="object"&&module.exports?factory(require("./world"),require("./real-players"),require("./clubs")):factory(root.AuraWorld,root.AuraRealPlayers,root.AuraClubs);
+  const api=typeof module==="object"&&module.exports?factory(require("./world"),require("./real-players"),require("./clubs"),require("./world-tour")):factory(root.AuraWorld,root.AuraRealPlayers,root.AuraClubs,root.AuraTour);
   if(typeof module==="object"&&module.exports)module.exports=api;else root.AuraRosterSync=api;
-})(typeof globalThis!=="undefined"?globalThis:this,function(World,Real,Clubs){
+})(typeof globalThis!=="undefined"?globalThis:this,function(World,Real,Clubs,Tour){
   "use strict";
   const VERIFIED="2026-10-28",SOURCE="https://www.fcbarcelona.com/en/football/first-team/news/4570894/202627-first-team-jersey-numbers-confirmed";
   const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
@@ -34,6 +34,21 @@
         for(const p of modern)if(p.catalogClub===catalog.id)Object.assign(p,{membershipSource:SOURCE,membershipVerifiedAt:VERIFIED});
       }
     }
+    if(Tour){
+      const target=Clubs.clubs.find(c=>c.id==="guayaquil"),catalog=target&&World.matchingClub(target);
+      modern=modern.filter(p=>!/^damian (kitu )?diaz$/.test(norm(p.name)));
+      if(catalog)modern.push({...Tour.kitu,catalogClub:catalog.id});
+      for(const [id,patch] of Object.entries(Tour.verifiedSquads)){
+        const club=Clubs.clubs.find(c=>c.id===id),matched=club&&World.matchingClub(club);if(!matched)continue;
+        const allowed=new Set(patch.names.map(norm));
+        for(const n of patch.names){
+          const p=modern.find(p=>norm(p.name)===norm(n)&&World.getClub(p.catalogClub)?.gender!=="women");
+          if(p)Object.assign(p,{club:id,catalogClub:matched.id,membershipSource:patch.source,membershipVerifiedAt:VERIFIED});
+          else modern.push({id:"verified:"+id+":"+norm(n).replace(/ /g,"-"),name:n,pos:/Danns/.test(n)?"DC":"MC",age:21,ageEstimated:true,overall:66,potential:82,form:80,wage:2000,club:id,catalogClub:matched.id,real:true,estimated:true,membershipSource:patch.source,membershipVerifiedAt:VERIFIED});
+        }
+        modern=modern.filter(p=>p.catalogClub!==matched.id||allowed.has(norm(p.name)));
+      }
+    }
     const byName=new Map();
     for(const p of modern){const n=norm(p.name);if(!byName.has(n))byName.set(n,[]);byName.get(n).push(p);}
     const byFirstToken=new Map();
@@ -61,6 +76,7 @@
       if(coveredLegacyIds.has(old.id))continue; // a stale team list must not backfill the newer one
       fallback.push({...old,name:name(old.name),rosterSnapshot:Real.snapshot,referenceOnly:true});
     }
+    if(Tour){fallback=fallback.filter(p=>!/^damian (kitu )?diaz$/.test(norm(p.name)));if(!modern.some(p=>p.id===Tour.kitu.id))fallback.push({...Tour.kitu});modern=modern.map(Tour.price);fallback=fallback.map(Tour.price);}
     all=modern.concat(fallback);byId=new Map(all.map(p=>[p.id,p]));
   }
   function key(value){
@@ -73,17 +89,19 @@
     const matched=World.matchingClub(club);
     if(matched)return modern.filter(p=>p.catalogClub===matched.id).map(p=>({...p,club:club.id}));
     if(club.gender==="women")return [];
-    const allowed=new Set(fallback.map(p=>p.id));
-    return Real.rosterFor(club).filter(p=>allowed.has(p.id)).map(p=>({...p,name:name(p.name),club:club.id,referenceOnly:true,rosterSnapshot:Real.snapshot}));
+    const sourceIds=new Set(Real.rosterFor(club).map(p=>p.id));
+    return fallback.filter(p=>(club.id==="guayaquil"&&p.id===Tour?.kitu.id)||sourceIds.has(p.id)).map(p=>({...p,name:name(p.name),club:club.id,referenceOnly:p.membershipVerifiedAt?false:true,rosterSnapshot:p.rosterSnapshot||Real.snapshot}));
   }
   function pool(){rebuild();const seen=new Set();return all.filter(p=>{const k=(World.getClub(p.catalogClub)?.gender||"men")+":"+norm(p.name);if(seen.has(k))return false;seen.add(k);return true;}).map(p=>({...p}));}
   function search(query,limit=50){
     const q=norm(query);if(q.length<2)return [];
-    return pool().filter(p=>norm(p.name).includes(q)||norm(Clubs.clubs.find(c=>c.id===p.club)?.name||p.sourceClub).includes(q)).sort((a,b)=>b.overall-a.overall).slice(0,Math.max(0,Math.min(80,limit)));
+    return pool().filter(p=>norm(p.name+" "+(p.aliases||[]).join(" ")).includes(q)||norm(Clubs.clubs.find(c=>c.id===p.club)?.name||p.sourceClub).includes(q)).sort((a,b)=>b.overall-a.overall).slice(0,Math.max(0,Math.min(80,limit)));
   }
   function getPlayer(id){rebuild();const p=byId.get(id)||legacyLinks.get(id);return p?{...p}:null;}
   function status(club){
     rebuild();const matched=club&&World.matchingClub(club),barca=matched&&World.matchingClub({id:"barcelona",name:"FC Barcelona"})?.id===matched.id;
+    const patchId=Tour&&Object.keys(Tour.verifiedSquads).find(id=>matched&&World.matchingClub(Clubs.clubs.find(c=>c.id===id))?.id===matched.id);
+    if(patchId)return {snapshot:"2026/27",covered:true,players:rosterFor(club).length,source:Tour.verifiedSquads[patchId].source,verifiedAt:VERIFIED,note:"Primer equipo contrastado con la lista del club; edades ausentes y valores económicos son estimaciones de AURA."};
     return {snapshot:barca?"2026/27":matched?World.SNAPSHOT:Real.snapshot,covered:!!matched,players:club?rosterFor(club).length:modern.length,source:barca?SOURCE:matched?World.DATA_URL:Real.SOURCE,...(barca?{verifiedAt:VERIFIED}:{}),note:barca?"Primer equipo contrastado con la lista oficial de dorsales; valores de videojuego.":matched?"Catálogo de referencia; no actualización en vivo.":"Referencia del Mundial; este club no tiene plantilla completa en el catálogo."};
   }
   return {rosterFor,search,pool,getPlayer,key,status,VERIFIED,SOURCE};

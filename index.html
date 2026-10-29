@@ -5,19 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#121410">
   <meta name="description" content="AURA 27 Club Edition: fútbol 3D, plantillas reconciliadas, escudos de clubes, carrera y Draft XI.">
-  <title>AURA 27 — Club Edition 3.1</title>
+  <title>AURA 27 — World Tour 4.0</title>
   <link rel="stylesheet" href="./styles.css">
   <link rel="stylesheet" href="./career.css">
   <link rel="stylesheet" href="./evolution.css">
   <link rel="stylesheet" href="./progression.css">
   <link rel="stylesheet" href="./match-plan.css">
   <link rel="stylesheet" href="./badges.css">
+  <link rel="stylesheet" href="./world-tour.css">
   <script src="./vendor/three.min.js" defer></script>
   <script src="./clubs.js" defer></script>
   <script src="./competitions.js" defer></script>
   <script src="./world.js" defer></script>
   <script src="./data/world-rosters.js" defer></script>
   <script src="./real-players.js" defer></script>
+  <script src="./world-tour.js" defer></script>
   <script src="./roster-sync.js" defer></script>
   <script src="./club-badges.js" defer></script>
   <script src="./squad.js" defer></script>
@@ -30,6 +32,8 @@
   <script src="./match-graphics.js" defer></script>
   <script src="./match-ui.js" defer></script>
   <script src="./evolution-ui.js" defer></script>
+  <script src="./street.js" defer></script>
+  <script src="./tour-ui.js" defer></script>
   <script src="./game.js" defer></script>
 </head>
 <body>
@@ -40,11 +44,12 @@
         <span class="brand-caption">AURA FOOTBALL</span>
       </button>
       <nav id="topnav" class="nav" aria-label="Menú principal"></nav>
+      <button class="tour-music" data-tour="music" aria-pressed="false" aria-label="Activar música original">♫ Música</button>
       <div id="header-profile" class="header-profile"></div>
     </header>
     <main id="app" aria-live="polite"></main>
     <footer class="footer">
-      <span>AURA 27 / CLUB EDITION 3.1</span>
+      <span>AURA 27 / WORLD TOUR 4.0</span>
       <span>TU CLUB. TUS DECISIONES. TU FÚTBOL.</span>
     </footer>
   </div>

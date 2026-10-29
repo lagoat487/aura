@@ -67,9 +67,7 @@ function nextOpponent(){const game=nextFixture();return game?getClub(game.home==
 function rand(){return Math.random()}
 function poisson(lambda){let L=Math.exp(-lambda),k=0,p=1;do{k++;p*=rand()}while(p>L);return Math.min(k-1,8)}
 function simulateFixture(homeId, awayId) {
-  const difference=overall(homeId)-overall(awayId);
-  return {home:poisson(clamp(1.53+difference*.067,.3,3.4)),
-    away:poisson(clamp(1.22-difference*.067,.3,3.4))};
+  return AuraTour.simulate(overall(homeId),overall(awayId));
 }
 function startNextSeason(competitionId) {
   if(state.round<totalRounds()) return;
@@ -78,7 +76,10 @@ function startNextSeason(competitionId) {
   state.seasonHistory=state.seasonHistory||[];
   state.seasonHistory.push({season:state.season,competition:competitionName(),position:rank(),
     table:seasonTable(),history:state.history.slice()});
+  const regenerated=AuraTour.rollover(state);
   state.season++; state.version=2; state.round=0;
+  AuraSquad.ensure(state);
+  if(regenerated.length)state.news.unshift(regenerated.length+" veteranos se retiraron: una nueva generación llega a sus clubes.");
   state.competition=Competitions.createSeason(definition,state.season);
   state.wins=state.draws=state.losses=state.goals=state.against=0;
   state.history=[]; state.budget+=12000000; calendarRound=null;
@@ -125,6 +126,7 @@ function playMatch(suppliedScore=null,matchDetails=null) {
   AuraSquad.afterMatch(state,g1>g2,g1===g2,matchDetails?.participants?.[0]);
   AuraProgression.afterMatch(state);
   AuraNegotiations.tick(state,clubs);
+  AuraTour.afterRound(state,AuraSquad);
   save(); render();
   openModal("FINAL DEL PARTIDO",'<div class="score"><div class="eyebrow">'+competitionName()+' · JORNADA '+state.round+
     '</div><h2 style="font-size:62px;margin:20px 0">'+score.home+' — '+score.away+'</h2><h3>'+getClub(fixture.home).name+
@@ -133,7 +135,7 @@ function playMatch(suppliedScore=null,matchDetails=null) {
   $("continue").onclick=()=>{closeModal();render()};
 }
 function rank(){return seasonTable().findIndex(c=>c.id===state.club)+1}
-const nav=[["home","Inicio"],["career","Carrera"],["squad","Plantilla"],["market","Mercado"],["calendar","Calendario"],["academy","Desarrollo"],["table","Clasificación"]];
+const nav=[["home","Inicio"],["career","Carrera"],["squad","Plantilla"],["market","Mercado"],["calendar","Calendario"],["academy","Desarrollo"],["table","Clasificación"],["tour","Copas y premios"],["pro","Mi jugador"]];
 function notify(msg){let el=$("toast");el.textContent=msg;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),3500)}
 let modalReturnFocus=null;
 function openModal(title,body){if($("modal").hidden)modalReturnFocus=document.activeElement;$("modal").hidden=false;$("modal").innerHTML='<section class="modal" role="dialog" aria-modal="true" aria-label="'+title+'"><div class="row spread"><h2>'+title+'</h2><button class="btn small" id="closemodal" aria-label="Cerrar ventana">✕</button></div>'+body+'</section>';$("closemodal").onclick=closeModal;$("closemodal").focus?.()}
@@ -142,7 +144,7 @@ function card(title,body){return '<article class="card"><h3>'+title+'</h3>'+body
 function heading(title,desc){return '<div class="section-head"><div><span class="eyebrow">AURA FOOTBALL · '+(state?'TEMPORADA '+state.season:'NUEVA EXPERIENCIA')+'</span><h1>'+title+'</h1><p>'+desc+'</p></div></div>'}
 function tableHtml(limit=Infinity){let arr=seasonTable().slice(0,limit);return '<div class="table-wrap"><table class="table"><thead><tr><th>POS</th><th>Club</th><th>PJ</th><th>G</th><th>E</th><th>P</th><th>GF</th><th>GC</th><th>DG</th><th>PTS</th></tr></thead><tbody>'+arr.map((x,i)=>'<tr class="'+(x.id===state.club?'highlight':'')+'"><td>'+(i+1)+'</td><td><span class="table-club">'+AuraEvolution.badge(x,23)+safeText(x.name)+'</span></td><td>'+x.p+'</td><td>'+x.w+'</td><td>'+x.d+'</td><td>'+x.l+'</td><td>'+x.gf+'</td><td>'+x.ga+'</td><td>'+(x.gf-x.ga)+'</td><td><strong>'+x.pts+'</strong></td></tr>').join("")+'</tbody></table></div>'}
 function safeText(value){return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function portrait(player){return player.photo&&/^https:\/\/cdn\.sofifa\.net\/players\/\d+\/\d+\/26_120\.png$/.test(player.photo)?
+function portrait(player){if(typeof AuraTourUI!=="undefined")return AuraTourUI.face(player);return player.photo&&/^https:\/\/cdn\.sofifa\.net\/players\/\d+\/\d+\/26_120\.png$/.test(player.photo)?
   '<img class="player-face" src="'+player.photo+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':
   '<span class="player-face placeholder">⚽</span>'}
 function rosterHtml(players,actions=true){return '<div class="table-wrap"><table class="table"><thead><tr><th>Jugador</th><th>POS</th><th>Edad</th><th>GRL</th><th>POT</th><th>Valor</th>'+(actions?'<th>Acción</th>':'')+'</tr></thead><tbody>'+players.map(p=>'<tr><td><div class="face-name">'+portrait(p)+'<span>'+safeText(p.name)+'</span></div></td><td>'+safeText(p.pos)+'</td><td>'+p.age+'</td><td class="accent"><b>'+p.overall+'</b></td><td>'+p.potential+'</td><td>'+money(p.value)+'</td>'+(actions?'<td><button class="btn small" data-sell="'+safeText(p.id)+'">Vender</button></td>':'')+'</tr>').join("")+'</tbody></table></div>'}
@@ -154,6 +156,7 @@ function isGeneratedOriginal(player,clubId){
  return !player?.real&&!player?.academy&&id.startsWith(clubId+"-")&&
    /^\d+$/.test(id.slice(clubId.length+1));
 }
+function replaceableRosterPlayer(p,cid){return isGeneratedOriginal(p,cid)||(p.academy&&!p.regenOf&&!String(p.id).startsWith("pro:")&&p.source!=="Cantera generada de AURA")}
 function realRosterCoverage(clubId){
  const roster=state?.rosters?.[clubId]||[];
  return {real:roster.filter(p=>p.real).length,generated:roster.filter(p=>isGeneratedOriginal(p,clubId)||p.academy).length};
@@ -165,12 +168,12 @@ function refreshRealRoster(){
    const current=state.rosters[cid]||[],base=getClub(cid);
    const real=AuraRosterSync.rosterFor(base);
    if(!real.length)continue;
-   const accounted=Object.values(state.rosters).flat().concat(Object.values(state.departedPlayers||{}));
+   const accounted=Object.values(state.rosters).flat().concat(Object.values(state.departedPlayers||{}),Object.values(state.retiredPlayers||{}));
    const ownedIds=new Set(accounted.map(p=>p.id)),ownedNames=new Set(accounted.map(p=>AuraRosterSync.key(p)));
    const additions=real.filter(p=>!ownedIds.has(p.id)&&!ownedNames.has(AuraRosterSync.key(p)));
    let index=0;
    for(let i=0;i<current.length&&index<additions.length;i++){
-     if(isGeneratedOriginal(current[i],cid)||current[i].academy){
+     if(replaceableRosterPlayer(current[i],cid)){
        const added={...additions[index++],club:cid};
        current[i]=added;ownedIds.add(added.id);changed++;
      }
@@ -210,8 +213,9 @@ function marketResults(){
   const owned=new Set(clubPlayers(state.club).map(p=>p.id)),ownedNames=new Set(clubPlayers(state.club).map(identity)),seen=new Set(),q=AuraRosterSync.key(marketSearch);
   const existing=Object.entries(state.rosters).filter(([cid])=>cid!==state.club).flatMap(([,ps])=>ps)
     .filter(p=>AuraRosterSync.key(p.name).includes(q)||AuraRosterSync.key(getClub(p.club).name).includes(q));
+  const retiredNames=new Set(Object.values(state.retiredPlayers||{}).map(identity));
   const matches=[...existing,...AuraRosterSync.search(marketSearch,50)]
-    .filter(p=>{const key=identity(p);if(owned.has(p.id)||ownedNames.has(key)||seen.has(key))return false;seen.add(key);return true})
+    .filter(p=>{const key=identity(p);if(owned.has(p.id)||ownedNames.has(key)||seen.has(key)||retiredNames.has(key))return false;seen.add(key);return true})
     .slice(0,50).map(p=>findPlayer(p.id)?.p||p);
   if(!matches.length)return '<p class="save-info">No encontramos jugadores disponibles con ese nombre.</p>';
   return '<div class="table-wrap"><table class="table"><thead><tr><th>Jugador</th><th>Club</th><th>GRL</th><th>Valor</th><th>Negociar</th></tr></thead><tbody>'+
@@ -264,6 +268,7 @@ function renderTable(){return heading("Clasificación",competitionName()+" · Jo
     (state.competition.tieBreak==='head-to-head'?'enfrentamientos directos completos, ':'')+
     'diferencia de goles y goles a favor. Igualdad total: orden estable por club.</p>':'')}
 function findPlayer(id){
+  if(state.retiredPlayers?.[id])return null;
   for(const [cid,players] of Object.entries(state.rosters)){let p=players.find(x=>x.id===id);if(p)return{p,cid}}
   if(state.departedPlayers?.[id]){const p=state.departedPlayers[id];return {p,cid:p.club,external:true}}
   const p=AuraRosterSync.getPlayer(id);
@@ -272,10 +277,11 @@ function findPlayer(id){
 function buy(id){AuraCareerUI.start(id,"buy")}
 function sell(id){AuraCareerUI.start(id,"sell")}
 function train(id){const result=AuraProgression.train(state,id,"balanced");notify(result.error||result.message);save();render()}
-function render(){AuraEvolution.stopPreview();let active=state?screen:"home";$("topnav").innerHTML=nav.map(([id,label])=>'<button class="'+(active===id?'active':'')+'" '+(active===id?'aria-current="page" ':'')+'data-nav="'+id+'">'+label+'</button>').join("");$("header-profile").innerHTML=state?'<strong>'+myClub().name+'</strong>Jornada '+state.round+' · '+money(state.budget):'<strong>CLUB EDITION 3.1</strong>Tu próxima gran historia';$("app").innerHTML=!state?renderWelcome():({home:renderDashboard,career:renderDashboard,squad:renderSquad,market:renderMarket,calendar:renderCalendar,academy:renderAcademy,table:renderTable}[active]||renderDashboard)();AuraEvolution.afterRender();}
+function render(){AuraEvolution.stopPreview();let active=state?screen:"home";$("topnav").innerHTML=nav.map(([id,label])=>'<button class="'+(active===id?'active':'')+'" '+(active===id?'aria-current="page" ':'')+'data-nav="'+id+'">'+label+'</button>').join("");$("header-profile").innerHTML=state?'<strong>'+myClub().name+'</strong>Jornada '+state.round+' · '+money(state.budget):'<strong>WORLD TOUR 4.0</strong>Tu próxima gran historia';$("app").innerHTML=!state?renderWelcome():({home:renderDashboard,career:renderDashboard,squad:renderSquad,market:renderMarket,calendar:renderCalendar,academy:renderAcademy,table:renderTable,tour:AuraTourUI.careerHub,pro:AuraTourUI.playerHub}[active]||renderDashboard)();AuraEvolution.afterRender();AuraTourUI.afterRender();}
 document.addEventListener("click",e=>{
   const t=e.target.closest("button");
   if(!t)return;
+  if(AuraTourUI.handleClick(t))return;
   if(AuraEvolution.handleClick(t))return;
   if(state&&AuraProgressionUI.handleClick(t))return;
   if(state&&AuraCareerUI.handleClick(t))return;
@@ -296,7 +302,7 @@ document.addEventListener("click",e=>{
   if(t.dataset.action==="new"){
     if(state){
       openModal("Nueva carrera","<p>¿Empezar de cero? Se perderá el progreso de esta sesión. No se guarda automáticamente.</p><button id='confirmnew' class='btn danger'>Iniciar nueva carrera</button>");
-      $("confirmnew").onclick=()=>{state=null;screen="home";selected="barcelona";selectedCompetition="laliga";calendarRound=null;AuraCareerUI.reset();AuraProgressionUI.reset();closeModal();render()};
+      $("confirmnew").onclick=()=>{state=null;screen="home";selected="barcelona";selectedCompetition="laliga";calendarRound=null;AuraCareerUI.reset();AuraProgressionUI.reset();AuraTourUI.reset();closeModal();render()};
     }else document.querySelector(".competition-picker")?.scrollIntoView({behavior:"smooth"});
   }
   if(t.dataset.action==="start"){state=createGame(selected);AuraCareerUI.reset();AuraProgressionUI.reset();AuraSquad.ensure(state);AuraProgression.initialize(state);calendarRound=null;screen="career";save();render();window.scrollTo(0,0)}
@@ -312,6 +318,7 @@ document.addEventListener("input",e=>{
   }
 });
 document.addEventListener("change",e=>{
+  AuraTourUI.change(e);
   AuraEvolution.change(e);
   if(state)AuraCareerUI.change(e);
   if(state)AuraProgressionUI.change(e);
