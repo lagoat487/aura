@@ -303,3 +303,13 @@ test('UT untradeable duplicate cannot expose a sell action for its transferable 
  app.click({ut:'inspect',player:'duplicate:locked',duplicate:'yes'});assert.match(app.node('modal').innerHTML,/Intransferible/);assert.doesNotMatch(app.node('modal').innerHTML,/data-ut="sell"|data-ut="buy"/);
  const before=app.json('utClub');app.click({ut:'sell',player:'duplicate:locked',duplicate:'yes'});assert.deepEqual(app.json('utClub'),before);
 });
+
+test('UT latest-pack cards inspect and sell the duplicate copy rather than its original',()=>{
+ const app=boot();app.click({evoMode:'ultimate'});app.click({ut:'create'});
+ app.run('globalThis.utClub=AuraUTUI.getClub();globalThis.original=utClub.owned.find(p=>p.id===utClub.xi[0]);original.tradeable=false;globalThis.copy={...original,uid:"duplicate:last-pack",duplicate:true,tradeable:true};utClub.duplicates.push({...copy});utClub.lastPack=[{...copy}];');
+ const originals=app.json('utClub.owned'),xi=app.json('utClub.xi');app.click({utTab:'home'});
+ assert.match(app.html(),/data-ut="inspect" data-player="duplicate:last-pack" data-duplicate="yes"/);
+ app.click({ut:'inspect',player:'duplicate:last-pack',duplicate:'yes'});assert.match(app.node('modal').innerHTML,/Repetido · Transferible/);assert.match(app.node('modal').innerHTML,/data-ut="sell" data-player="duplicate:last-pack" data-duplicate="yes"/);
+ app.click({ut:'sell',player:'duplicate:last-pack',duplicate:'yes'});assert.equal(app.run('utClub.duplicates.length'),0);assert.deepEqual(app.json('utClub.owned'),originals);assert.deepEqual(app.json('utClub.xi'),xi);
+ const after=app.json('utClub');app.click({ut:'inspect',player:'duplicate:last-pack',duplicate:'yes'});assert.deepEqual(app.json('utClub'),after);
+});
