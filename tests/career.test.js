@@ -393,3 +393,14 @@ test('UT highest division stops promising another promotion and preserves match 
  for(let i=0;i<3;i++){app.click({ut:'play',opponent:'madrid'});app.run('pendingDivision.onFinish({home:1,away:0})');}
  assert.equal(app.run('utClub.division'),1);assert.equal(app.run('utClub.divisionPoints'),9);assert.equal(app.run('utClub.coins'),initialCoins+30*1200+9*1500);assert.match(app.html(),/9 puntos en División 1/);assert.deepEqual(app.json('utClub.xi'),xi);
 });
+
+test('career Champions calendar labels the final as a single match before and after completion',async()=>{
+ const app=boot();app.run(fs.readFileSync(path.join(__dirname,'..','data/world-rosters.js'),'utf8'));await app.run('World.load(clubs,Competitions.definitions)');app.click({action:'start'});
+ app.run('globalThis.europeSim=(h,a)=>({home:a===state.club?0:3,away:a===state.club?3:0});for(let guard=0;guard<20&&AuraChampions.next(state.champions)?.stage!=="final";guard++)AuraChampions.advance(state.champions,europeSim)');
+ assert.equal(app.run('AuraChampions.next(state.champions).stage'),'final');
+ for(const completed of [false,true]){
+  if(completed)app.run('AuraChampions.advance(state.champions,europeSim)');
+  app.click({nav:'champions'});assert.ok(app.html().includes('Final · Partido único'),'the final must not be advertised as a first leg');assert.doesNotMatch(app.html(),/Final · (Ida|Vuelta)/);assert.match(app.html(),/Semifinal · Ida/);assert.match(app.html(),/Semifinal · Vuelta/);
+ }
+ assert.equal(app.run('state.champions.rounds.filter(r=>r.stage==="final").length'),1);
+});

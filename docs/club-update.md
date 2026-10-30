@@ -1,5 +1,7 @@
 # Club Update 4.1
 
+Corrección del calendario de Champions en carrera: la final se identifica como partido único, tanto pendiente como terminada. Las semifinales y las demás eliminatorias conservan las etiquetas de ida y vuelta.
+
 Corrección de elegibilidad de Champions: el país declarado de la liga prevalece sobre nombres compartidos como «Serie A», «Premier League» o «Superliga». Cuando el catálogo no declara país, se reconocen nombres completos de las ligas europeas compatibles, junto con el país de los clubes antiguos. Los alias no pueden incorporar un club de origen no elegible. Las carreras de ligas importadas como «Brasileirão Serie A», «LigaPro Serie A» y «Argentina Superliga» conservan su calendario doméstico y no reciben partidos ni ingresos de Champions. Se mantienen los clubes europeos del catálogo, la entrada única por identidad, los cuatro primeros y la exención del campeón europeo.
 
 Corrección de divisiones UT: al llegar a División 1 se indica que es la categoría máxima y se muestran sus puntos, sin prometer otro ascenso. Los partidos, monedas y puntos siguen las reglas existentes; las divisiones inferiores conservan el objetivo de nueve puntos.
