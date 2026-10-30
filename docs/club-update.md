@@ -1,5 +1,7 @@
 # Club Update 4.1
 
+Corrección del banquillo UT: las nueve plazas se cubren con las reservas de mayor GRL, en vez de las primeras cartas recibidas. Se conserva una plaza para un portero de reserva si existe y solo se convoca una edición de cada futbolista. La plantilla muestra exactamente los suplentes disponibles al entrar al partido. Comprar una carta mejor ya permite usarla como suplente sin alterar el once; las demás cartas siguen en Mi club.
+
 Corrección del calendario de Champions en carrera: la final se identifica como partido único, tanto pendiente como terminada. Las semifinales y las demás eliminatorias conservan las etiquetas de ida y vuelta.
 
 Corrección de elegibilidad de Champions: el país declarado de la liga prevalece sobre nombres compartidos como «Serie A», «Premier League» o «Superliga». Cuando el catálogo no declara país, se reconocen nombres completos de las ligas europeas compatibles, junto con el país de los clubes antiguos. Los alias no pueden incorporar un club de origen no elegible. Las carreras de ligas importadas como «Brasileirão Serie A», «LigaPro Serie A» y «Argentina Superliga» conservan su calendario doméstico y no reciben partidos ni ingresos de Champions. Se mantienen los clubes europeos del catálogo, la entrada única por identidad, los cuatro primeros y la exención del campeón europeo.

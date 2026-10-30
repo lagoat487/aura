@@ -63,3 +63,16 @@ test('UT permits replacing a base card with its event edition but prevents field
  assert.equal(U.setPlayer(u,9,special.id),true);assert.ok(!u.xi.includes(base.id));assert.equal(U.setPlayer(u,8,base.id),false);
  U.auto(u);const people=u.xi.map(id=>{const p=u.owned.find(p=>p.id===id);return p.originalId||p.id;});assert.equal(new Set(people).size,11);assert.ok(u.xi.includes(special.id));assert.ok(u.owned.some(p=>p.id===base.id));
 });
+
+test('UT bench picks stronger reserves, keeps one keeper and never calls up another edition of a starter',()=>{
+ const u=U.create(pool()),starter=u.owned.find(p=>p.id===u.xi[9]);
+ const reserves=Array.from({length:11},(_,i)=>({id:'reserve:'+i,name:'Reserve '+i,pos:'MC',overall:80+i,real:false}));
+ const keeper={id:'reserve:keeper',name:'Reserve keeper',pos:'POR',overall:62,real:false},special={...reserves[10],id:'event:reserve',originalId:reserves[10].id,overall:93};
+ u.owned=u.owned.filter(p=>u.xi.includes(p.id)).concat(reserves,keeper,{...starter,id:'event:starter',originalId:starter.id,overall:99},special);
+ const before=structuredClone(u),bench=U.bench(u);
+ assert.equal(bench.length,9);assert.equal(bench[0].id,special.id);assert.equal(bench.at(-1).id,keeper.id);
+ assert.ok(!bench.some(p=>p.id==='event:starter'||p.id===reserves[10].id));
+ assert.equal(new Set(bench.map(p=>p.originalId||p.id)).size,9);assert.deepEqual(u,before);
+ const few={...u,owned:u.owned.filter(p=>u.xi.includes(p.id)).concat(reserves.slice(0,2))};
+ assert.deepEqual(U.bench(few),reserves.slice(0,2).reverse(),'short benches need no invented replacement keeper');
+});

@@ -66,6 +66,14 @@
   }
   function setFormation(u,formation){if(!Squad.formations[formation])return false;const current=u.xi.map(id=>u.owned.find(p=>p.id===id));u.formation=formation;u.xi=Squad.choose(current,formation);return true;}
   function auto(u){const people=new Map();for(const p of u.owned){const key=p.originalId||p.id;if(!people.has(key)||people.get(key).overall<p.overall)people.set(key,p);}u.xi=Squad.choose([...people.values()],u.formation);return u.xi;}
+  function bench(u){
+    const calledUp=new Set(u.xi.map(id=>u.owned.find(p=>p.id===id)?.originalId||id));
+    const reserves=u.owned.slice().sort((a,b)=>b.overall-a.overall).filter(p=>{const identity=p.originalId||p.id;if(calledUp.has(identity))return false;calledUp.add(identity);return true;});
+    const selected=reserves.slice(0,9),keeper=reserves.find(p=>p.pos==='POR');
+    // Keep a legal keeper substitution available even with nine stronger outfield reserves.
+    if(keeper&&!selected.some(p=>p.pos==='POR'))selected[selected.length-1]=keeper;
+    return selected;
+  }
   function price(p){const special=p?.event===sigma.id&&sigma.cards.find(x=>x.id===p.id);if(special)return special.price;return Math.round((p.overall<65?300:p.overall<75?700+(p.overall-65)*80:p.overall<84?1200+Math.pow(p.overall-74,2)*160:18000*Math.pow(1.6,p.overall-84))/50)*50;}
   function buy(u,player){if(!player?.real||!player.id)return {error:"Jugador no disponible."};if(player.event===sigma.id&&!sigma.cards.some(p=>p.id===player.id&&p.overall===player.overall))return {error:"Carta Ultimate Sigma no disponible."};if(u.owned.some(p=>p.id===player.id))return {error:"Este jugador ya está en tu club."};const cost=price(player);if(u.coins<cost)return {error:"No tienes monedas suficientes."};u.coins-=cost;u.owned.push({...player,tradeable:true});u.purchases++;return {ok:true,cost};}
   function quickSell(u,id,duplicate=false){
@@ -96,5 +104,5 @@
     return coins;
   }
   function claimBattles(u){if(u.battlesClaimed.includes(u.battleCycle)||u.battlePoints<1000)return {error:"Consigue al menos 1.000 puntos en esta serie."};const reward=u.battlePoints>=5000?4000:u.battlePoints>=2500?2500:1000;u.battlesClaimed.push(u.battleCycle);u.coins+=reward;u.battleCycle++;u.battlePoints=0;return {ok:true,coins:reward};}
-  return {create,chemistry,rating,league,packs,challenges,sigma,eventCards,claimSigmaGift,draw,setPlayer,setFormation,auto,price,buy,quickSell,itemScore,sbcPool,sbcPreview,submitSBC,objectives,claim,reward,claimBattles};
+  return {create,chemistry,rating,league,packs,challenges,sigma,eventCards,claimSigmaGift,draw,setPlayer,setFormation,auto,bench,price,buy,quickSell,itemScore,sbcPool,sbcPreview,submitSBC,objectives,claim,reward,claimBattles};
 });
