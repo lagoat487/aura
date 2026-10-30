@@ -344,3 +344,15 @@ test('UT market offers every squad position and filters and buys real wide midfi
   assert.ok(!app.html().includes('data-ut="buy" data-player="'+id+'"'),'purchased card leaves the market');
  }
 });
+
+test('UT highest division stops promising another promotion and preserves match rewards',()=>{
+ const app=boot();app.click({evoMode:'ultimate'});app.click({ut:'create'});app.click({utTab:'play'});app.click({utMode:'divisions'});
+ app.run('globalThis.utClub=AuraUTUI.getClub();AuraArena.preMatch=(home,away,options)=>{globalThis.pendingDivision=options}');
+ assert.match(app.html(),/0 \/ 9 puntos para ascender/);
+ const initialCoins=app.run('utClub.coins'),xi=app.json('utClub.xi');
+ for(let i=0;i<27;i++){app.click({ut:'play',opponent:'madrid'});app.run('pendingDivision.onFinish({home:1,away:0})');}
+ assert.equal(app.run('utClub.division'),1);assert.equal(app.run('utClub.divisionPoints'),0);assert.equal(app.run('utClub.coins'),initialCoins+27*1200+9*1500);
+ assert.match(app.html(),/División máxima alcanzada/);assert.doesNotMatch(app.html(),/puntos para ascender/);
+ for(let i=0;i<3;i++){app.click({ut:'play',opponent:'madrid'});app.run('pendingDivision.onFinish({home:1,away:0})');}
+ assert.equal(app.run('utClub.division'),1);assert.equal(app.run('utClub.divisionPoints'),9);assert.equal(app.run('utClub.coins'),initialCoins+30*1200+9*1500);assert.match(app.html(),/9 puntos en División 1/);assert.deepEqual(app.json('utClub.xi'),xi);
+});

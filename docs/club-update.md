@@ -1,5 +1,7 @@
 # Club Update 4.1
 
+Corrección de divisiones UT: al llegar a División 1 se indica que es la categoría máxima y se muestran sus puntos, sin prometer otro ascenso. Los partidos, monedas y puntos siguen las reglas existentes; las divisiones inferiores conservan el objetivo de nueve puntos.
+
 Corrección del mercado UT: el selector de posición incluye MI, MD y SD, presentes en el catálogo. Se pueden buscar refuerzos para las bandas de 4-4-2, 4-2-3-1 y 3-5-2 sin mezclar otras posiciones; la compra conserva el once y usa las monedas de la sesión.
 
 Corrección de selección de DCP: al volver al desafío, se descartan de la selección las cartas vendidas, consumidas o incorporadas al once. Las cartas todavía elegibles permanecen seleccionadas. El contador y la revisión usan la selección vigente; esta limpieza no consume cartas ni monedas.
