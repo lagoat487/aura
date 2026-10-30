@@ -171,7 +171,7 @@
     const {p,i,x,y,z,gap,quality,incoming}=contact;
     const goalTime=b.vx?(-direction(game,p.team)*52.5-x)/b.vx:-1;
     const goalHeight=Math.max(.22,y+b.vy*goalTime-6*goalTime*goalTime);
-    const onGoal=incoming&&game.passTarget===null&&goalTime>=0&&goalHeight<FIELD.height&&Math.abs(z+b.vz*goalTime)<FIELD.goal/2+.2;
+    const onGoal=incoming&&game.passTarget===null&&goalTime>=0&&goalHeight<FIELD.height&&Math.abs(z+b.vz*goalTime)<FIELD.goal/2;
     Object.assign(b,{x,y,z});p.diveSide=Math.sign(z-p.z)||1;p.saveHeight=y;
     const hold=gap<1.05+quality*.35&&speed<24+quality*8&&y<2.15;
     if(onGoal)game.stats[p.team].saves++;

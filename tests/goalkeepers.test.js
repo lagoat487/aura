@@ -70,3 +70,11 @@ test('a held save allows the full recovery time and then a normal keeper outlet 
  tick(g,.5);assert.equal(g.ball.owner,11,'the keeper recovery clock must not tick twice per frame');assert.equal(g.stats[1].passes,0);
  tick(g,.4);assert.equal(g.stats[1].passes,1);assert.equal(g.ball.owner,null);assert.ok(g.ball.vx<0,'the outlet travels away from his own goal');
 });
+
+test('keeper touches outside either post do not count as saves or parries on target',()=>{
+ for(const side of [-1,1])for(const target of [3.4,3.75]){
+  const {g,keeper}=duel({rating:95});Object.assign(keeper,{x:49,z:side*1.4});Object.assign(g.ball,{owner:null,x:48,y:1,z:side*target,vx:33,vy:0,vz:0,lastTouch:0,freeTime:1});
+  M.step(g,.05);assert.equal(g.ball.lastTouch,1,'the keeper physically touches both the on-target and wide attempts');
+  const expected=target<M.FIELD.goal/2?1:0;assert.equal(g.stats[1].saves,expected,'a wide shot must not inflate save statistics');assert.equal(g.stats[1].parries,expected);assert.deepEqual(g.score,[0,0]);
+ }
+});

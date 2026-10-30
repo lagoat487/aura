@@ -2,6 +2,8 @@
 
 ## Porteros: salidas, reflejos y segundos balones
 
+Corrección del conteo: tocar un remate proyectado por fuera de cualquiera de los postes no suma una parada ni un desvío a puerta. La intervención y el rebote se conservan; se usa el mismo ancho de portería que decide los goles.
+
 El portero ajusta su posición entre el balón y el centro de la portería. Dentro del área puede salir a cortar un regate cercano; el intento depende de su media y de la del delantero, y tiene recuperación para evitar intentos infinitos cada fotograma. Se aplica a ambos equipos y a las dos mitades. Ganar ese duelo cuenta como salida, no como parada de un disparo.
 
 La lectura de los tiros se hace sobre la trayectoria hacia la posición real del portero. La detección recorre el tramo del balón hasta la línea de gol para que un tiro rápido alcanzable no se marque antes de resolver la parada. No devuelve balones que ya lo superaron, ni concede paradas fuera del área o a tiros por encima de su alcance. Las manos tienen alcance lateral, no atraen el balón varios metros desde delante.
