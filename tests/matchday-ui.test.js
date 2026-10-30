@@ -73,3 +73,15 @@ test('losing joystick capture releases movement and paused or replayed touches c
  stick.fire('pointerdown',pointer);assert.ok(a.session.stick.x>.5);a.click('pause');assert.equal(stick.querySelector('span').style.transform,'','pause must recenter the knob');a.click('resume');stick.fire('pointermove',pointer);assert.equal(a.session.stick.x,0,'an old pointer cannot restart movement after pause');
  a.click('pause');a.click('exit');a.click('confirm-exit');
 });
+
+test('losing touch action capture stops sprinting and discards shots without breaking normal release',()=>{
+ const a=boot(),g=a.session.game;g.phase='playing';g.players[g.controlled].cooldown=0;
+ const pointer={pointerId:7,preventDefault(){}},sprint=a.node('touch:sprint'),shot=a.node('touch:shoot');
+ sprint.fire('pointerdown',pointer);assert.equal(a.session.touchSprint,true);
+ sprint.fire('lostpointercapture',pointer);assert.equal(a.session.touchSprint,false,'a lost touch must not keep sprint held');
+ shot.fire('pointerdown',pointer);assert.notEqual(a.session.charging,null);assert.equal(a.node('arena-power').hidden,false);
+ shot.fire('lostpointercapture',pointer);assert.equal(a.session.charging,null,'a lost touch must discard the shot charge');assert.equal(a.node('arena-power').hidden,true);assert.equal(g.stats[0].shots,0);
+ shot.fire('pointerup',pointer);assert.equal(g.stats[0].shots,0,'late release must not fire a discarded charge');
+ shot.fire('pointerdown',pointer);shot.fire('pointerup',pointer);shot.fire('lostpointercapture',pointer);assert.equal(g.stats[0].shots,1,'normal release fires exactly once before capture is lost');
+ a.click('pause');a.click('exit');a.click('confirm-exit');assert.equal(a.commits(),0);
+});
