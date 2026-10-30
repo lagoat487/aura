@@ -1,0 +1,20 @@
+name: Refresh AURA link cache
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Purge GitHack cache for AURA game files
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in index.html game.js evolution-ui.js ultimate-team.js ultimate-ui.js ultimate-sigma.js ultimate-sigma.css; do
+            echo "Refreshing $file"
+            curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -X DELETE "https://raw.githack.com/purge?url=https://raw.githack.com/lagoat487/aura/main/${file}"
+            echo
+          done
