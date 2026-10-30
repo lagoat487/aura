@@ -30,6 +30,7 @@ function boot(saved) {
     html: () => node("app").innerHTML,
     node,
     click: dataset => events.click({ target: { closest: () => ({ dataset }) } }),
+    change: (id, value) => events.change({ target: { id, value } }),
     saved: () => storage.get("aura-fc27-save-v1"),
   };
 }
@@ -325,4 +326,21 @@ test('UT DCP drops a sold selected card without changing the remaining club on r
  const app=boot();app.click({evoMode:'ultimate'});app.click({ut:'create'});app.run('globalThis.utClub=AuraUTUI.getClub();globalThis.selectedCard=AuraUT.sbcPool(utClub,"gold")[0];utClub.owned.find(p=>p.id===selectedCard.id).tradeable=true;');
  app.click({utSbc:'gold'});app.click({utTab:'sbc'});app.click({ut:'sbc-pick',uid:app.run('selectedCard.uid')});app.run('globalThis.otherCard=AuraUT.sbcPool(utClub,"gold").find(p=>p.uid!==selectedCard.uid)');app.click({ut:'sbc-pick',uid:app.run('otherCard.uid')});app.click({utTab:'club'});app.click({ut:'sell',player:app.run('selectedCard.id')});const after=app.json('utClub');
  app.click({utTab:'sbc'});assert.match(app.html(),/1\/3 cartas/,'the remaining eligible card stays selected');assert.deepEqual(app.json('utClub'),after);assert.ok(app.run('!AuraUT.sbcPool(utClub,"gold").some(p=>p.uid===selectedCard.uid)'));
+});
+
+test('UT market offers every squad position and filters and buys real wide midfielders',async()=>{
+ const app=boot();app.run(fs.readFileSync(path.join(__dirname,'..','data/world-rosters.js'),'utf8'));
+ await app.run('World.load(clubs,Competitions.definitions)');app.click({evoMode:'ultimate'});app.click({ut:'create'});app.click({utTab:'market'});
+ const options=app.html().match(/<select id="ut-market-position">([\s\S]*?)<\/select>/)[1];
+ const positions=app.json('[...new Set([...Object.values(AuraSquad.formations).flat().map(slot=>slot[0]),...AuraUTUI.pool().map(p=>p.pos)])]');
+ for(const pos of positions)assert.ok(options.includes('value="'+pos+'"'),'missing market position: '+pos);
+ app.run('globalThis.utClub=AuraUTUI.getClub()');const xi=app.json('utClub.xi');
+ for(const pos of ['MI','MD']){
+  app.change('ut-market-position',pos);assert.match(app.html(),new RegExp('value="'+pos+'" selected'));
+  const ids=[...app.html().matchAll(/data-ut="buy" data-player="([^"]+)"/g)].map(m=>m[1]);assert.ok(ids.length>0,'real market candidates for '+pos);
+  for(const id of ids)assert.equal(app.run('AuraUTUI.pool().find(p=>p.id==='+JSON.stringify(id)+').pos'),pos);
+  const id=ids[0],coins=app.run('utClub.coins'),price=app.run('AuraUT.price(AuraUTUI.pool().find(p=>p.id==='+JSON.stringify(id)+'))');assert.ok(coins>=price);
+  app.click({ut:'buy',player:id});assert.equal(app.run('utClub.coins'),coins-price);assert.ok(app.run('utClub.owned.some(p=>p.id==='+JSON.stringify(id)+')'));assert.deepEqual(app.json('utClub.xi'),xi);
+  assert.ok(!app.html().includes('data-ut="buy" data-player="'+id+'"'),'purchased card leaves the market');
+ }
 });

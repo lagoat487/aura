@@ -1,5 +1,7 @@
 # Club Update 4.1
 
+Corrección del mercado UT: el selector de posición incluye MI, MD y SD, presentes en el catálogo. Se pueden buscar refuerzos para las bandas de 4-4-2, 4-2-3-1 y 3-5-2 sin mezclar otras posiciones; la compra conserva el once y usa las monedas de la sesión.
+
 Corrección de selección de DCP: al volver al desafío, se descartan de la selección las cartas vendidas, consumidas o incorporadas al once. Las cartas todavía elegibles permanecen seleccionadas. El contador y la revisión usan la selección vigente; esta limpieza no consume cartas ni monedas.
 
 La corrección de identidad de los repetidos también se aplica a las cartas de «Último sobre» en Inicio de UT. Abrir o vender una copia desde ese bloque usa su UID; la carta original se conserva. Si la copia ya fue consumida o vendida, su enlace histórico no actúa sobre la original.
