@@ -102,7 +102,7 @@ const AuraArena=(()=>{
       if(e.ctrlKey||e.metaKey||e.altKey)return;
       const k=e.key.toLowerCase(),known=["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright","shift","j","k","l","e"," ","p","escape","c"];
       if(game.paused&&e.target.matches?.('select,input,textarea')&&k!=="escape"&&k!=="p")return;
-      if(game.paused&&k===" "&&e.target.closest?.('button'))return;
+      if(k===" "&&e.target.closest?.('button'))return;
       if(k==="tab"){const buttons=[...node.querySelectorAll('button:not([disabled]),select:not([disabled]),input:not([disabled])')].filter(b=>b.getClientRects().length);if(buttons.length){const first=buttons[0],last=buttons.at(-1);if(e.shiftKey&&(document.activeElement===first||document.activeElement===node)){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}return;}
       if(!known.includes(k))return;e.preventDefault();e.stopImmediatePropagation();if(e.repeat)return;
       if(k==="p"||k==="escape"){pause();return;}if(k==="c"){changeCamera();return;}if(s.replay){if(k===" ")skipReplay();return;}if(game.paused||s.done)return;s.keys.add(k);

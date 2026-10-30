@@ -28,7 +28,7 @@ function boot(){
  vm.runInContext('AuraArena.settings.sound=false;AuraArena.settings.seconds=30;AuraArena.start(home,away,{onFinish:commit,onCancel:cancel})',context);
  const session=vm.runInContext('AuraArena.getSession()',context);
  return {session,node,run:code=>vm.runInContext(code,context),frame(ms=100){now+=ms;const callbacks=[...raf.values()];raf.clear();callbacks.forEach(fn=>fn(now));},
-  key(type,key){windowEvents[type]?.({key,preventDefault(){},stopImmediatePropagation(){},target:node()});},click(action){session.node.fire('click',{target:{closest:()=>({dataset:{arena:action}})}});},
+  key(type,key,target=node()){const event={key,target,defaultPrevented:false,preventDefault(){this.defaultPrevented=true;},stopImmediatePropagation(){this.stopped=true;}};windowEvents[type]?.(event);return event;},click(action){session.node.fire('click',{target:{closest:()=>({dataset:{arena:action}})}});},
   commits:()=>commits,cancels:()=>cancels,view:()=>lastView,
  };
 }
@@ -84,4 +84,14 @@ test('losing touch action capture stops sprinting and discards shots without bre
  shot.fire('pointerup',pointer);assert.equal(g.stats[0].shots,0,'late release must not fire a discarded charge');
  shot.fire('pointerdown',pointer);shot.fire('pointerup',pointer);shot.fire('lostpointercapture',pointer);assert.equal(g.stats[0].shots,1,'normal release fires exactly once before capture is lost');
  a.click('pause');a.click('exit');a.click('confirm-exit');assert.equal(a.commits(),0);
+});
+
+test('Space preserves focused button activation during play, replay and the final result',()=>{
+ const a=boot(),g=a.session.game;g.phase='playing';
+ const button={matches:()=>false,closest:selector=>selector==='button'?{}:null};
+ const before=JSON.stringify(g);assert.equal(a.key('keydown',' ',button).defaultPrevented,false,'Space on a focused button must retain native activation');assert.equal(JSON.stringify(g),before);assert.equal(a.session.keys.has(' '),false);
+ a.session.replay={frames:[],time:0};assert.equal(a.key('keydown',' ',button).defaultPrevented,false);assert.ok(a.session.replay,'Space on a replay button must not trigger the field shortcut');a.session.replay=null;
+ assert.equal(a.key('keydown',' ').defaultPrevented,true,'Space on the field still invokes the tackle shortcut');assert.equal(a.session.keys.has(' '),true);a.key('keyup',' ');
+ g.phase='finished';a.frame();assert.equal(a.session.done,true);assert.equal(a.key('keydown',' ',button).defaultPrevented,false,'the final result button must be activatable with Space');
+ a.click('complete');assert.equal(a.commits(),1);
 });

@@ -1,5 +1,7 @@
 # Matchday 4.2 — actualización de partidos
 
+Corrección de teclado en PC: Espacio conserva la activación nativa de los botones enfocados durante el partido, las repeticiones y el resultado final. Con el foco en el campo mantiene el atajo de entrada.
+
 Corrección de botones móviles: perder la captura táctil libera sprint y descarta la carga del tiro. Una liberación posterior no dispara esa carga; soltar normalmente sigue disparando una sola vez.
 
 Corrección del joystick móvil: perder la captura del puntero libera la dirección. Pausar o iniciar una repetición también centra el control y descarta el puntero anterior; los toques durante pausa o repetición no acumulan movimiento para la reanudación.
