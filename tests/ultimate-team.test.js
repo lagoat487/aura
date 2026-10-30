@@ -56,3 +56,10 @@ test('Sigma portraits reuse the original catalogue identity even without a legac
  assert.deepEqual(P.sources(U.eventCards([]).find(p=>p.id==='sigma:espart')),[],'unmatched identities must retain the missing-photo fallback');
  assert.deepEqual(P.sources({...card,originalId:'javascript:231747'}),[]);
 });
+
+test('UT permits replacing a base card with its event edition but prevents fielding both editions',()=>{
+ const u=U.create(pool()),base=u.owned.find(p=>p.id===u.xi[9]),special={...base,id:'event:test',originalId:base.id,overall:99};u.owned.push(special);
+ const before=JSON.stringify(u);assert.equal(U.setPlayer(u,8,special.id),false);assert.equal(JSON.stringify(u),before);
+ assert.equal(U.setPlayer(u,9,special.id),true);assert.ok(!u.xi.includes(base.id));assert.equal(U.setPlayer(u,8,base.id),false);
+ U.auto(u);const people=u.xi.map(id=>{const p=u.owned.find(p=>p.id===id);return p.originalId||p.id;});assert.equal(new Set(people).size,11);assert.ok(u.xi.includes(special.id));assert.ok(u.owned.some(p=>p.id===base.id));
+});

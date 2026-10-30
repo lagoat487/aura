@@ -75,7 +75,7 @@ const AuraUTUI=(()=>{
       if(!club)return true;
       if(action==='auto'){U.auto(club);renderGame();}
       if(action==='pick'){pickerSlot=Number(d.slot);const pos=AuraSquad.formations[club.formation][pickerSlot][0];openModal('ELEGIR '+pos,'<div class="ut-card-grid">'+club.owned.slice().sort((a,b)=>(b.overall-AuraSquad.positionPenalty(b,pos)*2)-(a.overall-AuraSquad.positionPenalty(a,pos)*2)).map(p=>card(p,'choose','data-player="'+esc(p.id)+'"')).join('')+'</div>');}
-      if(action==='choose'){U.setPlayer(club,pickerSlot,d.player);closeModal();renderGame();}
+      if(action==='choose'){if(!U.setPlayer(club,pickerSlot,d.player)){notify('Ya tienes otra edición de este jugador en el once. Sustitúyela en su puesto.');return true;}closeModal();renderGame();}
       if(action==='inspect')inspect(d.player,d.duplicate==='yes');
       if(action==='pack'){const r=U.draw(club,pool(),d.pack||'gold');if(r.error)notify(r.error);else{packIndex=0;renderGame();reveal();}}
       if(action==='reveal-next'){packIndex++;if(packIndex<club.lastPack.length)reveal();else{closeModal();tab='club';renderGame();}}

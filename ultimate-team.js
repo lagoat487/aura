@@ -60,10 +60,12 @@
   }
   function setPlayer(u,slot,id){
     if(!Number.isInteger(slot)||slot<0||slot>10||!u.owned.some(p=>p.id===id))return false;
+    const candidate=u.owned.find(p=>p.id===id),identity=p=>p.originalId||p.id;
+    if(u.xi.some((current,i)=>{const p=u.owned.find(p=>p.id===current);return i!==slot&&current!==id&&p&&identity(p)===identity(candidate);}))return false;
     const other=u.xi.indexOf(id),old=u.xi[slot];u.xi[slot]=id;if(other>=0)u.xi[other]=old;return true;
   }
   function setFormation(u,formation){if(!Squad.formations[formation])return false;const current=u.xi.map(id=>u.owned.find(p=>p.id===id));u.formation=formation;u.xi=Squad.choose(current,formation);return true;}
-  function auto(u){u.xi=Squad.choose(u.owned,u.formation);return u.xi;}
+  function auto(u){const people=new Map();for(const p of u.owned){const key=p.originalId||p.id;if(!people.has(key)||people.get(key).overall<p.overall)people.set(key,p);}u.xi=Squad.choose([...people.values()],u.formation);return u.xi;}
   function price(p){const special=p?.event===sigma.id&&sigma.cards.find(x=>x.id===p.id);if(special)return special.price;return Math.round((p.overall<65?300:p.overall<75?700+(p.overall-65)*80:p.overall<84?1200+Math.pow(p.overall-74,2)*160:18000*Math.pow(1.6,p.overall-84))/50)*50;}
   function buy(u,player){if(!player?.real||!player.id)return {error:"Jugador no disponible."};if(player.event===sigma.id&&!sigma.cards.some(p=>p.id===player.id&&p.overall===player.overall))return {error:"Carta Ultimate Sigma no disponible."};if(u.owned.some(p=>p.id===player.id))return {error:"Este jugador ya está en tu club."};const cost=price(player);if(u.coins<cost)return {error:"No tienes monedas suficientes."};u.coins-=cost;u.owned.push({...player,tradeable:true});u.purchases++;return {ok:true,cost};}
   function quickSell(u,id,duplicate=false){
