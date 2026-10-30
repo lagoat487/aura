@@ -48,3 +48,11 @@ test('SBC delivery consumes selected duplicate UIDs without consuming their star
 test('portraits use the correct numeric identity, reject injected URLs and never synthesize a real face',()=>{
  const p={id:'real:231747',name:'Kylian Mbappé',real:true};assert.match(P.sources(p)[0],/pulse.ea.com\/FC25\/full\/player-portraits\/p231747.png/);assert.ok(P.html(p).includes('Retrato de Kylian'));assert.deepEqual(P.sources({id:'new:123',real:false,photo:'javascript:alert(1)'}),[]);const missing=P.html({id:'verified:unknown',name:'Real Player',real:true});assert.match(missing,/Sin foto/);assert.doesNotMatch(missing,/<svg|javascript:/);
 });
+
+test('Sigma portraits reuse the original catalogue identity even without a legacy photo URL',()=>{
+ const base={id:'real:231747',name:'Kylian Mbappé',pos:'DC',overall:91,real:true};
+ const card=U.eventCards([base]).find(p=>p.id==='sigma:mbappe');
+ assert.equal(card.originalId,base.id);assert.equal(P.identity(card),'231747');assert.deepEqual(P.sources(card),P.sources(base));
+ assert.deepEqual(P.sources(U.eventCards([]).find(p=>p.id==='sigma:espart')),[],'unmatched identities must retain the missing-photo fallback');
+ assert.deepEqual(P.sources({...card,originalId:'javascript:231747'}),[]);
+});

@@ -3,7 +3,7 @@
 (function(root,factory){const api=factory();if(typeof module==="object"&&module.exports)module.exports=api;else root.AuraPortraits=api;})(typeof globalThis!=="undefined"?globalThis:this,function(){
   "use strict";
   const escape=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-  function identity(p){const n=/^real:(\d{3,9})$/.exec(String(p?.id||""))?.[1]||/^https:\/\/cdn\.sofifa\.net\/players\/(\d+)\/(\d+)\//.exec(p?.photo||"")?.slice(1).join("");return n?String(Number(n)):null;}
+  function identity(p){const n=/^real:(\d{3,9})$/.exec(String(p?.id||""))?.[1]||/^real:(\d{3,9})$/.exec(String(p?.originalId||""))?.[1]||/^https:\/\/cdn\.sofifa\.net\/players\/(\d+)\/(\d+)\//.exec(p?.photo||"")?.slice(1).join("");return n?String(Number(n)):null;}
   function sources(p){
     if(!p?.real)return [];const id=identity(p),urls=[];
     if(id){urls.push('https://ratings-images-prod.pulse.ea.com/FC25/full/player-portraits/p'+id+'.png?padding=0.7');const padded=id.padStart(6,'0');for(const year of [26,25,24])urls.push('https://cdn.sofifa.net/players/'+padded.slice(0,-3)+'/'+padded.slice(-3)+'/'+year+'_120.png');}
