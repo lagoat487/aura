@@ -54,13 +54,14 @@
   }
   function dueNow(game){const r=next(game.champions);const leagueLength=game.competition?.fixtures.length||38;return !!r&&(game.round>=Math.floor(r.due*leagueLength/38)||game.round>=leagueLength);}
   function initCareer(game,clubs,definitions,matching,previousPosition=null){
+    game.continentalHistory=[];
     const all=candidates(clubs,definitions,matching),own=clubs.find(c=>c.id===game.club),identity=c=>matching?.(c)?.id||norm(c.name),ownKey=own&&identity(own);
     if(!own||!all.some(c=>identity(c)===ownKey)){game.champions=null;game.championsReason="Tu club no pertenece a una liga europea.";return null;}
     const domestic=game.competition.clubIds.map(id=>clubs.find(c=>c.id===id)).filter(Boolean).sort((a,b)=>b.rating-a.rating||a.id.localeCompare(b.id));
     const qualified=previousPosition===null?domestic.slice(0,4).some(c=>c.id===game.club):previousPosition<=4||game.previousContinentalChampion===game.club;
     if(!qualified){game.champions=null;game.championsReason="Termina entre los cuatro primeros de tu liga para clasificar a la próxima Champions de AURA.";return null;}
     const entrants=[own,...all.filter(c=>identity(c)!==ownKey).slice(0,35)];if(entrants.length<36){game.champions=null;game.championsReason="El catálogo europeo todavía está cargando.";return null;}
-    game.champions=create(entrants,game.club,game.season);game.continentalHistory=[];game.championsReason="";return game.champions;
+    game.champions=create(entrants,game.club,game.season);game.championsReason="";return game.champions;
   }
   return {create,table,next,fixture,pendingUser,advance,dueNow,initCareer,candidates,labels};
 });

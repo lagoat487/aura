@@ -1,5 +1,7 @@
 # Club Update 4.1
 
+Corrección de temporadas de Champions: al inicializar una temporada se vacía su historial europeo actual, también si el club no clasifica o no puede participar. Los resultados de temporadas anteriores permanecen en `seasonHistory`; no se arrastran ni se vuelven a archivar como resultados de un año sin Champions.
+
 Corrección de repetidos en UT: la ficha del almacén identifica cada copia por su UID y muestra su propia condición de transferible. La venta desde esa ficha consume únicamente la copia seleccionada y conserva la carta original, incluido un titular intransferible. Los repetidos intransferibles no ofrecen vender la carta original.
 
 ## Problemas corregidos

@@ -24,3 +24,19 @@ test('continental dates scale to domestic season lengths and eligibility exclude
  const c=C.create(teams(),'club-0'),g={round:1,competition:{fixtures:Array(38)},champions:c};assert.equal(C.dueNow(g),false);g.round=2;assert.equal(C.dueNow(g),true);g.competition.fixtures=Array(18);g.round=1;assert.equal(C.dueNow(g),true);
  const game={club:'south',season:2026,competition:{clubIds:['south']}};assert.equal(C.initCareer(game,[{id:'south',name:'Barcelona SC',city:'Guayaquil · Ecuador',rating:75}],[]),null);assert.match(game.championsReason,/europea/);
 });
+
+test('a non-qualifying new season clears current European results while preserving archived seasons',()=>{
+ const clubs=teams().map(c=>({...c,city:'Inglaterra'})),definition={id:'premier',name:'Premier League',country:'Inglaterra',clubIds:clubs.slice(0,20).map(c=>c.id)};
+ const previous=[{id:'2026:ucl:played',season:2026,g1:2,g2:1}],archive={season:2026,continentalHistory:previous.slice()};
+ const game={club:'club-0',season:2027,budget:123456,competition:definition,continentalHistory:previous.slice(),seasonHistory:[archive]};
+ const oldArchive=JSON.stringify(game.seasonHistory);
+ assert.equal(C.initCareer(game,clubs,[definition],null,8),null);assert.equal(game.champions,null);assert.match(game.championsReason,/cuatro/);
+ assert.deepEqual(game.continentalHistory,[],'a season without Champions must not reuse last season results');assert.equal(JSON.stringify(game.seasonHistory),oldArchive);assert.equal(game.budget,123456);
+ game.season=2028;assert.ok(C.initCareer(game,clubs,[definition],null,2));assert.deepEqual(game.continentalHistory,[]);assert.equal(JSON.stringify(game.seasonHistory),oldArchive);
+});
+test('unavailable and non-European Champions entries also start with an empty current history',()=>{
+ for(const city of ['Inglaterra','Guayaquil · Ecuador']){
+  const club={id:'own',name:'Own Club',city,rating:80},game={club:'own',season:2027,competition:{clubIds:['own']},continentalHistory:[{season:2026}]};
+  assert.equal(C.initCareer(game,[club],[]),null);assert.deepEqual(game.continentalHistory,[]);
+ }
+});
