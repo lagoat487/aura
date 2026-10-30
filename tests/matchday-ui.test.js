@@ -10,7 +10,7 @@ function boot(){
  function node(id=''){
   if(id&&nodes.has(id))return nodes.get(id);
   const events={},children=new Map();const n={id,style:{},dataset:{},classList,hidden:false,tabIndex:0,
-   addEventListener:(name,fn)=>{events[name]=fn;},removeEventListener(){},setPointerCapture(){},setAttribute(){},appendChild(){},remove(){},focus(){},getClientRects:()=>[{}],getContext:()=>context2d,
+   addEventListener:(name,fn)=>{events[name]=fn;},removeEventListener(){},setPointerCapture(){},setAttribute(){},appendChild(){},remove(){},focus(){},getClientRects:()=>[{}],getBoundingClientRect:()=>({left:0,top:0,width:100,height:100}),getContext:()=>context2d,
    querySelector(selector){if(selector.startsWith('#'))return node(selector.slice(1));if(!children.has(selector))children.set(selector,node());return children.get(selector);},querySelectorAll:selector=>selector==='[data-touch]'?['switch','through','pass','shoot','tackle','sprint'].map(type=>{const button=node('touch:'+type);button.dataset.touch=type;return button;}):[],
    fire:(type,event)=>events[type]?.(event),matches:()=>false,
   };
@@ -62,4 +62,14 @@ test('cancelled touch shots discard their charge; normal releases still shoot an
  shot.fire('pointerdown',pointer);shot.fire('pointerup',pointer);assert.equal(g.stats[0].shots,1,'normal touch release keeps working');
  const sprint=a.node('touch:sprint');sprint.fire('pointerdown',pointer);assert.equal(a.session.touchSprint,true);sprint.fire('pointercancel',pointer);assert.equal(a.session.touchSprint,false);
  a.click('pause');a.click('exit');a.click('confirm-exit');assert.equal(a.commits(),0);
+});
+
+test('losing joystick capture releases movement and paused or replayed touches cannot queue movement',()=>{
+ const a=boot(),g=a.session.game;g.phase='playing';
+ const stick=a.node('touch-stick'),pointer={pointerId:3,clientX:90,clientY:50};
+ stick.fire('pointerdown',pointer);assert.ok(a.session.stick.x>.5);stick.fire('lostpointercapture',pointer);assert.equal(a.session.stick.x,0,'lost capture must release movement');assert.equal(stick.querySelector('span').style.transform,'');
+ a.click('pause');stick.fire('pointerdown',pointer);stick.fire('pointermove',pointer);assert.equal(a.session.stick.x,0,'touches during pause must not queue movement');a.click('resume');assert.equal(a.session.stick.x,0);
+ a.session.replay={};stick.fire('pointerdown',pointer);assert.equal(a.session.stick.x,0);a.session.replay=null;
+ stick.fire('pointerdown',pointer);assert.ok(a.session.stick.x>.5);a.click('pause');assert.equal(stick.querySelector('span').style.transform,'','pause must recenter the knob');a.click('resume');stick.fire('pointermove',pointer);assert.equal(a.session.stick.x,0,'an old pointer cannot restart movement after pause');
+ a.click('pause');a.click('exit');a.click('confirm-exit');
 });

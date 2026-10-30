@@ -77,7 +77,7 @@ const AuraArena=(()=>{
       return axes;
     }
     function pause(){
-      if(s.done)return;game.paused=!game.paused;s.keys.clear();s.stick={x:0,z:0};s.touchSprint=false;s.charging=null;find("arena-power").hidden=true;layer.hidden=!game.paused;
+      if(s.done)return;game.paused=!game.paused;s.keys.clear();releaseStick();s.touchSprint=false;s.charging=null;find("arena-power").hidden=true;layer.hidden=!game.paused;
       if(game.paused)layer.innerHTML='<div class="pause-card"><span class="eyebrow">RESPIRA. REPLANTEA. VUELVE.</span><h2>EL PARTIDO<br>ES TUYO.</h2><p>'+escape(home.name)+' <b>'+game.score[0]+' — '+game.score[1]+'</b> '+escape(away.name)+'</p><button class="btn primary" data-arena="resume">Seguir jugando →</button><button class="btn" data-arena="plan">Tácticas y sustituciones →</button><button class="btn" data-arena="camera">Cambiar cámara</button><button class="btn subtle" data-arena="exit">Salir sin resultado</button></div>';
       if(!game.paused)ensureAudio();node.focus();
     }
@@ -132,9 +132,9 @@ const AuraArena=(()=>{
       if(a==="confirm-exit")dispose(false);
     });
     const stick=find("touch-stick"),knob=stick.querySelector("span");let pointer=null;
-    function stickMove(e){if(e.pointerId!==pointer)return;const r=stick.getBoundingClientRect(),dx=(e.clientX-r.left-r.width/2)/(r.width*.38),dz=(e.clientY-r.top-r.height/2)/(r.height*.38),len=Math.max(1,Math.hypot(dx,dz));s.stick={x:dx/len,z:dz/len};knob.style.transform='translate('+s.stick.x*30+'px,'+s.stick.z*30+'px)';}
-    stick.addEventListener("pointerdown",e=>{pointer=e.pointerId;stick.setPointerCapture(pointer);stickMove(e);});stick.addEventListener("pointermove",stickMove);
-    const releaseStick=()=>{pointer=null;s.stick={x:0,z:0};knob.style.transform="";};stick.addEventListener("pointerup",releaseStick);stick.addEventListener("pointercancel",releaseStick);
+    function stickMove(e){if(e.pointerId!==pointer||game.paused||s.done||s.replay)return;const r=stick.getBoundingClientRect(),dx=(e.clientX-r.left-r.width/2)/(r.width*.38),dz=(e.clientY-r.top-r.height/2)/(r.height*.38),len=Math.max(1,Math.hypot(dx,dz));s.stick={x:dx/len,z:dz/len};knob.style.transform='translate('+s.stick.x*30+'px,'+s.stick.z*30+'px)';}
+    stick.addEventListener("pointerdown",e=>{if(game.paused||s.done||s.replay)return;pointer=e.pointerId;stick.setPointerCapture(pointer);stickMove(e);});stick.addEventListener("pointermove",stickMove);
+    const releaseStick=()=>{pointer=null;s.stick={x:0,z:0};knob.style.transform="";};stick.addEventListener("pointerup",releaseStick);stick.addEventListener("pointercancel",releaseStick);stick.addEventListener("lostpointercapture",releaseStick);
     node.querySelectorAll("[data-touch]").forEach(button=>{
       button.addEventListener("pointerdown",e=>{e.preventDefault();button.setPointerCapture(e.pointerId);if(s.replay||game.paused||s.done)return;const type=button.dataset.touch;if(type==="sprint")s.touchSprint=true;else if(type==="shoot"){s.charging=performance.now();find("arena-power").hidden=false;}else AuraMatch.action(game,type,controls());});
       button.addEventListener("pointerup",()=>{if(button.dataset.touch==="sprint")s.touchSprint=false;if(button.dataset.touch==="shoot")shoot();});
@@ -175,7 +175,7 @@ const AuraArena=(()=>{
         if(!game.paused&&!s.done&&game.phase==='playing'&&now-s.recordTime>50){s.replayFrames.push(AuraPresentation.capture(game));if(s.replayFrames.length>50)s.replayFrames.shift();s.recordTime=now;}
         if(game.goals.length>s.seenGoals){
           s.seenGoals=game.goals.length;s.replayFrames.push(AuraPresentation.capture(game));
-          if(s.replayFrames.length>5){s.replay={frames:s.replayFrames.slice(),time:0};find('arena-replay').hidden=false;s.keys.clear();s.stick={x:0,z:0};s.touchSprint=false;s.charging=null;find('arena-power').hidden=true;}
+          if(s.replayFrames.length>5){s.replay={frames:s.replayFrames.slice(),time:0};find('arena-replay').hidden=false;s.keys.clear();releaseStick();s.touchSprint=false;s.charging=null;find('arena-power').hidden=true;}
           s.replayFrames=[];
         }
       }
