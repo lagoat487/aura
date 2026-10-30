@@ -12,7 +12,7 @@ function boot(saved) {
   if (saved) storage.set("aura-fc27-save-v1", saved);
   const node = id => {
     if (!nodes.has(id)) nodes.set(id, { innerHTML: "", hidden: true, value: "", onclick: null,
-      addEventListener() {}, classList: { add() {}, remove() {} } });
+      addEventListener() {}, scrollIntoView() {}, classList: { add() {}, remove() {} } });
     return nodes.get(id);
   };
   const context = vm.createContext({
@@ -21,7 +21,7 @@ function boot(saved) {
     localStorage: { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value) },
     setTimeout() {}, clearTimeout() {},
   });
-  for (const file of ["clubs.js", "competitions.js", "world.js", "real-players.js", "world-tour.js", "roster-sync.js", "club-badges.js", "squad.js", "progression.js", "negotiations.js", "career-ui.js", "progression-ui.js", "match-engine.js", "match-graphics.js", "match-ui.js", "evolution-ui.js", "street.js", "tour-ui.js", "game.js"]) {
+  for (const file of ["clubs.js", "competitions.js", "world.js", "real-players.js", "world-tour.js", "roster-sync.js", "club-badges.js", "portraits.js", "squad.js", "champions.js", "ultimate-team.js", "progression.js", "negotiations.js", "career-ui.js", "progression-ui.js", "match-engine.js", "match-graphics.js", "match-ui.js", "evolution-ui.js", "street.js", "tour-ui.js", "ultimate-ui.js", "career-continental.js", "game.js"]) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, "..", file), "utf8"), context, { filename: file });
   }
   return {
@@ -68,6 +68,28 @@ test("roster refresh preserves the career protagonist, scouted youths and regene
  const app=boot();app.click({evoMode:"pro"});app.click({tour:"start-pro"});
  app.run('globalThis.proId=state.playerCareer.playerId;globalThis.youth={...clubPlayers(state.club)[0],id:"academy:scouted",name:"Mi canterano",real:false,academy:true,source:"Cantera generada de AURA"};globalThis.regen={...youth,id:"regen:test",regenOf:"Veterano",source:"Reencarnación"};state.rosters[state.club]=[...clubPlayers(state.club).slice(0,15),clubPlayers(state.club).find(p=>p.id===proId),youth,regen];refreshRealRoster()');
  assert.ok(app.run('clubPlayers(state.club).some(p=>p.id===proId)'));assert.ok(app.run('clubPlayers(state.club).some(p=>p.id===youth.id)'));assert.ok(app.run('clubPlayers(state.club).some(p=>p.id===regen.id)'));
+});
+
+test("mode hub returns from UT and preserves both the existing career and the UT collection",()=>{
+ const app=boot();app.click({action:'start'});app.click({action:'play'});const career=app.json('state');
+ app.click({nav:'modes'});assert.equal(app.run('lobby'),true);assert.match(app.html(),/Continuar carrera/);app.click({evoMode:'ultimate'});app.click({ut:'create'});app.click({ut:'pack',pack:'gold'});app.click({ut:'reveal-skip'});const ut=app.json('AuraUTUI.getClub()');
+ app.click({ut:'lobby'});assert.equal((app.html().match(/data-evo-mode=/g)||[]).length,7);app.click({nav:'career'});assert.equal(app.run('lobby'),false);assert.deepEqual(app.json('state'),career);app.click({nav:'modes'});app.click({evoMode:'ultimate'});assert.deepEqual(app.json('AuraUTUI.getClub()'),ut);
+});
+test("Champions fixtures are interleaved with the same career, use its XI, and never advance the domestic table",async()=>{
+ const app=boot();app.run(fs.readFileSync(path.join(__dirname,'..','data/world-rosters.js'),'utf8'));await app.run('World.load(clubs,Competitions.definitions)');app.click({action:'start'});
+ assert.equal(app.run('state.champions.entrants.length'),36);assert.equal(app.run('AuraContinental.next(state).kind'),'league');app.click({action:'play'});app.click({action:'play'});assert.equal(app.run('state.round'),2);assert.equal(app.run('AuraContinental.next(state).kind'),'champions');
+ const domestic=app.json('state.competition'),budget=app.run('state.budget');app.run('AuraArena.preMatch=(home,away,options)=>{globalThis.pendingEurope=options;globalThis.europeTeam=home}');app.click({evo:'career-play'});
+ assert.deepEqual(app.json('europeTeam.players.map(p=>p.id)'),app.json('AuraSquad.ensure(state).xi'));app.run('pendingEurope.onFinish({home:2,away:1,goals:[],participants:[europeTeam.players.map(p=>p.id)],stats:[]})');assert.equal(app.run('state.round'),2);assert.deepEqual(app.json('state.competition'),domestic);assert.equal(app.run('state.continentalHistory.length'),1);assert.equal(app.run('state.budget'),budget+1500000);assert.equal(app.run('AuraContinental.next(state).kind'),'league');
+ const after=app.json('state');app.run('pendingEurope.onFinish({home:2,away:1,goals:[],stats:[]})');assert.deepEqual(app.json('state'),after);app.click({nav:'champions'});assert.match(app.html(),/36 clubes/);assert.match(app.html(),/FASE LIGA/);
+});
+test("player career can be created at a club with 28 real players without deleting a footballer",()=>{
+ const app=boot();app.click({action:'start'});app.run('while(clubPlayers(state.club).length<28){const p={...clubPlayers(state.club)[1],id:"extra:"+clubPlayers(state.club).length};clubPlayers(state.club).push(p);}globalThis.initialIds=clubPlayers(state.club).map(p=>p.id);AuraTour.startPlayer(state,"new","Mi delantero","DC");AuraTourUI.ensurePro()');
+ assert.equal(app.run('clubPlayers(state.club).length'),29);assert.ok(app.run('initialIds.every(id=>clubPlayers(state.club).some(p=>p.id===id))'));assert.ok(app.run('AuraSquad.ensure(state).xi.includes(state.playerCareer.playerId)'));assert.equal(app.run('state.squadLimit'),29);
+});
+test("a full interleaved season completes Champions before rollover and records the continental result",async()=>{
+ const app=boot();app.run(fs.readFileSync(path.join(__dirname,'..','data/world-rosters.js'),'utf8'));await app.run('World.load(clubs,Competitions.definitions)');app.click({action:'start'});
+ app.run('for(let guard=0;guard<70;guard++){if(state.round>=totalRounds()&&state.champions.champion)break;AuraContinental.advance();}');assert.equal(app.run('state.round'),38);assert.ok(app.run('state.champions.champion'));assert.equal(app.run('state.champions.rounds.flatMap(r=>r.matches).length'),189);
+ const ownChampion=app.run('state.champions.champion');app.run('startNextSeason(state.competition.id)');assert.equal(app.run('state.season'),2027);assert.equal(app.run('state.round'),0);assert.equal(app.run('state.seasonHistory[0].champion'),ownChampion);
 });
 
 test("new career selects a real league and advances all ten fixtures with one action", () => {

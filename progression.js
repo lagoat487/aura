@@ -91,7 +91,7 @@ const AuraProgression=(()=>{
     if(!candidate)return {error:"No se encontró al juvenil en el informe actual."};
     if(candidate.signed||players.some(x=>x.id===id))return {error:"Este juvenil ya fue incorporado."};
     if(finished(game))return {error:"Inicia la siguiente temporada antes de incorporar un juvenil."};
-    if(players.length>=MAX_SQUAD)return {error:"Plantilla llena: libera una plaza para incorporar un juvenil (máximo 28)."};
+    if(players.length>=(game.squadLimit||MAX_SQUAD))return {error:"Plantilla llena: libera una plaza para incorporar un juvenil (máximo "+(game.squadLimit||MAX_SQUAD)+")."};
     if(p.signings>=2)return {error:"Ya incorporaste dos juveniles esta temporada."};
     if(game.budget<candidate.fee)return {error:"No tienes presupuesto suficiente para su incorporación."};
     const wages=players.reduce((s,x)=>s+(Number(x.wage)||0),0);

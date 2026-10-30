@@ -1,6 +1,18 @@
-# AURA 27 / World Tour 4.0
+# AURA 27 / Club Update 4.1
 
 Fútbol de navegador con partidos 3D de once contra once, modo carrera, plantilla editable, negociaciones por etapas y Draft XI gratuito. World Tour 4.0 conserva Club Edition y añade cuatro modos, torneos, premios, nuevas generaciones y música original.
+
+## Club Update 4.1 · modos corregidos
+
+Ultimate Team dispone ahora de central de club, plantilla visual en cancha, cinco formaciones, suplentes, química 0–33, tienda con presentación de sobres, repetidos almacenados, mercado con monedas de juego, DCP con revisión previa, objetivos y recompensas. Incluye Squad Battles y Divisiones **contra IA**; no anuncia multijugador que no existe.
+
+La Champions está integrada en **la misma carrera**: 36 clubes, fase de ocho partidos por equipo (cuatro en casa y cuatro fuera), clasificación, play-off 9.º–24.º, octavos, cuartos y semifinales a ida/vuelta, y final a un partido. Se alterna con la liga doméstica, utiliza tu once, conserva sus resultados por separado y afecta a energía y presupuesto. El sorteo, la selección de participantes y la clasificación europea son aproximaciones de AURA. Los cuatro primeros de una liga europea, o el campeón continental vigente, pueden participar en la siguiente temporada.
+
+El botón **Modos** conserva la carrera abierta y la colección UT de la sesión. Puedes volver a cualquiera de ellas sin recargar. La carrera de jugador también puede empezar cuando el primer equipo ya tiene 28 futbolistas; se habilita una plaza adicional para tu protagonista. Calle permite elegir clubes y dificultad, y reduce los robos instantáneos de balón.
+
+Los retratos utilizan identidades numéricas y una fuente oficial de imágenes de EA, con respaldos. Si no existe una fotografía o no carga, se muestra **Sin foto**; no se dibuja una cara falsa para un futbolista real. Los retratos son imágenes 2D, no escaneos para los modelos 3D.
+
+Las carreras y UT siguen siendo **por sesión, sin guardado automático**. Detalles de las reglas y límites actuales: [docs/club-update.md](docs/club-update.md). Las secciones de World Tour que aparecen a continuación describen la base anterior; este apartado y Club Update tienen prioridad cuando difieren.
 
 ## World Tour 4.0 · 28 de octubre de 2026
 

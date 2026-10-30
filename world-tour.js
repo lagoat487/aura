@@ -145,7 +145,8 @@
   function startPlayer(game,id,customName="",pos="DC"){
     const roster=game.rosters[game.club];let player=roster.find(p=>p.id===id);
     if(id==="new"){
-      if(roster.length>=28)throw Error("Plantilla llena: elige un futbolista existente o libera una plaza.");
+      if(roster.length>=29)throw Error("Plantilla llena: elige un futbolista existente o libera una plaza.");
+      game.squadLimit=29;
       if(!["DC","EI","ED","MCO","MC","MCD","DFC","LI","LD"].includes(pos))throw Error("Posición no válida.");
       player=price({id:"pro:"+game.club,name:String(customName||"Mi jugador").trim().slice(0,32)||"Mi jugador",pos,age:18,overall:68,potential:92,club:game.club,real:false,academy:true,form:80,fitness:95,morale:75,wage:2000});roster.push(player);
     }

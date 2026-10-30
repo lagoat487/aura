@@ -28,7 +28,7 @@
     const owner=rosterOwner(game,player.id);
     if(mode==="buy"&&owner?.cid===game.club)return {error:"Este jugador ya pertenece a tu club."};
     if(mode!=="buy"&&owner?.cid!==game.club)return {error:"El jugador ya no pertenece a tu plantilla."};
-    if(mode==="buy"&&game.rosters[game.club].length>=28)return {error:"Plantilla llena: libera una plaza antes de negociar (máximo 28)."};
+    if(mode==="buy"&&game.rosters[game.club].length>=(game.squadLimit||28))return {error:"Plantilla llena: libera una plaza antes de negociar (máximo "+(game.squadLimit||28)+")."};
     if(mode==="sell"&&game.rosters[game.club].length<=11)return {error:"Debes conservar al menos 11 jugadores."};
     game.dealSequence=(game.dealSequence||0)+1;
     const target=round(player.value*(player.age<24?1.16:1.06));
@@ -120,7 +120,7 @@
     }else{
       if(deal.mode==="buy"&&(owner?.cid===game.club||owner&&owner.cid!==deal.sourceId))return {error:"La propiedad del jugador cambió. Cancela y vuelve a consultar."};
       if(deal.mode==="renew"&&owner?.cid!==game.club)return {error:"El jugador ya no pertenece a tu club."};
-      if(deal.mode==="buy"&&game.rosters[game.club].length>=28)return {error:"Plantilla llena (máximo 28). Libera una plaza antes de firmar."};
+      if(deal.mode==="buy"&&game.rosters[game.club].length>=(game.squadLimit||28))return {error:"Plantilla llena (máximo "+(game.squadLimit||28)+"). Libera una plaza antes de firmar."};
       if(deal.mode==="buy"&&owner&&game.rosters[owner.cid].length<=11)return {error:"El club vendedor debe conservar al menos 11 jugadores."};
       const costs=contractCosts(game,deal,deal.terms);
       if(costs.upfront>game.budget||costs.weekly>game.wageBudget)return {error:"El presupuesto ha cambiado: ya no alcanza para este acuerdo."};

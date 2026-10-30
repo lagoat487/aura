@@ -3,7 +3,8 @@ const AuraTourUI=(()=>{
   "use strict";
   const T=AuraTour,esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
-  let cupType="champions",cupTeam="",friendlyCups=[],ultimate=null,packNotice="",utToken=0;
+  let streetHome="barcelona",streetAway="madrid",streetDifficulty=1;
+  let cupType="champions",cupTeam="",friendlyCups=[];
   const audio=(()=>{
     let ctx=null,bus=null,timer=null,enabled=false,step=0,visibilityBound=false;
     const melody=[0,7,12,10,7,3,5,7,0,7,15,12,10,7,5,3,5,12,17,15,12,8,7,5,3,10,15,12,10,7,5,7];
@@ -24,17 +25,13 @@ const AuraTourUI=(()=>{
     }
     return {toggle,suspend,resume,isEnabled:()=>enabled};
   })();
-  function face(p,large=false){
-    const n=T.hash(p.id||p.name),skin=["#e0ae86","#ba825e","#82573d","#f0c7a5"][n%4],hair=["#231c1a","#593628","#b58b4c"][n%3],colors=typeof AuraGraphics!=="undefined"?AuraGraphics.kit({id:p.club||p.name}):["#435c85"];
-    const photo=/^https:\/\/cdn\.sofifa\.net\/players\/\d+\/\d+\/26_120\.png$/.test(p.photo||"")?'<img src="'+p.photo+'" alt="" loading="lazy" onerror="this.hidden=true">':'';
-    return '<span class="tour-face '+(large?'large':'')+'" title="'+(photo?'Retrato disponible con conexión; avatar de respaldo':'Avatar ilustrado de AURA')+'"><svg viewBox="0 0 100 110" role="img" aria-label="Avatar ilustrado"><path fill="'+colors[0]+'" d="M3 110V92Q5 75 38 73H62Q95 75 97 92V110"/><path fill="'+skin+'" d="M41 64H59V81Q50 89 41 81Z"/><ellipse fill="'+skin+'" cx="50" cy="43" rx="24" ry="31"/><path fill="'+hair+'" d="M25 43V27Q27 5 50 7Q79 7 76 40L66 23Q51 32 32 24L29 44Z"/><path stroke="#302729" stroke-width="2" d="M35 43H42M58 43H65M44 61Q50 64 57 61"/><path stroke="#9b694f" fill="none" d="M50 44L47 53H53"/></svg>'+photo+'</span>';
-  }
+  function face(p,large=false){return AuraPortraits.html(p,large);}
   function cards(players,extra=""){
     return '<div class="tour-player-cards">'+players.map(p=>'<article class="tour-player-card"><span class="eyebrow">'+esc(p.pos)+' · '+(p.rating?p.rating.toFixed(1)+' NOTA':p.overall+' GRL')+'</span>'+face(p)+'<h3>'+esc(p.name)+'</h3><p>'+esc(clubs.find(c=>c.id===p.club)?.name||p.sourceClub||p.nationality||"AURA")+'</p>'+(p.goals!==undefined?'<b>'+p.goals+' goles</b>':'')+(p.duplicate?'<small>Repetido · +200 monedas</small>':'')+extra+'</article>').join("")+'</div>';
   }
   const headline=(tag,title,body)=>'<div class="tour-heading"><span class="eyebrow">'+tag+'</span><h2>'+title+'</h2><p>'+body+'</p></div>';
-  function proPicker(picker){
-    const ps=(state?clubPlayers(state.club):AuraRosterSync.rosterFor(getClub(selected))).filter(p=>p.pos!=="POR");
+  function proPicker(picker,existing=false){
+    const ps=(existing&&state?clubPlayers(state.club):AuraRosterSync.rosterFor(getClub(selected))).filter(p=>p.pos!=="POR");
     const options='<section class="tour-pro-setup">'+headline('CARRERA DE JUGADOR','TU NOMBRE. TU CAMINO.','Controla a un solo futbolista en el campo. Suma partidos, goles y experiencia durante la temporada.')+'<div class="tour-form"><label>Futbolista<select id="tour-pro-player"><option value="new">Crear mi jugador · 68 GRL</option>'+ps.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.name)+' · '+p.pos+' · '+p.overall+'</option>').join("")+'</select></label><label>Nombre de tu jugador<input id="tour-pro-name" maxlength="32" value="Emilio" autocomplete="off"></label><label>Posición del jugador creado<select id="tour-pro-pos">'+["DC","EI","ED","MCO","MC","MCD","DFC","LI","LD"].map(p=>'<option>'+p+'</option>').join("")+'</select></label></div></section>';
     return options+picker.replace('data-action="start"','data-tour="start-pro"').replace('Iniciar nueva carrera','Iniciar carrera de jugador');
   }
@@ -55,6 +52,7 @@ const AuraTourUI=(()=>{
     const pool=AuraRosterSync.pool().filter(p=>p.nationality&&World.getClub(p.catalogClub)?.gender!=="women");
     nationalCache=nationList.map(([source,name,region])=>{
       const id="nation:"+norm(source).replace(/\s/g,"-"),known=pool.filter(p=>norm(p.nationality)===norm(source)).sort((a,b)=>b.overall-a.overall).slice(0,23),fills=genPlayers(id,T.hash(id),72,23).map((p,i)=>({...p,name:"Seleccionado AURA "+(i+1),real:false,academy:true}));
+      const keeper=pool.filter(p=>norm(p.nationality)===norm(source)&&p.pos==='POR').sort((a,b)=>b.overall-a.overall)[0];if(keeper&&!known.some(p=>p.pos==='POR')){if(known.length>=23)known.pop();known.push(keeper);}
       const roster=known.concat(fills.filter(p=>!known.some(q=>q.id===p.id))).slice(0,23);if(!roster.some(p=>p.pos==="POR"))roster[22]=fills.find(p=>p.pos==="POR");
       const rating=Math.round(roster.slice(0,11).reduce((s,p)=>s+p.overall,0)/11);return {id,name,region,rating,roster,national:true};
     });return nationalCache;
@@ -107,38 +105,28 @@ const AuraTourUI=(()=>{
       '<section class="tour-award"><h3>EVENTOS INESPERADOS</h3>'+(t.events.length?t.events.map(e=>'<p><b>J'+e.round+'</b> · '+esc(e.text)+'</p>').join(""):'<p>Molestias, apoyo de la afición, patrocinadores y sesiones sorpresa pueden cambiar la temporada.</p>')+'</section>'+
       '<section class="tour-award"><h3>NUEVA GENERACIÓN / REENCARNACIONES</h3>'+(t.regens.length?t.regens.slice(-8).map(r=>'<p>'+esc(r.retired)+' se retira → '+esc(r.player.name)+' · '+r.player.pos+' · POT '+r.player.potential+'</p>').join(""):'<p>Al cambiar de temporada, algunos veteranos se retiran. Un juvenil ficticio hereda su posición, nacionalidad y potencial aproximado.</p>')+'</section>';
   }
-  function careerHub(){return cupView()+awardsView();}
+  function careerHub(){return awardsView();}
   function ensurePro(){
     if(!state?.playerCareer)return;const sheet=AuraSquad.ensure(state),p=clubPlayers(state.club).find(p=>p.id===state.playerCareer.playerId);if(!p)throw Error("Tu jugador ya no está en este club.");
     if(!sheet.xi.includes(p.id)){const slots=AuraSquad.formations[sheet.formation],index=slots.map(([slot],i)=>({i,penalty:AuraSquad.positionPenalty(p,slot)})).filter(x=>x.i>0).sort((a,b)=>a.penalty-b.penalty)[0].i;sheet.xi[index]=p.id;}
   }
   function enablePro(){
     const id=document.getElementById("tour-pro-player")?.value||"new",name=document.getElementById("tour-pro-name")?.value||"Mi jugador",pos=document.getElementById("tour-pro-pos")?.value||"DC";
-    const player=T.startPlayer(state,id,name,pos);AuraSquad.ensure(state);ensurePro();screen="pro";render();notify("Tu carrera empieza con "+player.name+".");
+    const player=T.startPlayer(state,id,name,pos);AuraSquad.ensure(state);ensurePro();lobby=false;screen="pro";render();window.scrollTo(0,0);notify("Tu carrera empieza con "+player.name+".");
   }
   function playerHub(){
-    if(!state.playerCareer)return proPicker('<button class="btn primary" data-tour="enable-pro">Comenzar con este club →</button>');
+    if(!state.playerCareer)return proPicker('<button class="btn primary" data-tour="enable-pro">Comenzar con este club →</button>',true);
     const pc=state.playerCareer,p=clubPlayers(state.club).find(p=>p.id===pc.playerId);if(!p)return '<p>No se encontró a tu jugador.</p>';
     return headline('CARRERA DE JUGADOR / '+esc(myClub().name),'EL PARTIDO EMPIEZA CONTIGO.','WASD o flechas para moverte; K para pasar y J para tirar. Mantienes el control de tu futbolista cuando un compañero recibe el balón.')+
       '<section class="tour-pro-hub">'+face(p,true)+'<div><span class="eyebrow">'+p.pos+' · '+p.age+' AÑOS</span><h2>'+esc(p.name)+'</h2><p>'+p.overall+' GRL · '+p.potential+' POT · '+money(p.value)+' valor estimado</p><div class="tour-metrics"><span><b>'+pc.appearances+'</b> PARTIDOS</span><span><b>'+pc.goals+'</b> GOLES</span><span><b>'+(pc.lastRating||'—')+'</b> ÚLTIMA NOTA</span></div><label>Desarrollo · '+pc.xp+' / 100 EXP<progress max="100" value="'+pc.xp+'"></progress></label><p>100 EXP = +1 GRL hasta el potencial. La nota depende de goles, resultado y rendimiento de la jornada; al simular es una estimación.</p><button class="btn primary" data-evo="career-play">Jugar mi siguiente partido →</button><button class="btn" data-action="play">Simular jornada</button><button class="btn" data-nav="academy">Entrenar →</button></div></section>';
   }
-  function ultimateView(){
-    if(!ultimate)return headline('ULTIMATE TEAM LOCAL / AURA UT','TU CLUB. TUS CARTAS.','Una colección por sesión con monedas ganadas jugando. Sobres de tres jugadores, once editable y partidos contra la IA.')+'<button class="btn primary" data-tour="ut-create">Crear mi club · 10.000 monedas →</button><p class="save-info">Sin dinero real. Colección por sesión; se reinicia al recargar, igual que las carreras.</p>';
-    const u=ultimate;
-    return headline('AURA UT / '+u.coins.toLocaleString('es-ES')+' MONEDAS','CONSTRUYE TU EQUIPO.','Balance: '+u.wins+' victorias · '+u.draws+' empates · '+u.losses+' derrotas.')+
-      '<div class="tour-ut-actions"><button class="btn primary" data-tour="ut-play">Jugar contra la IA →</button><button class="btn" data-tour="ut-pack" '+(u.coins<2500?'disabled':'')+'>Abrir sobre · 2.500 monedas</button><button class="btn" data-tour="ut-auto">Elegir mejor once</button></div><p class="save-info">Victoria: 1.200 · Empate: 600 · Derrota: 350 monedas. Cada sobre: 3 cartas de 72–92 GRL; 12% de selección del grupo 84+ por carta. Repetidos: +200 monedas.</p>'+(packNotice?'<p role="status">'+esc(packNotice)+'</p>':'')+(u.lastPack.length?cards(u.lastPack):'')+
-      '<div class="tour-ut-lineup">'+AuraSquad.formations['4-3-3'].map(([slot],i)=>{const p=u.owned.find(p=>p.id===u.xi[i]);return '<label>'+slot+' · '+p.overall+' GRL<select data-ut-slot="'+i+'">'+u.owned.map(card=>'<option value="'+esc(card.id)+'" '+(card.id===p.id?'selected':'')+'>'+esc(card.name)+' · '+card.pos+' · '+card.overall+'</option>').join('')+'</select></label>';}).join('')+'</div><p class="save-info">'+u.owned.length+' cartas en tu colección. Cambiar una carta ya titular intercambia ambas posiciones.</p>';
-  }
-  function playUltimate(){
-    if(!ultimate)return;const u=ultimate,token=++utToken,players=u.xi.map(id=>u.owned.find(p=>p.id===id)),home={id:'aura-ut',name:'Mi AURA UT',rating:Math.round(players.reduce((n,p)=>n+p.overall,0)/11)};
-    const controlled=AuraArena.team(home,null,players);controlled.players=players.map((p,i)=>({...p,overall:Math.round(AuraSquad.effective(p,controlled.slots[i][0]))}));
-    AuraArena.preMatch(controlled,AuraArena.team(getClub(['madrid','liverpool','city','barcelona'][u.played%4])),{label:'AURA UT · PARTIDO POR MONEDAS',onFinish:r=>{if(ultimate!==u)return;const reward=T.rewardUltimate(u,token,r);if(reward){packNotice='Partido completado: +'+reward+' monedas.';render();}}});
-  }
   function streetView(){
-    return headline('AURA CALLE / INSPIRADO EN EL FÚTBOL VOLTA','LA CALLE TIENE SUS REGLAS.','3 contra 3 en una cancha urbana de Guayaquil. Paredes con rebote, sin porteros, primero a cinco goles o dos minutos.')+
-      '<section class="tour-street-card"><span>GYE / 01</span><h2>JUEGA.<br>COMBINA.<br><em>ATRÉVETE.</em></h2><button class="btn primary" data-tour="street-play">Entrar a la cancha →</button><p>WASD / flechas · J tiro · K pase · E cambio · Espacio entrada · Shift sprint. Botones táctiles en pantalla.</p></section>';
+    const seen=new Set(),options=clubs.filter(c=>c.gender!=="women").filter(c=>{const id=World.matchingClub(c)?.id||c.id;if(seen.has(id))return false;seen.add(id);return true;}).sort((a,b)=>a.name.localeCompare(b.name));
+    const choices=id=>options.map(c=>'<option value="'+esc(c.id)+'" '+(c.id===id?'selected':'')+'>'+esc(c.name)+'</option>').join('');
+    return headline('AURA CALLE / FÚTBOL 3 CONTRA 3','LA CALLE TIENE SUS REGLAS.','Elige dos clubes. Juega con sus tres mejores futbolistas de campo, paredes con rebote y primero a cinco goles o dos minutos.')+
+      '<div class="tour-form"><label>Tu club<select id="street-home">'+choices(streetHome)+'</select></label><label>Rival<select id="street-away">'+choices(streetAway)+'</select></label><label>Dificultad<select id="street-difficulty">'+[[.78,'Principiante'],[1,'Normal'],[1.16,'Profesional']].map(([v,n])=>'<option value="'+v+'" '+(v===streetDifficulty?'selected':'')+'>'+n+'</option>').join('')+'</select></label></div><section class="tour-street-card"><span>GYE / 01</span><h2>JUEGA.<br>COMBINA.<br><em>ATRÉVETE.</em></h2><button class="btn primary" data-tour="street-play">Entrar a la cancha →</button><p>WASD / flechas · J tiro · K pase · E cambio · Espacio entrada · Shift sprint. Botones táctiles en pantalla.</p></section>';
   }
-  function welcome(mode,picker){return mode==='pro'?proPicker(picker):mode==='cup'?cupView():mode==='ultimate'?ultimateView():streetView();}
+  function welcome(mode,picker){return mode==='pro'?proPicker(picker):mode==='cup'?cupView():mode==='ultimate'?AuraUTUI.render():streetView();}
   function afterRender(){
     if(typeof document==='undefined')return;const button=document.querySelector?.('[data-tour="music"]');if(button){button.textContent=audio.isEnabled()?'♫ Música ON':'♫ Música';button.setAttribute('aria-pressed',String(audio.isEnabled()));button.title='Música electrónica original de AURA · 112 BPM';}
   }
@@ -151,19 +139,18 @@ const AuraTourUI=(()=>{
       if(action==='cup-create'){createCup();render();}
       if(action==='cup-sim'){const cup=currentCup();if(cup){T.advanceCup(cup);render();}}
       if(action==='cup-play')playCup();
-      if(action==='ut-create'){ultimate=T.ultimate(AuraEvolution.pool(),AuraSquad.choose);packNotice='';render();}
-      if(action==='ut-pack'&&ultimate){const result=T.openPack(ultimate,AuraEvolution.pool());packNotice=result.error||'Sobre abierto: '+result.cards.map(p=>p.name+' ('+p.overall+')').join(', ');render();}
-      if(action==='ut-auto'&&ultimate){ultimate.xi=AuraSquad.choose(ultimate.owned,'4-3-3');render();}
-      if(action==='ut-play')playUltimate();
-      if(action==='street-play'){const ps=AuraEvolution.pool().filter(p=>p.pos!=='POR'&&World.getClub(p.catalogClub)?.gender!=='women').sort((a,b)=>b.overall-a.overall);AuraStreet.open(ps.slice(0,3),ps.slice(3,6));}
+      if(action==='street-play'){if(streetHome===streetAway){notify('Elige dos clubes distintos.');return true;}const top=id=>AuraArena.team(getClub(id)).players.filter(p=>p.pos!=='POR').sort((a,b)=>b.overall-a.overall).slice(0,3);AuraStreet.open(top(streetHome),top(streetAway),{homeName:getClub(streetHome).name,awayName:getClub(streetAway).name,difficulty:streetDifficulty});}
       if(action==='gala'&&state){const annual=T.initialize(state).annual[0];if(annual)openModal('GALA DEL BALÓN DE ORO AURA','<div class="tour-gala"><span class="eyebrow">TEMPORADA '+annual.season+' · PREMIOS DE TU LIGA</span><div class="tour-trophy" aria-hidden="true">★</div><h2>'+esc(annual.winner.name)+'</h2><p>GANADOR DEL BALÓN DE ORO AURA</p><p>'+annual.winner.goals+' goles · '+annual.winner.appearances+' partidos · '+annual.winner.points.toFixed(1)+' puntos de rendimiento</p></div><ol class="tour-shortlist">'+annual.shortlist.map(p=>'<li><b>'+esc(p.name)+'</b><span>'+p.points.toFixed(1)+' puntos · '+p.goals+' goles</span></li>').join('')+'</ol>');}
     }catch(error){notify(error.message);}return true;
   }
   function change(e){
+    if(e.target.id==='street-home')streetHome=e.target.value;
+    if(e.target.id==='street-away')streetAway=e.target.value;
+    if(e.target.id==='street-difficulty')streetDifficulty=Number(e.target.value);
     if(e.target.id==='tour-cup-type'){cupType=e.target.value;cupTeam='';render();}
     if(e.target.id==='tour-cup-team')cupTeam=e.target.value;
     if(e.target.dataset?.utSlot!==undefined&&ultimate){const i=Number(e.target.dataset.utSlot),id=e.target.value;if(!Number.isInteger(i)||i<0||i>10||!ultimate.owned.some(p=>p.id===id))return;const j=ultimate.xi.indexOf(id),old=ultimate.xi[i];ultimate.xi[i]=id;if(j>=0)ultimate.xi[j]=old;render();}
   }
   function reset(){cupTeam='';}
-  return {welcome,careerHub,playerHub,ensurePro,handleClick,change,afterRender,face,audio,reset,getUltimate:()=>ultimate,getCup:currentCup};
+  return {welcome,careerHub,playerHub,ensurePro,handleClick,change,afterRender,face,audio,reset,getUltimate:()=>AuraUTUI.getClub(),getCup:currentCup};
 })();

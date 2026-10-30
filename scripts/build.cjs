@@ -21,4 +21,4 @@ for(const file of new Set(files)){
   if(file.endsWith(".js")&&!file.startsWith("vendor/"))new Function(fs.readFileSync(src,"utf8"));
   fs.mkdirSync(path.dirname(target),{recursive:true});fs.copyFileSync(src,target);
 }
-console.log("AURA World Tour 4.0: "+new Set(files).size+" runtime files checked and copied to dist/.");
+console.log("AURA Club Update 4.1: "+new Set(files).size+" runtime files checked and copied to dist/.");

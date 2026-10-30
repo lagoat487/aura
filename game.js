@@ -12,6 +12,7 @@ const last=["Rivera","Torres","García","Moreno","Silva","Méndez","Castro","Var
 const pos=["POR","LD","DFC","DFC","LI","MC","MCD","MCO","ED","DC","EI","MC","DFC","DC","EI","POR","LD","MCO"];
 const money=n=>"€"+Math.round(n).toLocaleString("es-ES");
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+let lobby=true;
 let state=null,screen="home",selected="barcelona",selectedCompetition="laliga",calendarRound=null,toastTimer,marketSearch="";
 function seeded(seed){let t=seed>>>0;return()=>{t=(Math.imul(1664525,t)+1013904223)>>>0;return t/4294967296}}
 function genPlayers(cid,seed,rating,count=18){
@@ -34,10 +35,11 @@ function createGame(id, competitionId=selectedCompetition) {
     const x=getClub(cid);
     rosters[cid]=starterRoster(cid,(i+1)*84291,x.rating);
   });
-  return { version:2, club:id, season:2026, round:0, competition:Competitions.createSeason(definition,2026),
+  const game={ version:2, club:id, season:2026, round:0, competition:Competitions.createSeason(definition,2026),
     worldSnapshot:definition.external?{definition:{...definition},clubs:definition.clubIds.map(cid=>({...getClub(cid)}))}:undefined,
     budget:c.budget, wins:0, draws:0, losses:0, goals:0, against:0, history:[], seasonHistory:[], rosters,
     news:["Bienvenido a "+c.name+". ¡Tu aventura comienza!"], savedAt:new Date().toISOString() };
+  AuraContinental.initialize(game);return game;
 }
 // Session-only career: never read stored progress or write to localStorage.
 function save(){}
@@ -73,9 +75,12 @@ function startNextSeason(competitionId) {
   if(state.round<totalRounds()) return;
   const definition=Competitions.getDefinition(competitionId);
   if(!definition.clubIds.includes(state.club)) return;
+  const previousPosition=rank();
+  AuraContinental.settleSpectators(state,true);
+  state.previousContinentalChampion=state.champions?.champion;
   state.seasonHistory=state.seasonHistory||[];
   state.seasonHistory.push({season:state.season,competition:competitionName(),position:rank(),
-    table:seasonTable(),history:state.history.slice()});
+    table:seasonTable(),history:state.history.slice(),champion:state.champions?.champion,continentalHistory:(state.continentalHistory||[]).slice()});
   const regenerated=AuraTour.rollover(state);
   state.season++; state.version=2; state.round=0;
   AuraSquad.ensure(state);
@@ -83,6 +88,7 @@ function startNextSeason(competitionId) {
   state.competition=Competitions.createSeason(definition,state.season);
   state.wins=state.draws=state.losses=state.goals=state.against=0;
   state.history=[]; state.budget+=12000000; calendarRound=null;
+  AuraContinental.initialize(state,previousPosition);
   state.news.unshift("Comienza la temporada "+state.season+" · "+definition.name);
   AuraProgression.initialize(state);
   save(); closeModal(); render();
@@ -135,7 +141,7 @@ function playMatch(suppliedScore=null,matchDetails=null) {
   $("continue").onclick=()=>{closeModal();render()};
 }
 function rank(){return seasonTable().findIndex(c=>c.id===state.club)+1}
-const nav=[["home","Inicio"],["career","Carrera"],["squad","Plantilla"],["market","Mercado"],["calendar","Calendario"],["academy","Desarrollo"],["table","Clasificación"],["tour","Copas y premios"],["pro","Mi jugador"]];
+const nav=[["modes","Modos"],["home","Inicio"],["career","Carrera"],["squad","Plantilla"],["market","Mercado"],["calendar","Calendario"],["academy","Desarrollo"],["table","Clasificación"],["champions","Champions"],["tour","Premios"],["pro","Mi jugador"]];
 function notify(msg){let el=$("toast");el.textContent=msg;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),3500)}
 let modalReturnFocus=null;
 function openModal(title,body){if($("modal").hidden)modalReturnFocus=document.activeElement;$("modal").hidden=false;$("modal").innerHTML='<section class="modal" role="dialog" aria-modal="true" aria-label="'+title+'"><div class="row spread"><h2>'+title+'</h2><button class="btn small" id="closemodal" aria-label="Cerrar ventana">✕</button></div>'+body+'</section>';$("closemodal").onclick=closeModal;$("closemodal").focus?.()}
@@ -277,39 +283,49 @@ function findPlayer(id){
 function buy(id){AuraCareerUI.start(id,"buy")}
 function sell(id){AuraCareerUI.start(id,"sell")}
 function train(id){const result=AuraProgression.train(state,id,"balanced");notify(result.error||result.message);save();render()}
-function render(){AuraEvolution.stopPreview();let active=state?screen:"home";$("topnav").innerHTML=nav.map(([id,label])=>'<button class="'+(active===id?'active':'')+'" '+(active===id?'aria-current="page" ':'')+'data-nav="'+id+'">'+label+'</button>').join("");$("header-profile").innerHTML=state?'<strong>'+myClub().name+'</strong>Jornada '+state.round+' · '+money(state.budget):'<strong>WORLD TOUR 4.0</strong>Tu próxima gran historia';$("app").innerHTML=!state?renderWelcome():({home:renderDashboard,career:renderDashboard,squad:renderSquad,market:renderMarket,calendar:renderCalendar,academy:renderAcademy,table:renderTable,tour:AuraTourUI.careerHub,pro:AuraTourUI.playerHub}[active]||renderDashboard)();AuraEvolution.afterRender();AuraTourUI.afterRender();}
+function goToModes(){lobby=true;AuraEvolution.setMode("career");closeModal();render();window.scrollTo(0,0);}
+function render(){
+ AuraEvolution.stopPreview();const inLobby=lobby||!state,active=inLobby?"modes":screen;
+ $("topnav").innerHTML=nav.map(([id,label])=>'<button class="'+(active===id?'active':'')+'" '+(active===id?'aria-current="page" ':'')+'data-nav="'+id+'">'+label+'</button>').join("");
+ $("header-profile").innerHTML=state?'<strong>'+safeText(myClub().name)+'</strong>Jornada '+state.round+' · '+money(state.budget):'<strong>CLUB UPDATE 4.1</strong>Tu próxima gran historia';
+ $("app").innerHTML=inLobby?(state?'<div class="resume-career"><span>Tu carrera sigue abierta.</span><button class="btn small" data-nav="career">Continuar carrera →</button></div>':'')+renderWelcome():({home:renderDashboard,career:renderDashboard,squad:renderSquad,market:renderMarket,calendar:renderCalendar,academy:renderAcademy,table:renderTable,champions:AuraContinental.render,tour:AuraTourUI.careerHub,pro:AuraTourUI.playerHub}[active]||renderDashboard)();
+ AuraEvolution.afterRender();AuraTourUI.afterRender();
+}
 document.addEventListener("click",e=>{
   const t=e.target.closest("button");
   if(!t)return;
+  if(AuraUTUI.handleClick(t))return;
   if(AuraTourUI.handleClick(t))return;
   if(AuraEvolution.handleClick(t))return;
   if(state&&AuraProgressionUI.handleClick(t))return;
   if(state&&AuraCareerUI.handleClick(t))return;
+  if(t.dataset.nav==="modes"){goToModes();return;}
   if(t.dataset.nav){
     if(!state&&t.dataset.nav!=="home"){notify("Primero crea una carrera");return}
-    screen=t.dataset.nav;render();window.scrollTo(0,0);
+    lobby=false;screen=t.dataset.nav;render();window.scrollTo(0,0);
   }
-  if(!state&&t.dataset.competition){
+  if((lobby||!state)&&t.dataset.competition){
     const definition=Competitions.getDefinition(t.dataset.competition);
     selectedCompetition=definition.id;
     if(!definition.clubIds.includes(selected))selected=definition.clubIds[0];
     render();
   }
-  if(!state&&t.dataset.pick){selected=t.dataset.pick;render()}
+  if((lobby||!state)&&t.dataset.pick){selected=t.dataset.pick;render()}
   if(t.dataset.buy)buy(t.dataset.buy);
   if(t.dataset.sell)sell(t.dataset.sell);
   if(t.dataset.train)train(t.dataset.train);
   if(t.dataset.action==="new"){
     if(state){
       openModal("Nueva carrera","<p>¿Empezar de cero? Se perderá el progreso de esta sesión. No se guarda automáticamente.</p><button id='confirmnew' class='btn danger'>Iniciar nueva carrera</button>");
-      $("confirmnew").onclick=()=>{state=null;screen="home";selected="barcelona";selectedCompetition="laliga";calendarRound=null;AuraCareerUI.reset();AuraProgressionUI.reset();AuraTourUI.reset();closeModal();render()};
+      $("confirmnew").onclick=()=>{state=null;lobby=true;screen="home";selected="barcelona";selectedCompetition="laliga";calendarRound=null;AuraCareerUI.reset();AuraProgressionUI.reset();AuraTourUI.reset();closeModal();render()};
     }else document.querySelector(".competition-picker")?.scrollIntoView({behavior:"smooth"});
   }
-  if(t.dataset.action==="start"){state=createGame(selected);AuraCareerUI.reset();AuraProgressionUI.reset();AuraSquad.ensure(state);AuraProgression.initialize(state);calendarRound=null;screen="career";save();render();window.scrollTo(0,0)}
-  if(t.dataset.action==="play")playMatch();
+  if(t.dataset.action==="start"){state=createGame(selected);lobby=false;AuraCareerUI.reset();AuraProgressionUI.reset();AuraSquad.ensure(state);AuraProgression.initialize(state);calendarRound=null;screen="career";save();render();window.scrollTo(0,0)}
+  if(t.dataset.action==="play")AuraContinental.advance();
   if(t.dataset.action==="real-roster")refreshRealRoster();
 });
 document.addEventListener("input",e=>{
+  AuraUTUI.input(e);
   AuraEvolution.input(e);
   if(state)AuraCareerUI.input(e);
   if(e.target.id==="market-search"&&state){
@@ -318,6 +334,7 @@ document.addEventListener("input",e=>{
   }
 });
 document.addEventListener("change",e=>{
+  AuraUTUI.change(e);
   AuraTourUI.change(e);
   AuraEvolution.change(e);
   if(state)AuraCareerUI.change(e);
@@ -339,7 +356,7 @@ document.addEventListener("keydown",e=>{
     if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus()}
   }
 });
-state=null;screen="home";selected="barcelona";selectedCompetition="laliga";render();
+state=null;lobby=true;screen="home";selected="barcelona";selectedCompetition="laliga";AuraUTUI.bindRender(render);render();
 if(typeof fetch==="function")World.load(clubs,Competitions.definitions,fetch).then(()=>{
   if(!state)render();
 }).catch(()=>{if(!state)render()});

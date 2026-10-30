@@ -4,7 +4,7 @@ function boot(){
  const nodes=new Map(),events={};
  const node=id=>{if(!nodes.has(id))nodes.set(id,{innerHTML:"",hidden:true,value:"",addEventListener(){},classList:{add(){},remove(){}}});return nodes.get(id);};
  const context=vm.createContext({document:{getElementById:node,addEventListener:(name,handler)=>{events[name]=handler;},querySelector:()=>null},window:{scrollTo(){}},setTimeout(){},clearTimeout(){}});
- for(const file of ["clubs.js","competitions.js","world.js","real-players.js", "world-tour.js", "roster-sync.js", "club-badges.js","squad.js","progression.js","negotiations.js","career-ui.js","progression-ui.js","match-engine.js","match-graphics.js","match-ui.js","evolution-ui.js", "street.js", "tour-ui.js","game.js"]){vm.runInContext(fs.readFileSync(path.join(__dirname,"..",file),"utf8"),context,{filename:file});}
+ for(const file of ["clubs.js","competitions.js","world.js","real-players.js", "world-tour.js", "roster-sync.js", "club-badges.js","portraits.js", "squad.js", "champions.js", "ultimate-team.js","progression.js","negotiations.js","career-ui.js","progression-ui.js","match-engine.js","match-graphics.js","match-ui.js","evolution-ui.js", "street.js", "tour-ui.js", "ultimate-ui.js","career-continental.js", "game.js"]){vm.runInContext(fs.readFileSync(path.join(__dirname,"..",file),"utf8"),context,{filename:file});}
  return {run:code=>vm.runInContext(code,context),html:()=>node("app").innerHTML,click:dataset=>events.click({target:{closest:()=>({dataset})}}),change:(id,value)=>events.change({target:{id,value}}),node};
 }
 test("the development screen trains the selected player once and refreshes after a league match",()=>{
