@@ -287,3 +287,19 @@ test("new careers, quick teams, roster preview and market share current membersh
  assert.equal(app.run('clubPlayers(state.club).some(p=>p.id===sold.id)'),false);
 });
 
+
+test('UT duplicate inspection sells the selected transferable copy while preserving its untradeable starter',()=>{
+ const app=boot();app.click({evoMode:'ultimate'});app.click({ut:'create'});
+ app.run('globalThis.utClub=AuraUTUI.getClub();globalThis.original=utClub.owned.find(p=>p.id===utClub.xi[0]);original.tradeable=false;utClub.duplicates.push({...original,uid:"duplicate:inspection",duplicate:true,tradeable:true});');
+ const before=app.json('utClub.owned'),xi=app.json('utClub.xi'),coins=app.run('utClub.coins');app.click({utTab:'club'});
+ assert.match(app.html(),/data-ut="inspect" data-player="duplicate:inspection" data-duplicate="yes"/);
+ app.click({ut:'inspect',player:'duplicate:inspection',duplicate:'yes'});
+ assert.match(app.node('modal').innerHTML,/Transferible/);assert.match(app.node('modal').innerHTML,/data-ut="sell" data-player="duplicate:inspection" data-duplicate="yes"/);
+ app.click({ut:'sell',player:'duplicate:inspection',duplicate:'yes'});assert.equal(app.run('utClub.duplicates.length'),0);assert.ok(app.run('utClub.coins')>coins);assert.deepEqual(app.json('utClub.owned'),before);assert.deepEqual(app.json('utClub.xi'),xi);
+});
+test('UT untradeable duplicate cannot expose a sell action for its transferable original',()=>{
+ const app=boot();app.click({evoMode:'ultimate'});app.click({ut:'create'});
+ app.run('globalThis.utClub=AuraUTUI.getClub();globalThis.original=utClub.owned.find(p=>!utClub.xi.includes(p.id));original.tradeable=true;utClub.duplicates.push({...original,uid:"duplicate:locked",duplicate:true,tradeable:false});');
+ app.click({ut:'inspect',player:'duplicate:locked',duplicate:'yes'});assert.match(app.node('modal').innerHTML,/Intransferible/);assert.doesNotMatch(app.node('modal').innerHTML,/data-ut="sell"|data-ut="buy"/);
+ const before=app.json('utClub');app.click({ut:'sell',player:'duplicate:locked',duplicate:'yes'});assert.deepEqual(app.json('utClub'),before);
+});

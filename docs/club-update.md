@@ -1,5 +1,7 @@
 # Club Update 4.1
 
+Corrección de repetidos en UT: la ficha del almacén identifica cada copia por su UID y muestra su propia condición de transferible. La venta desde esa ficha consume únicamente la copia seleccionada y conserva la carta original, incluido un titular intransferible. Los repetidos intransferibles no ofrecen vender la carta original.
+
 ## Problemas corregidos
 
 - La Champions de World Tour era un torneo aislado. Ahora tiene estado y resultados propios dentro de la carrera, y se intercala con los partidos de liga.
