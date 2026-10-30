@@ -404,3 +404,10 @@ test('career Champions calendar labels the final as a single match before and af
  }
  assert.equal(app.run('state.champions.rounds.filter(r=>r.stage==="final").length'),1);
 });
+
+test('UT match preparation does not put another edition of a starter on the bench',()=>{
+ const app=boot();app.click({evoMode:'ultimate'});app.click({ut:'create'});
+ app.run('globalThis.utClub=AuraUTUI.getClub();globalThis.starter=utClub.owned.find(p=>p.id===utClub.xi[9]);utClub.owned.unshift({...starter,id:"event:starter",originalId:starter.id,overall:90});globalThis.reserve=utClub.owned.find(p=>!utClub.xi.includes(p.id)&&!p.originalId);utClub.owned.unshift({...reserve,id:"event:reserve",originalId:reserve.id,overall:89});AuraArena.preMatch=(home,away,options)=>{globalThis.preparedUT=home}');
+ const before=app.json('utClub');app.click({ut:'play',opponent:'madrid'});
+ const people=app.json('preparedUT.players.concat(preparedUT.bench).map(p=>p.originalId||p.id)');assert.equal(new Set(people).size,people.length,'the match squad must contain one edition per footballer');assert.ok(app.run('preparedUT.bench.length>0'));assert.deepEqual(app.json('utClub'),before);
+});
