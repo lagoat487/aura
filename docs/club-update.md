@@ -1,5 +1,7 @@
 # Club Update 4.1
 
+Corrección de selección de DCP: al volver al desafío, se descartan de la selección las cartas vendidas, consumidas o incorporadas al once. Las cartas todavía elegibles permanecen seleccionadas. El contador y la revisión usan la selección vigente; esta limpieza no consume cartas ni monedas.
+
 La corrección de identidad de los repetidos también se aplica a las cartas de «Último sobre» en Inicio de UT. Abrir o vender una copia desde ese bloque usa su UID; la carta original se conserva. Si la copia ya fue consumida o vendida, su enlace histórico no actúa sobre la original.
 
 Corrección de temporadas de Champions: al inicializar una temporada se vacía su historial europeo actual, también si el club no clasifica o no puede participar. Los resultados de temporadas anteriores permanecen en `seasonHistory`; no se arrastran ni se vuelven a archivar como resultados de un año sin Champions.

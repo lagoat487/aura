@@ -313,3 +313,16 @@ test('UT latest-pack cards inspect and sell the duplicate copy rather than its o
  app.click({ut:'sell',player:'duplicate:last-pack',duplicate:'yes'});assert.equal(app.run('utClub.duplicates.length'),0);assert.deepEqual(app.json('utClub.owned'),originals);assert.deepEqual(app.json('utClub.xi'),xi);
  const after=app.json('utClub');app.click({ut:'inspect',player:'duplicate:last-pack',duplicate:'yes'});assert.deepEqual(app.json('utClub'),after);
 });
+
+test('UT DCP releases a selected reserve after moving it into the starting XI',()=>{
+ const app=boot();app.click({evoMode:'ultimate'});app.click({ut:'create'});app.run('globalThis.utClub=AuraUTUI.getClub();globalThis.selectedCard=AuraUT.sbcPool(utClub,"gold")[0];');
+ app.click({utSbc:'gold'});app.click({utTab:'sbc'});app.click({ut:'sbc-pick',uid:app.run('selectedCard.uid')});assert.match(app.html(),/1\/3 cartas/);
+ const coins=app.run('utClub.coins'),owned=app.json('utClub.owned');app.click({utTab:'squad'});app.click({ut:'pick',slot:'9'});app.click({ut:'choose',player:app.run('selectedCard.id')});assert.ok(app.run('utClub.xi.includes(selectedCard.id)'));
+ app.click({utTab:'sbc'});assert.match(app.html(),/0\/3 cartas/,'an unavailable starter must not occupy a hidden selection slot');assert.equal(app.run('utClub.coins'),coins);assert.deepEqual(app.json('utClub.owned'),owned);
+ const eligible=app.json('AuraUT.sbcPool(utClub,"gold").sort((a,b)=>b.overall-a.overall).slice(0,3).map(p=>p.uid)');for(const uid of eligible)app.click({ut:'sbc-pick',uid});assert.match(app.html(),/3\/3 cartas/);app.click({ut:'sbc-review'});assert.match(app.node('modal').innerHTML,/data-ut="sbc-confirm"/);
+});
+test('UT DCP drops a sold selected card without changing the remaining club on return',()=>{
+ const app=boot();app.click({evoMode:'ultimate'});app.click({ut:'create'});app.run('globalThis.utClub=AuraUTUI.getClub();globalThis.selectedCard=AuraUT.sbcPool(utClub,"gold")[0];utClub.owned.find(p=>p.id===selectedCard.id).tradeable=true;');
+ app.click({utSbc:'gold'});app.click({utTab:'sbc'});app.click({ut:'sbc-pick',uid:app.run('selectedCard.uid')});app.run('globalThis.otherCard=AuraUT.sbcPool(utClub,"gold").find(p=>p.uid!==selectedCard.uid)');app.click({ut:'sbc-pick',uid:app.run('otherCard.uid')});app.click({utTab:'club'});app.click({ut:'sell',player:app.run('selectedCard.id')});const after=app.json('utClub');
+ app.click({utTab:'sbc'});assert.match(app.html(),/1\/3 cartas/,'the remaining eligible card stays selected');assert.deepEqual(app.json('utClub'),after);assert.ok(app.run('!AuraUT.sbcPool(utClub,"gold").some(p=>p.uid===selectedCard.uid)'));
+});
