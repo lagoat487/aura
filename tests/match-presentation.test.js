@@ -39,3 +39,11 @@ test('woodwork deflects a ball inside the goal line without scoring or awarding 
   assert.deepEqual(g.score,[0,0]);assert.ok(g.ball.vx<0);assert.ok(g.events.some(e=>e.type==='woodwork'));assert.equal(g.phase,'playing');
  }
 });
+test('keeper poses distinguish held catches, lateral parries, high dives and low smothers',()=>{
+ const g=game(),p=g.players[11];Object.assign(p,{actionTime:.35,actionDuration:.7,action:'save',diveSide:0,saveHeight:1});
+ const held=P.pose(p,g);assert.equal(held.dive,0);assert.ok(held.save>0);
+ Object.assign(p,{action:'parry',diveSide:-1});const parry=P.pose(p,g);assert.ok(parry.dive<0);
+ Object.assign(p,{action:'dive',saveHeight:2.6});const high=P.pose(p,g);assert.ok(high.saveLift>0);assert.ok(high.highSave>held.highSave);
+ Object.assign(p,{action:'smother',saveHeight:.22});const low=P.pose(p,g);assert.ok(low.crouch>held.crouch);assert.equal(low.saveLift,0);
+ for(const pose of [held,parry,high,low])assert.ok(Object.values(pose).every(Number.isFinite));
+});

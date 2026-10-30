@@ -1,5 +1,21 @@
 # Matchday 4.2 — actualización de partidos
 
+## Porteros: salidas, reflejos y segundos balones
+
+El portero ajusta su posición entre el balón y el centro de la portería. Dentro del área puede salir a cortar un regate cercano; el intento depende de su media y de la del delantero, y tiene recuperación para evitar intentos infinitos cada fotograma. Se aplica a ambos equipos y a las dos mitades. Ganar ese duelo cuenta como salida, no como parada de un disparo.
+
+La lectura de los tiros se hace sobre la trayectoria hacia la posición real del portero. La detección recorre el tramo del balón hasta la línea de gol para que un tiro rápido alcanzable no se marque antes de resolver la parada. No devuelve balones que ya lo superaron, ni concede paradas fuera del área o a tiros por encima de su alcance. Las manos tienen alcance lateral, no atraen el balón varios metros desde delante.
+
+Los remates centrales controlables se blocan; los potentes o que exigen estirada se desvían hacia un lado y lejos de la propia portería. El rebote sigue vivo y el rival puede rematarlo. La media influye en alcance y blocaje; la dificultad modifica de forma moderada el alcance del portero rival. Tras atrapar un balón, el reloj de recuperación se descuenta una sola vez antes del pase de salida. Los tiros dirigidos pueden buscar más las esquinas y la IA también intenta colocarlos. Las porterías conservan sus dimensiones.
+
+Las animaciones distinguen blocaje, estirada alta, manopla y salida baja. La inclinación lateral sigue la línea de gol en WebGL y en el modo compatible. El resumen del partido muestra paradas y desvíos del portero. No se modifican cartas, monedas, progresos ni el guardado existente.
+
+La regresión original se reproduce en `tests/goalkeepers.test.js`. Se comprueban duelos, porterías vacías, disparos rápidos a diferentes pasos físicos, salidas fuera del área, cambios de campo, dificultad, medias, pausa, rebotes y estadísticas. `node scripts/keeper-benchmark.cjs` ejecuta 120 intentos por cada uno de cinco escenarios controlados. Para comparar una revisión anterior puede pasarse la ruta a su `match-engine.js` como primer argumento.
+
+En el escenario concreto de conducir por el primer palo y rematar desde cerca, la revisión `880205770b2844a9113a85cfd81d5783601c9a49` concedía 120 goles en 120 intentos; la corrección concede 19 y corta 101 ataques. Los 120 remates a portería vacía siguen siendo gol. Es un ensayo sintético con trayectorias repetidas, no una tasa prevista para partidos de personas ni una estadística del fútbol real.
+
+## Correcciones previas
+
 Corrección de teclado en PC: Espacio conserva la activación nativa de los botones enfocados durante el partido, las repeticiones y el resultado final. Con el foco en el campo mantiene el atajo de entrada.
 
 Corrección de botones móviles: perder la captura táctil libera sprint y descarta la carga del tiro. Una liberación posterior no dispara esa carga; soltar normalmente sigue disparando una sola vez.

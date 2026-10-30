@@ -95,3 +95,9 @@ test('Space preserves focused button activation during play, replay and the fina
  g.phase='finished';a.frame();assert.equal(a.session.done,true);assert.equal(a.key('keydown',' ',button).defaultPrevented,false,'the final result button must be activatable with Space');
  a.click('complete');assert.equal(a.commits(),1);
 });
+test('the final match summary shows real keeper saves and parries without double-counting a result',()=>{
+ const a=boot(),g=a.session.game;g.stats[1].saves=4;g.stats[1].parries=2;g.phase='finished';a.frame();
+ const html=a.node('arena-layer').innerHTML;
+ assert.match(html,/<span>Paradas<\/span><b>4<\/b>/);assert.match(html,/<span>Desvíos del portero<\/span><b>2<\/b>/);assert.doesNotMatch(html,/undefined|NaN/);
+ a.click('complete');a.click('complete');assert.equal(a.commits(),1);
+});

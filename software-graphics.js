@@ -82,15 +82,15 @@ const AuraSoftwareGraphics=(()=>{
     function player(p,selected,game){
       const pose=P.pose(p,game),look=P.appearance(p),keeper=p.index===0,scale=look.height/1.88;
       const colors=keeper?[p.team===0?'#e2a72f':'#9266bf','#19342e','#f2edd9']:kits[p.team];
-      const f=[p.faceX,p.faceZ],side=[p.faceZ,-p.faceX],elevation=pose.jump+pose.save*.25;
-      const world=(x,y,z)=>[p.x+(side[0]*x+f[0]*z)*look.build+pose.dive*y*.55, y*scale+elevation,p.z+(side[1]*x+f[1]*z)*look.build];
+      const f=[p.faceX,p.faceZ],side=[p.faceZ,-p.faceX],elevation=pose.jump+pose.saveLift-pose.crouch,tilt=pose.dive*1.05;
+      const world=(x,y,z)=>[p.x+(side[0]*x+f[0]*z)*look.build,y*scale*Math.cos(tilt)+elevation,p.z+(side[1]*x+f[1]*z)*look.build+y*scale*Math.sin(tilt)];
       const ground=point(p.x,.02,p.z),size=Math.max(2,ground.scale*.22),head=point(...world(0,1.70,0));
       const shade=ctx.createRadialGradient(ground.x,ground.y,0,ground.x,ground.y,size*2.2);shade.addColorStop(0,'#0920167a');shade.addColorStop(1,'#09201600');ctx.save();ctx.translate(ground.x,ground.y);ctx.scale(1,.38);ctx.fillStyle=shade;ctx.beginPath();ctx.arc(0,0,size*2.1,0,Math.PI*2);ctx.fill();ctx.restore();
       if(selected){ctx.strokeStyle='#d5ff83';ctx.lineWidth=1.7;ctx.beginPath();ctx.ellipse(ground.x,ground.y,size*2.25,size*.66,0,0,Math.PI*2);ctx.stroke();}
       function limb(a,b,color,thickness){const u=point(...a),v=point(...b);ctx.lineCap='round';ctx.strokeStyle='#10271f70';ctx.lineWidth=Math.max(1,u.scale*thickness)+.65;ctx.beginPath();ctx.moveTo(u.x,u.y);ctx.lineTo(v.x,v.y);ctx.stroke();ctx.strokeStyle=color;ctx.lineWidth=Math.max(.8,u.scale*thickness);ctx.stroke();}
       const bone=(x,y,z,angle,length)=>[x,y-Math.cos(angle)*length,z-Math.sin(angle)*length];
       for(let i=0;i<2;i++){
-        const sign=i===0?-1:1,x=sign*.125,angle=(i===0?pose.stride-pose.kick*1.25-pose.tackle*.8:-pose.stride),kneeAngle=angle+(i===0?pose.kneeLeft:pose.kneeRight);
+        const sign=i===0?-1:1,x=sign*.125,angle=(i===0?pose.stride-pose.kick*1.25-pose.tackle*.8:-pose.stride)-pose.crouch*.6,kneeAngle=angle+(i===0?pose.kneeLeft:pose.kneeRight)+pose.crouch;
         const hip=[x,.81,0],knee=bone(...hip,angle,.36),ankle=bone(...knee,kneeAngle,.34);
         limb(world(...hip),world(...knee),colors[1],.19);limb(world(...knee),world(...ankle),colors[0],.13);
         limb(world(ankle[0],ankle[1],ankle[2]-.02),world(ankle[0],ankle[1],ankle[2]+.15),p.index%3===0?'#e5e8ce':p.index%3===1?'#d88455':'#16282c',.12);
@@ -103,7 +103,7 @@ const AuraSoftwareGraphics=(()=>{
       torso(front?.175:-.175,colors[0]);
       if(front&&!keeper)for(const x of [-.15,.09])polygon([world(x,.88,.181),world(x+.065,.88,.181),world(x+.065,1.42,.181),world(x,1.42,.181)],colors[1]);
       for(let i=0;i<2;i++){
-        const sign=i===0?-1:1,swing=(i===0?-pose.stride:pose.stride)*.22,raised=pose.celebrate+pose.save;
+        const sign=i===0?-1:1,swing=(i===0?-pose.stride:pose.stride)*.22,raised=pose.celebrate+pose.highSave;
         const shoulder=[sign*.29,1.38,0],elbow=[sign*(.34+raised*.11),1.10+raised*.51,swing-pose.save*.28],hand=[sign*(.34+raised*.22),.86+raised*.91,swing-.08-pose.save*.3];
         limb(world(...shoulder),world(...elbow),colors[0],.16);limb(world(...elbow),world(...hand),look.skin,.105);
         if(keeper)limb(world(...hand),world(hand[0],hand[1]-.04,hand[2]+.04),'#e6e5cf',.14);

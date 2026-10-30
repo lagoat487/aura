@@ -149,10 +149,10 @@ const AuraGraphics=(()=>{
         game.players.forEach((p,i)=>{
           if(actors[i].id!==p.id){actors[i].root.visible=false;actors[i].shadow.visible=false;actors[i]=footballer(p);}
           const a=actors[i],pose=P.pose(p,game),angle=Math.atan2(p.faceX,p.faceZ);a.yaw+=Math.atan2(Math.sin(angle-a.yaw),Math.cos(angle-a.yaw))*(1-Math.exp(-dt*14));
-          a.root.position.set(p.x,pose.jump+pose.save*.28,p.z);a.root.rotation.set(0,a.yaw,pose.dive*.85);
-          a.body.rotation.x=pose.lean-pose.kick*.13;a.legs[0].rotation.x=pose.stride-pose.kick*1.25-pose.tackle*.8;a.legs[1].rotation.x=-pose.stride;
-          a.knees[0].rotation.x=pose.kneeLeft+pose.kick*.4;a.knees[1].rotation.x=pose.kneeRight;
-          for(let side=0;side<2;side++){const sign=side===0?-1:1;a.arms[side].rotation.x=(side===0?-pose.stride:pose.stride)*.65-pose.save*1.4;a.arms[side].rotation.z=sign*(.13+pose.celebrate*2.4+pose.save*.8);a.elbows[side].rotation.x=-.25-pose.speed*.5;}
+          a.root.position.set(p.x,pose.jump+pose.saveLift-pose.crouch,p.z);a.root.rotation.set(pose.dive*1.05,a.yaw,0);
+          a.body.rotation.x=pose.lean-pose.kick*.13+pose.crouch*.35;a.legs[0].rotation.x=pose.stride-pose.kick*1.25-pose.tackle*.8-pose.crouch*.6;a.legs[1].rotation.x=-pose.stride-pose.crouch*.6;
+          a.knees[0].rotation.x=pose.kneeLeft+pose.kick*.4+pose.crouch;a.knees[1].rotation.x=pose.kneeRight+pose.crouch;
+          for(let side=0;side<2;side++){const sign=side===0?-1:1;a.arms[side].rotation.x=(side===0?-pose.stride:pose.stride)*.65-pose.highSave*1.4;a.arms[side].rotation.z=sign*(.13+pose.celebrate*2.4+pose.save*.8+(p.index===0?.15:0));a.elbows[side].rotation.x=-.25-pose.speed*.5;}
           a.shadow.position.set(p.x,.045,p.z);a.shadow.material.opacity=.25-pose.jump*.2;
         });
         ball.position.set(game.ball.x,game.ball.y,game.ball.z);ball.rotation.z+=game.ball.vx*.008;ball.rotation.x+=game.ball.vz*.008;ballShadow.position.set(game.ball.x,.06,game.ball.z);ballShadow.material.opacity=.34/Math.max(1,game.ball.y);

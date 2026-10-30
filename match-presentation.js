@@ -21,10 +21,12 @@
   function pose(p,game){
     const speed=clamp(Math.hypot(finite(p.vx),finite(p.vz))/7,0,1),cycle=finite(p.run)*2.8+(hash(p.id)%17)*.37,stride=Math.sin(cycle)*.72*speed;
     const active=finite(p.actionTime)>0,progress=active?1-clamp(p.actionTime/(p.actionDuration||.4),0,1):1,pulse=active?Math.sin(progress*Math.PI):0;
-    const kick=['shoot','pass'].includes(p.action)&&active?pulse:0,save=['save','dive'].includes(p.action)&&active?pulse:0,celebrate=p.action==='celebrate'&&active?1:0;
+    const kick=['shoot','pass'].includes(p.action)&&active?pulse:0,save=['save','dive','parry','smother'].includes(p.action)&&active?pulse:0,celebrate=p.action==='celebrate'&&active?1:0;
+    const keeper=p.index===0,smother=p.action==='smother'?save:0,height=clamp(finite(p.saveHeight,1.7),.22,2.8);
     return {stride,kneeLeft:Math.max(0,-Math.cos(cycle))*.9*speed,kneeRight:Math.max(0,Math.cos(cycle))*.9*speed,kick,save,celebrate,
       lean:speed*.12,jump:celebrate?Math.max(0,Math.sin(finite(game?.visualTime)*9))*.16:Math.abs(Math.sin(cycle*2))*.025*speed,
-      dive:save*(finite(p.diveSide)||1),tackle:p.action==='tackle'&&active?pulse:0,speed};
+      dive:save*finite(p.diveSide,1)*(p.action==='save'?.35:p.action==='smother'?.25:1),crouch:keeper?.12+smother*.5:0,
+      saveLift:keeper?save*clamp((height-1.4)*.25,0,.35):0,highSave:save*clamp(height/2.3,.15,1),tackle:p.action==='tackle'&&active?pulse:0,speed};
   }
   function separateKits(home,away){
     const rgb=c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)/255),a=rgb(home[0]),b=rgb(away[0]),gap=Math.hypot(...a.map((n,i)=>n-b[i]));
