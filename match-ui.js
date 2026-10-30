@@ -137,7 +137,8 @@ const AuraArena=(()=>{
     const releaseStick=()=>{pointer=null;s.stick={x:0,z:0};knob.style.transform="";};stick.addEventListener("pointerup",releaseStick);stick.addEventListener("pointercancel",releaseStick);
     node.querySelectorAll("[data-touch]").forEach(button=>{
       button.addEventListener("pointerdown",e=>{e.preventDefault();button.setPointerCapture(e.pointerId);if(s.replay||game.paused||s.done)return;const type=button.dataset.touch;if(type==="sprint")s.touchSprint=true;else if(type==="shoot"){s.charging=performance.now();find("arena-power").hidden=false;}else AuraMatch.action(game,type,controls());});
-      for(const name of ["pointerup","pointercancel"])button.addEventListener(name,()=>{if(button.dataset.touch==="sprint")s.touchSprint=false;if(button.dataset.touch==="shoot")shoot();});
+      button.addEventListener("pointerup",()=>{if(button.dataset.touch==="sprint")s.touchSprint=false;if(button.dataset.touch==="shoot")shoot();});
+      button.addEventListener("pointercancel",()=>{if(button.dataset.touch==="sprint")s.touchSprint=false;if(button.dataset.touch==="shoot"){s.charging=null;find("arena-power").hidden=true;}});
     });
     const radar=find("arena-minimap"),radarCtx=radar.getContext("2d");
     function hud(now){

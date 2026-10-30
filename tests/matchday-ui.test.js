@@ -10,8 +10,8 @@ function boot(){
  function node(id=''){
   if(id&&nodes.has(id))return nodes.get(id);
   const events={},children=new Map();const n={id,style:{},dataset:{},classList,hidden:false,tabIndex:0,
-   addEventListener:(name,fn)=>{events[name]=fn;},removeEventListener(){},setAttribute(){},appendChild(){},remove(){},focus(){},getClientRects:()=>[{}],getContext:()=>context2d,
-   querySelector(selector){if(selector.startsWith('#'))return node(selector.slice(1));if(!children.has(selector))children.set(selector,node());return children.get(selector);},querySelectorAll:()=>[],
+   addEventListener:(name,fn)=>{events[name]=fn;},removeEventListener(){},setPointerCapture(){},setAttribute(){},appendChild(){},remove(){},focus(){},getClientRects:()=>[{}],getContext:()=>context2d,
+   querySelector(selector){if(selector.startsWith('#'))return node(selector.slice(1));if(!children.has(selector))children.set(selector,node());return children.get(selector);},querySelectorAll:selector=>selector==='[data-touch]'?['switch','through','pass','shoot','tackle','sprint'].map(type=>{const button=node('touch:'+type);button.dataset.touch=type;return button;}):[],
    fire:(type,event)=>events[type]?.(event),matches:()=>false,
   };
   Object.defineProperty(n,'innerHTML',{get:()=>n.html||'',set:value=>{n.html=value;for(const m of value.matchAll(/id="([^"]+)"/g))node(m[1]);}});
@@ -51,4 +51,15 @@ test('automatic replay finishes and camera selection cycles through four working
  const camera=a.run('AuraArena.settings.camera');for(let i=0;i<4;i++)a.click('camera');assert.equal(a.run('AuraArena.settings.camera'),camera);
  g.players.forEach(p=>{p.x=-40;p.z=25;});Object.assign(g.ball,{owner:null,x:52.4,y:.3,z:0,vx:25,vy:0,vz:0,lastTouch:0,lastKicker:9});a.frame(50);assert.ok(a.session.replay);
  for(let i=0;i<36;i++)a.frame(100);assert.equal(a.session.replay,null);assert.deepEqual(g.score,[1,0]);a.click('pause');a.click('exit');a.click('confirm-exit');assert.equal(a.commits(),0);
+});
+
+test('cancelled touch shots discard their charge; normal releases still shoot and sprint cancellation stops sprinting',()=>{
+ const a=boot(),g=a.session.game;g.phase='playing';g.players[g.controlled].cooldown=0;
+ const pointer={pointerId:1,preventDefault(){}};
+ const shot=a.node('touch:shoot');shot.fire('pointerdown',pointer);assert.notEqual(a.session.charging,null);
+ shot.fire('pointercancel',pointer);assert.equal(g.stats[0].shots,0,'OS cancellation must not fire a shot');assert.equal(a.session.charging,null);assert.equal(a.node('arena-power').hidden,true);
+ shot.fire('pointerup',pointer);assert.equal(g.stats[0].shots,0,'a late release cannot fire the discarded charge');
+ shot.fire('pointerdown',pointer);shot.fire('pointerup',pointer);assert.equal(g.stats[0].shots,1,'normal touch release keeps working');
+ const sprint=a.node('touch:sprint');sprint.fire('pointerdown',pointer);assert.equal(a.session.touchSprint,true);sprint.fire('pointercancel',pointer);assert.equal(a.session.touchSprint,false);
+ a.click('pause');a.click('exit');a.click('confirm-exit');assert.equal(a.commits(),0);
 });

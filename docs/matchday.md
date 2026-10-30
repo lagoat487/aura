@@ -1,5 +1,7 @@
 # Matchday 4.2 — actualización de partidos
 
+Corrección de controles táctiles: cancelar el gesto de tiro (`pointercancel`) descarta la carga y oculta la barra de potencia. Solo una liberación normal (`pointerup`) dispara. La cancelación del sprint sigue liberándolo; una liberación tardía no recupera una carga descartada. Se reproduce y verifica en las pruebas del controlador del partido.
+
 Esta revisión se centra en el partido 11 contra 11 y su preparación. Los mismos cambios se aplican a los encuentros jugados de carrera, Champions, UT, Draft, selecciones y partido rápido porque comparten `AuraArena`. No cambia plantillas, monedas, fichajes, clasificaciones, reglas de los modos ni el progreso por sesión.
 
 ## Presentación y gráficos
