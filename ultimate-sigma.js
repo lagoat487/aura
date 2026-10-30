@@ -32,7 +32,7 @@ UI.handleClick=function(t){
  if(t.dataset.utTab){active=false;return originalClick(t);}
  if(t.dataset.sigmaGift!==undefined){
   const club=UI.getClub();if(!club)return true;
-  const r=U.claimSigmaGift(club);if(r.error)notify(r.error);else{render();notify('¡+150.000 monedas para Ultimate Sigma!');}
+  const r=U.claimSigmaGift(club);if(r.error)notify(r.error);else{UI.saveClub();render();notify('¡+150.000 monedas para Ultimate Sigma!');}
   return true;
  }
  if(t.dataset.sigmaInspect){
@@ -45,7 +45,7 @@ UI.handleClick=function(t){
  if(t.dataset.sigmaBuy){
   const club=UI.getClub(),p=U.eventCards(UI.pool()).find(q=>q.id===t.dataset.sigmaBuy);
   const r=U.buy(club,p);
-  if(r.error)notify(r.error);else{closeModal();render();notify('¡'+p.name+' SIGMA fichado! -'+coins(r.cost)+' monedas');}
+  if(r.error)notify(r.error);else{UI.saveClub();closeModal();render();notify('¡'+p.name+' SIGMA fichado! -'+coins(r.cost)+' monedas');}
   return true;
  }
  if(t.dataset.ut==="lobby")active=false;
