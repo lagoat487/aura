@@ -22,3 +22,12 @@
 @media(max-width:650px){.sigma-event{padding-top:13px}.sigma-event-hero{padding:23px 15px;flex-direction:column;gap:20px}.sigma-event-hero h2{font-size:65px}.sigma-event-hero p{font-size:11px}.sigma-bonus{flex-direction:column;align-items:stretch}.sigma-bonus .btn{width:100%}.sigma-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.sigma-product{padding:11px 4px;gap:9px}.sigma-player-card{width:150px;height:229px;padding:10px 8px}.sigma-card-flare{font-size:7px}.sigma-card-overall{top:36px;left:9px;font-size:29px}.sigma-player-face{height:120px;width:102px;margin:10px 0 2px 21px}.sigma-player-face .tour-face{width:100px;height:115px}.sigma-player-card>strong{font-size:12px}.sigma-player-bottom{font-size:6px}.sigma-product>b{font-size:15px}.sigma-product>b small{font-size:7px}.sigma-title h3{font-size:33px}}
 @media(max-width:375px){.sigma-grid{grid-template-columns:1fr 1fr}.sigma-player-card{width:136px;height:216px}.sigma-product>b{font-size:13px}}
 @media(prefers-reduced-motion:reduce){.sigma-player-card{transition:none}}
+
+/* Purple Sigma cards in UT squad, club, packs and inspector */
+.ut-shell .ut-card.sigma{background:radial-gradient(ellipse at 60% 18%,#dba5ff,#8340c7 32%,#422068 66%,#160b32)!important;color:#f6dfa0!important;box-shadow:inset 0 0 25px #ffdfa655}
+.ut-shell .ut-card.sigma:before{border:2px solid #f1d38c}
+.ut-shell .ut-card.sigma:after{content:'Σ SIGMA';opacity:.85;color:#ffdf9c}
+.ut-shell .ut-card.sigma .ut-card-rating,.ut-shell .ut-card.sigma strong,.ut-shell .ut-card.sigma .ut-card-stats b{color:#ffedb5}
+.ut-shell .ut-card.sigma .ut-card-stats span,.ut-shell .ut-card.sigma .ut-card-club{color:#f1d6b8}
+.ut-shell .ut-card.sigma .ut-sigma-label{font:800 8px Arial;color:#ffe5a5;letter-spacing:1px;margin:-5px 0 4px}
+.ut-shell .ut-card.compact.sigma .ut-sigma-label{display:none}
