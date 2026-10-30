@@ -1,5 +1,7 @@
 # AURA 27 / Club Update 4.1
 
+**Matchday 4.2 — partidos:** cámaras de TV y Tele más cercanas, campo con textura, futbolistas articulados con dorsales, animaciones de golpeo y portero, aceleración y frenado, rebotes en los palos, marcador compacto, sonido de estadio y repeticiones cortas de goles. Se aplica al motor de partidos compartido por los modos existentes. Alcance y validación: [docs/matchday.md](docs/matchday.md).
+
 Fútbol de navegador con partidos 3D de once contra once, modo carrera, plantilla editable, negociaciones por etapas y Draft XI gratuito. World Tour 4.0 conserva Club Edition y añade cuatro modos, torneos, premios, nuevas generaciones y música original.
 
 ## Club Update 4.1 · modos corregidos

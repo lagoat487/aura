@@ -14,10 +14,10 @@
     const players=sides.flatMap((t,team)=>t.players.map((p,i)=>{
       const slot=t.slots?.[i],baseX=slot?(50-slot[2])*.96:SHAPE[i][1],baseZ=slot?(slot[1]-50)*.58:SHAPE[i][2];
       return {id:p.id,name:p.name,number:i+1,team,index:i,pos:i===0?"POR":p.pos,overall:clamp(p.overall||70,1,99),
-        baseX,baseZ,x:0,z:0,vx:0,vz:0,faceX:team===0?1:-1,faceZ:0,stamina:clamp(Number.isFinite(p.fitness)?p.fitness:100,0,100),cooldown:0,run:0};
+        baseX,baseZ,x:0,z:0,vx:0,vz:0,faceX:team===0?1:-1,faceZ:0,stamina:clamp(Number.isFinite(p.fitness)?p.fitness:100,0,100),cooldown:0,run:0,action:null,actionTime:0,actionDuration:0,diveSide:1};
     }));
     const game={players,ball:{x:0,y:.22,z:0,vx:0,vy:0,vz:0,owner:null,lastTouch:0,freeTime:0,lastKicker:null},
-      score:[0,0],elapsed:0,seconds,half:1,phase:"kickoff",phaseTime:1.1,controlled:9,events:[],
+      score:[0,0],elapsed:0,visualTime:0,seconds,half:1,phase:"kickoff",phaseTime:1.1,controlled:9,events:[],
       stats:[0,1].map(()=>({shots:0,onTarget:0,passes:0,completed:0,throughBalls:0,interceptions:0,saves:0,tackles:0,possession:0})),
       benches:sides.map(t=>(t.bench||[]).filter(p=>p&&typeof p.id==="string").map(p=>({...p}))),
       participants:sides.map(t=>t.players.map(p=>p.id)),substitutions:[],
@@ -26,9 +26,10 @@
     reset(game,0);return game;
   }
   function direction(game,team){return (team===0?1:-1)*(game.half===1?1:-1);}
+  function animate(p,kind,duration){p.action=kind;p.actionTime=p.actionDuration=duration;}
   function event(game,type,text,extra={}){const e={type,text,at:game.elapsed,minute:Math.min(90,Math.floor(game.elapsed/game.seconds*90)),...extra};game.events.push(e);if(game.events.length>80)game.events.shift();return e;}
   function reset(game,kicking){
-    for(const p of game.players){const d=direction(game,p.team);p.x=p.baseX*d;p.z=p.baseZ*d;p.vx=p.vz=0;p.faceX=d;p.faceZ=0;p.cooldown=.3;}
+    for(const p of game.players){const d=direction(game,p.team);p.x=p.baseX*d;p.z=p.baseZ*d;p.vx=p.vz=0;p.faceX=d;p.faceZ=0;p.cooldown=.3;p.action=null;p.actionTime=0;}
     const taker=game.players.find(p=>p.team===kicking&&p.index===9),support=game.players.find(p=>p.team===kicking&&p.index===7);
     taker.x=-direction(game,kicking)*1.4;taker.z=0;support.x=-direction(game,kicking)*5;support.z=6;
     Object.assign(game.ball,{x:taker.x,y:.22,z:0,vx:0,vy:0,vz:0,owner:game.players.indexOf(taker),lastTouch:kicking,freeTime:0,lastKicker:null});
@@ -45,6 +46,7 @@
       else game.stats[p.team].interceptions++;
     }
     b.owner=index;b.lastTouch=p.team;b.vx=b.vz=b.vy=0;b.y=.22;game.passTarget=null;game.passRun=null;
+    if(p.action!=='save'&&p.action!=='dive'&&p.action!=='tackle')animate(p,'receive',.25);
     if(p.team===0&&!game.playerLock)game.controlled=index;
   }
   function launch(game,p,target,speed,lift){
@@ -75,7 +77,7 @@
     launch(game,p,spot,clamp(14+r*.4+(through?2:0),15,32),through?1.7:.35);
     game.passTarget=game.players.indexOf(target);game.passRun={index:game.passTarget,...spot,until:game.elapsed+3.5};game.stats[p.team].passes++;
     if(through)game.stats[p.team].throughBalls++;
-    event(game,"pass",p.name+(through?" filtra al espacio":" combina"));return true;
+    animate(p,'pass',.34);event(game,"pass",p.name+(through?" filtra al espacio":" combina"));return true;
   }
   function shoot(game,p,input={}){
     const d=direction(game,p.team),goalX=53.5*d,r=Math.abs(goalX-p.x),power=clamp(Number(input.power)||.58,.18,1);
@@ -86,7 +88,7 @@
     const speed=22+power*12;
     launch(game,p,{x:goalX,z:aim},speed,clamp(r*.07+power*.6,1.1,4.4));
     game.stats[p.team].shots++;if(Math.abs(aim)<3.66)game.stats[p.team].onTarget++;
-    game.passTarget=null;game.passRun=null;event(game,"shot","¡Dispara "+p.name+"!",{team:p.team,player:p.id});return true;
+    game.passTarget=null;game.passRun=null;animate(p,'shoot',.48);event(game,"shot","¡Dispara "+p.name+"!",{team:p.team,player:p.id});return true;
   }
   function setTactic(game,tactic){
     if(!game.paused||game.phase==="finished"||!["balanced","possession","press","counter"].includes(tactic))return false;
@@ -102,7 +104,7 @@
     const change={team,out:p.id,in:candidate.id,outName:p.name,inName:candidate.name,minute:Math.min(90,Math.floor(game.elapsed/game.seconds*90))};
     const slotRating=Array.isArray(candidate.slotRatings)?candidate.slotRatings[p.index]:undefined;
     const overall=clamp(Number.isFinite(slotRating)?slotRating:candidate.overall,1,99);
-    Object.assign(p,{id:candidate.id,name:candidate.name,pos:p.index===0?"POR":candidate.pos,overall,stamina:clamp(Number.isFinite(candidate.fitness)?candidate.fitness:100,0,100),cooldown:.3,decision:0});
+    Object.assign(p,{id:candidate.id,name:candidate.name,pos:p.index===0?"POR":candidate.pos,overall,stamina:clamp(Number.isFinite(candidate.fitness)?candidate.fitness:100,0,100),cooldown:.3,decision:0,action:null,actionTime:0});
     bench.splice(bench.indexOf(candidate),1);game.participants[team].push(candidate.id);game.substitutions.push(change);
     event(game,"substitution",change.outName+" deja su sitio a "+change.inName,change);return true;
   }
@@ -114,6 +116,7 @@
       if(p.cooldown>0||b.owner===null)return false;
       const carrier=game.players[b.owner];if(carrier.team===p.team||dist(p,carrier)>3)return false;
       p.cooldown=.9;
+      animate(p,'tackle',.4);
       if(game.rng()<clamp(.62+(p.overall-carrier.overall)*.009,.35,.9)){
         ownBall(game,index);carrier.cooldown=.8;game.stats[0].tackles++;event(game,"tackle",p.name+" recupera");return true;
       }return false;
@@ -123,9 +126,11 @@
     if(type==="shoot")return shoot(game,p,input);return false;
   }
   function move(p,tx,tz,speed,dt){
-    const dx=tx-p.x,dz=tz-p.z,len=Math.hypot(dx,dz),amount=Math.min(len,speed*dt);
-    p.vx=len>.1?dx/len*speed:0;p.vz=len>.1?dz/len*speed:0;
-    if(len>.1){p.x+=dx/len*amount;p.z+=dz/len*amount;p.faceX=dx/len;p.faceZ=dz/len;p.run+=amount;}
+    const dx=tx-p.x,dz=tz-p.z,len=Math.hypot(dx,dz),response=1-Math.exp(-dt*(len>.1?11:15));
+    const desiredX=len>.1?dx/len*Math.min(speed,len/Math.max(.001,dt)):0,desiredZ=len>.1?dz/len*Math.min(speed,len/Math.max(.001,dt)):0;
+    p.vx+=(desiredX-p.vx)*response;p.vz+=(desiredZ-p.vz)*response;
+    p.x+=p.vx*dt;p.z+=p.vz*dt;const velocity=Math.hypot(p.vx,p.vz);
+    if(velocity>.12){p.faceX=p.vx/velocity;p.faceZ=p.vz/velocity;p.run+=velocity*dt;}
     p.x=clamp(p.x,-51.5,51.5);p.z=clamp(p.z,-33,33);
   }
   function ai(game,p,i,dt,chasers){
@@ -137,7 +142,7 @@
       // Read the flight before it reaches the goal rather than following its
       // current lateral position. The keeper must still physically reach it.
       const arrival=b.owner===null&&b.vx*d<-1?(-d*49-b.x)/b.vx:-1;
-      if(arrival>0&&arrival<2){tx=-d*49;tz=clamp(b.z+b.vz*arrival,-4,4);}
+      if(arrival>0&&arrival<2){tx=-d*49;tz=clamp(b.z+b.vz*arrival,-4,4);if(arrival<.55&&Math.abs(tz-p.z)>.8&&p.actionTime<=0){p.diveSide=Math.sign(tz-p.z)||1;animate(p,'dive',.6);}}
       else if(owner&&owner.team!==p.team&&owner.x*d<-34){tx=-d*46;tz=clamp(b.z*.42,-3.5,3.5);}
       if(b.owner===i){p.cooldown-=dt;if(p.cooldown<=0)pass(game,p,{x:d,z:0},false);}
       else move(p,tx,tz,speed*(arrival>0?1.08:.85),dt);return;
@@ -195,17 +200,21 @@
   }
   function ballStep(game,dt){
     const b=game.ball;
-    if(b.owner!==null){const p=game.players[b.owner];b.x=p.x+p.faceX*.8;b.z=p.z+p.faceZ*.8;b.y=.24+Math.sin(p.run*5)*.04;return;}
+    if(b.owner!==null){const p=game.players[b.owner],pace=Math.min(1,Math.hypot(p.vx,p.vz)/6),touch=.65+(.5+.5*Math.sin(p.run*4))*.33*pace;b.x=p.x+p.faceX*touch;b.z=p.z+p.faceZ*touch;b.y=.23+Math.abs(Math.sin(p.run*5))*.035*pace;return;}
     b.freeTime+=dt;const previousX=b.x,previousZ=b.z,previousY=b.y;
     b.x+=b.vx*dt;b.z+=b.vz*dt;b.y+=b.vy*dt;b.vy-=12*dt;
     if(b.y<.22){b.y=.22;b.vy=Math.abs(b.vy)>.9?-b.vy*.32:0;}
     const drag=Math.exp(-dt*(b.y<.3?.7:.12));b.vx*=drag;b.vz*=drag;
     if(Math.abs(b.x)>52.5){
       const edge=Math.sign(b.x)*52.5,progress=clamp((edge-previousX)/(b.x-previousX||1),0,1),z=previousZ+(b.z-previousZ)*progress,y=previousY+(b.y-previousY)*progress;
+      if((Math.abs(Math.abs(z)-FIELD.goal/2)<.16&&y<FIELD.height+.16)||(Math.abs(y-FIELD.height)<.16&&Math.abs(z)<FIELD.goal/2)){
+        b.x=edge-Math.sign(edge)*.28;b.vx=-b.vx*.62;b.vz+=Math.sign(z||1)*1.8;b.vy=Math.min(b.vy,-.3);event(game,'woodwork','¡Al palo!',{team:b.lastTouch});return;
+      }
       if(Math.abs(z)<FIELD.goal/2&&y<FIELD.height){
         const team=direction(game,0)===Math.sign(b.x)?0:1;game.score[team]++;
         const shooter=b.lastKickerIdentity||game.players[b.lastKicker],name=shooter?.team===team?shooter.name:"Gol en propia puerta";
         const goal=event(game,"goal","¡GOOOL! "+name,{team,player:shooter?.id,name});game.goals.push(goal);
+        for(const p of game.players)if(p.team===team&&p.index!==0)animate(p,'celebrate',2.7);
         game.phase="goal";game.phaseTime=2.7;game.kickoffTeam=1-team;return;
       }
       const defending=direction(game,0)===Math.sign(b.x)?1:0;
@@ -216,11 +225,12 @@
     const candidates=game.players.map((p,i)=>({p,i,d:dist(p,b)})).filter(({p,i,d})=>
       d<(p.index===0?2.3:1.15)&&p.cooldown<=0&&(i!==b.lastKicker||b.freeTime>.7)&&b.y<(p.index===0?2.5:1.1));
     candidates.sort((a,c)=>a.d-c.d);
-    if(candidates.length){const {p,i}=candidates[0];if(p.index===0&&b.lastTouch!==p.team){game.stats[p.team].saves++;event(game,"save","¡Ataja "+p.name+"!");p.cooldown=.65;}ownBall(game,i);}
+    if(candidates.length){const {p,i}=candidates[0];if(p.index===0&&b.lastTouch!==p.team){game.stats[p.team].saves++;event(game,"save","¡Ataja "+p.name+"!");p.cooldown=.65;p.diveSide=Math.sign(b.z-p.z)||1;animate(p,'save',.65);}ownBall(game,i);}
   }
   function step(game,delta,input={}){
     if(game.phase==="finished"||game.paused)return game;
     const dt=clamp(Number(delta)||0,0,.05);if(!dt)return game;
+    game.visualTime+=dt;for(const p of game.players)p.actionTime=Math.max(0,p.actionTime-dt);
     if(game.phase!=="playing"){
       game.phaseTime-=dt;
       if(game.phaseTime<=0){
@@ -240,7 +250,7 @@
         let x=clamp(Number(input.x)||0,-1,1),z=clamp(Number(input.z)||0,-1,1),len=Math.hypot(x,z);if(len>1){x/=len;z/=len;}
         const sprint=input.sprint&&p.stamina>10&&len>.1;p.stamina=clamp(p.stamina+dt*(sprint?-8:3.2),0,100);
         const speed=(4.9+p.overall*.027)*(sprint?1.38:1)*(b.owner===i?.94:1)*(.78+p.stamina*.0022);
-        if(len>.05)move(p,p.x+x*10,p.z+z*10,speed*Math.min(1,len),dt);else {p.vx=p.vz=0;}
+        if(len>.05)move(p,p.x+x*10,p.z+z*10,speed*Math.min(1,len),dt);else move(p,p.x,p.z,0,dt);
       }else ai(game,p,i,dt,chasers);
     }
     // Soft collisions keep the ball carrier visible and prevent stacked players.

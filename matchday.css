@@ -1,0 +1,71 @@
+/* Matchday 4.2. Scoped to match preparation and the 11v11 arena. */
+.matchday-release{display:flex;justify-content:space-between;gap:15px;border-bottom:1px solid #ffffff18;padding:0 0 18px;margin-bottom:20px;color:#d4fa92;font-size:10px;letter-spacing:1.5px}
+.matchday-release span{color:#879b90;font-size:7px;letter-spacing:1px}
+.prematch-options{grid-template-columns:repeat(3,minmax(0,1fr))}
+#arena .match-scoreboard{top:max(24px,env(safe-area-inset-top));left:max(30px,env(safe-area-inset-left));border:1px solid #ffffff24;border-radius:3px;background:#101b20f2;box-shadow:0 7px 24px #0003;max-width:calc(100% - 200px)}
+#arena .match-live{width:58px;flex-shrink:0;background:#d6f99b;color:#152522;display:flex;align-items:center;justify-content:center;flex-direction:column;font:800 italic 18px var(--display);letter-spacing:-.4px}
+#arena .match-live b{font:600 6px Arial;letter-spacing:1px;margin-top:4px}
+#arena .scoreboard-team{min-width:132px;padding:9px 12px;gap:9px}
+#arena .scoreboard-team>span{font:600 11px Arial;max-width:120px}
+#arena .scoreboard-team>b{font:700 25px var(--display);min-width:20px;text-align:center}
+#arena .scoreboard-team>i{height:24px;width:3px}
+#arena .scoreboard-crest{width:20px;height:23px;object-fit:contain}
+#arena .match-clock{min-width:78px;padding:7px 12px;background:#1e2b2c;gap:3px}
+#arena .match-clock>span{color:#e9f0dd;font:600 22px var(--display);letter-spacing:.5px}
+#arena .match-clock small{font-size:5px;letter-spacing:1px;color:#9fb1a4}
+#arena .arena-top-actions{top:max(25px,env(safe-area-inset-top));right:max(28px,env(safe-area-inset-right));gap:7px}
+#arena .arena-top-actions>button{width:36px;height:36px;background:#142124bd;border-color:#e0f3ce44;border-radius:3px;backdrop-filter:blur(8px)}
+#arena .arena-camera-label{position:absolute;top:74px;right:28px;background:#152522d9;border:1px solid #d6eece33;padding:7px 10px;color:#edf4df;font-size:9px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:3}
+#arena .arena-camera-label.visible{opacity:1}
+#arena .arena-fallback{left:30px;top:83px;border:0;background:#13211f80;color:#cad8c0;font-size:7px;letter-spacing:.2px;padding:4px 6px}
+#arena .arena-bottom{left:30px;right:30px;bottom:max(35px,env(safe-area-inset-bottom));display:flex;justify-content:space-between;gap:15px;align-items:flex-end}
+#arena .controlled-card{min-width:240px;max-width:310px;padding:8px 13px 8px 8px;gap:10px;background:#101e24ef;border:1px solid #dce9d128;border-left:3px solid #d7f69e;border-radius:2px;box-shadow:0 5px 20px #0002}
+#arena .controlled-rating{font:600 29px var(--display);color:#edf4dc}
+#arena .controlled-card>div>span{font-size:12px;max-width:205px;overflow:hidden;text-overflow:ellipsis}
+#arena .controlled-card small{font-size:7px;margin-top:5px;color:#a9b7a7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:210px}
+#arena .stamina-bar{height:3px;margin-top:8px;background:#ffffff1c}
+#arena .stamina-bar>i{background:#d5f397}
+#arena .arena-portrait{display:block;width:39px;height:46px;overflow:hidden;flex-shrink:0;align-self:flex-end;background:linear-gradient(0deg,#d6edb818,transparent);border-radius:2px}
+#arena .arena-portrait .tour-face{width:100%;height:100%;border:0;background:none;border-radius:0;display:block}
+#arena .arena-portrait img{width:100%;height:100%;object-fit:contain;object-position:bottom}
+#arena .arena-portrait .portrait-initials{font-size:13px;display:grid;place-items:center;height:100%}
+#arena .arena-portrait .portrait-missing-label{display:none}
+#arena .arena-bottom>canvas{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:150px;height:96px;border-radius:2px;border-color:#dceccc3d;opacity:.78;margin:0}
+#arena .arena-commentary{position:absolute;left:50%;bottom:107px;transform:translateX(-50%);padding:5px 10px;background:#12282190;border-radius:2px;width:max-content;max-width:350px}
+#arena .arena-commentary>span{font-size:10px}
+#arena .arena-commentary>small{font-size:6px;letter-spacing:1.2px;margin-top:4px}
+#arena .opponent-card{display:flex;align-items:center;gap:13px;max-width:280px;min-width:195px;padding:13px 12px 13px 16px;background:#101e24ef;border:1px solid #dce9d128;border-radius:2px;text-align:right;margin-left:auto}
+#arena .opponent-card>div{min-width:0}
+#arena .opponent-card span{display:block;color:#edf2de;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:235px}
+#arena .opponent-card small{display:block;font-size:7px;color:#a6b5a3;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:235px}
+#arena .opponent-card>i{height:27px;width:4px;flex-shrink:0}
+#arena .arena-key-guide{bottom:8px;font-size:7px;gap:13px;opacity:.8}
+#arena .arena-banner strong{font-size:clamp(52px,8vw,105px);color:#e9f8ca}
+#arena .arena-banner[data-phase="kickoff"]{top:auto;bottom:24%;background:#102420db;width:auto;min-width:320px;max-width:80%;padding:16px 30px;border-left:3px solid #d6f397;filter:none;box-shadow:0 7px 30px #0002}
+#arena .arena-banner[data-phase="kickoff"] small{font-size:8px;letter-spacing:1.6px;line-height:1.7}
+#arena .arena-banner[data-phase="kickoff"] strong{font-size:28px;letter-spacing:.5px;margin-top:7px;font-style:normal}
+#arena .arena-replay:not([hidden]){position:absolute;top:93px;left:30px;right:30px;display:flex;justify-content:space-between;align-items:center;z-index:5}
+#arena .arena-replay>span{background:#122222e6;padding:9px 12px;color:#e2edd6;letter-spacing:2px;font-size:9px;border-left:3px solid #d5f397}
+#arena .arena-replay b{color:#e65b54;font-size:8px;margin-left:10px}
+#arena .arena-replay button{background:#132521de;border:1px solid #d6eec944;color:#e2edd6;padding:10px 14px;font-size:10px;border-radius:3px}
+#arena .arena-label{background:#0e211bd9;border-bottom-width:1px;padding:4px 8px;font-size:9px;box-shadow:0 2px 8px #0002}
+#arena .shot-power{bottom:175px}
+@media(max-width:900px){
+  #arena .scoreboard-team{min-width:110px;padding:9px;gap:7px}#arena .scoreboard-team>span{font-size:9px;max-width:92px}#arena .scoreboard-team>b{font-size:23px}#arena .match-clock{min-width:66px;padding:7px 9px}
+  #arena .controlled-card{min-width:205px;max-width:245px}#arena .controlled-card>div>span{font-size:10px}#arena .opponent-card{min-width:170px;max-width:220px}#arena .opponent-card span{font-size:10px}#arena .arena-bottom>canvas{width:130px;height:83px}#arena .arena-commentary{display:none}
+}
+@media(max-width:620px){
+  .matchday-release{font-size:8px;letter-spacing:1px}.matchday-release span{display:none}.prematch-options{grid-template-columns:1fr 1fr}
+  #arena .match-scoreboard{top:max(12px,env(safe-area-inset-top));left:12px;right:12px;max-width:none;transform:none}#arena .match-live{width:39px;font-size:14px}#arena .match-live b{font-size:4px;letter-spacing:.5px}
+  #arena .scoreboard-team{min-width:0;padding:8px 6px;gap:4px;flex:1}#arena .scoreboard-team>span{font-size:8px;max-width:80px;white-space:nowrap}#arena .scoreboard-team>i{display:none}#arena .scoreboard-team>b{font-size:22px;padding:0;min-width:15px}#arena .scoreboard-crest{width:16px;height:18px}
+  #arena .match-clock{min-width:53px;padding:6px 7px}#arena .match-clock>span{font-size:18px}#arena .match-clock small{font-size:4px;letter-spacing:.5px}
+  #arena .arena-top-actions{top:74px;right:12px}#arena .arena-top-actions>button{width:32px;height:32px}#arena .arena-camera-label{top:115px;right:12px;font-size:8px}#arena .arena-fallback{top:73px;left:12px;font-size:6px;max-width:180px}
+  #arena .arena-bottom{left:12px;right:12px;bottom:165px}#arena .controlled-card{min-width:0;max-width:220px;gap:8px;padding:7px 10px 7px 6px}#arena .controlled-rating{font-size:25px}#arena .controlled-card>div>span{font-size:10px;max-width:125px}#arena .arena-portrait{width:30px;height:38px}#arena .controlled-card small{font-size:6px;max-width:125px}
+  #arena .opponent-card{display:none}#arena .arena-bottom>canvas{left:auto;right:0;bottom:0;transform:none;width:100px;height:64px}#arena .arena-key-guide{display:none}#arena .arena-banner[data-phase="kickoff"]{min-width:220px;bottom:38%;padding:14px 18px}#arena .arena-banner[data-phase="kickoff"] strong{font-size:23px}
+  #arena .arena-replay:not([hidden]){top:121px;left:12px;right:12px}#arena .arena-replay>span{font-size:7px;padding:8px}#arena .arena-replay button{font-size:8px;padding:8px}#arena .shot-power{bottom:250px}
+}
+@media(pointer:coarse){#arena .arena-bottom{bottom:155px}#arena .arena-key-guide,#arena .arena-commentary{display:none}#arena .shot-power{bottom:250px}}
+@media(max-height:530px) and (min-width:621px){
+  #arena .match-scoreboard{top:12px;left:16px;transform:scale(.86);transform-origin:top left}#arena .arena-top-actions{top:12px;right:16px}#arena .arena-fallback{top:66px;left:16px}#arena .arena-camera-label{top:55px;right:16px}
+  #arena .arena-bottom{left:18px;right:18px;bottom:135px}#arena .controlled-card{padding:6px 9px;min-width:195px;max-width:235px}#arena .arena-portrait{width:27px;height:33px}#arena .controlled-rating{font-size:24px}#arena .arena-bottom>canvas{width:105px;height:67px}#arena .opponent-card{min-width:155px;max-width:190px;padding:10px}#arena .opponent-card span{font-size:9px}#arena .arena-replay:not([hidden]){top:75px;left:16px;right:16px}#arena .arena-banner[data-phase="kickoff"]{bottom:36%;padding:9px 20px}#arena .arena-banner[data-phase="kickoff"] strong{font-size:22px}#arena .arena-key-guide{display:none}
+}
