@@ -1,5 +1,7 @@
 # Club Update 4.1
 
+Corrección de elegibilidad de Champions: el país declarado de la liga prevalece sobre nombres compartidos como «Serie A», «Premier League» o «Superliga». Cuando el catálogo no declara país, se reconocen nombres completos de las ligas europeas compatibles, junto con el país de los clubes antiguos. Los alias no pueden incorporar un club de origen no elegible. Las carreras de ligas importadas como «Brasileirão Serie A», «LigaPro Serie A» y «Argentina Superliga» conservan su calendario doméstico y no reciben partidos ni ingresos de Champions. Se mantienen los clubes europeos del catálogo, la entrada única por identidad, los cuatro primeros y la exención del campeón europeo.
+
 Corrección de divisiones UT: al llegar a División 1 se indica que es la categoría máxima y se muestran sus puntos, sin prometer otro ascenso. Los partidos, monedas y puntos siguen las reglas existentes; las divisiones inferiores conservan el objetivo de nueve puntos.
 
 Corrección del mercado UT: el selector de posición incluye MI, MD y SD, presentes en el catálogo. Se pueden buscar refuerzos para las bandas de 4-4-2, 4-2-3-1 y 3-5-2 sin mezclar otras posiciones; la compra conserva el once y usa las monedas de la sesión.
@@ -11,6 +13,20 @@ La corrección de identidad de los repetidos también se aplica a las cartas de 
 Corrección de temporadas de Champions: al inicializar una temporada se vacía su historial europeo actual, también si el club no clasifica o no puede participar. Los resultados de temporadas anteriores permanecen en `seasonHistory`; no se arrastran ni se vuelven a archivar como resultados de un año sin Champions.
 
 Corrección de repetidos en UT: la ficha del almacén identifica cada copia por su UID y muestra su propia condición de transferible. La venta desde esa ficha consume únicamente la copia seleccionada y conserva la carta original, incluido un titular intransferible. Los repetidos intransferibles no ofrecen vender la carta original.
+
+## Revisión de regresiones · 30 de octubre de 2026
+
+Revisión sobre `43a03c6`, que ya incluye los arreglos de mercado, selecciones DCP, identidad de repetidos e historial continental. La mejora se limita a la elegibilidad de Champions; no añade persistencia ni cambia el motor de partidos.
+
+| Flujo | Riesgo revisado | Comprobación |
+| --- | --- | --- |
+| Mercado UT | Filtros incompletos, doble compra o débito incorrecto | Filtros con el catálogo incluido, coste en monedas, rechazo de compras repetidas y conservación del once. |
+| DCP | Selección oculta o pérdida de inventario si falla la recompensa | Limpieza de reservas vendidas o convertidas en titulares; nueva prueba de recompensa sin garantía 82+ que deja el club íntegro. |
+| Repetidos | Vender o consumir la carta original en lugar de una copia | Inspección y venta por UID, enlaces históricos caducados y nueva entrega DCP de dos copias que conserva el titular y una tercera copia. |
+| Champions | Confundir el origen por un fragmento de nombre o por un alias | País prioritario, nombres exactos como respaldo, bloqueo del alias de origen no elegible y temporadas de ligas importadas sin partidos ni ingresos europeos. |
+| Canvas | Regresión del respaldo sin WebGL | Suite del renderizador compatible en vertical y horizontal, cámaras, acciones y liberación del lienzo. |
+
+Las nuevas pruebas continentales también conservan las ligas europeas del catálogo, la deduplicación de alias y la entrada del campeón europeo aunque quede fuera del top cuatro. La comparación del catálogo anterior y posterior mantiene los mismos 399 candidatos en el mismo orden. Cuando falta el país, el respaldo sigue dependiendo de los nombres conocidos del catálogo; una liga nueva necesita país compatible o una incorporación explícita a esa lista.
 
 ## Problemas corregidos
 

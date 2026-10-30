@@ -27,6 +27,24 @@ test('match, objective and Squad Battles rewards can be received only once per i
  const u=U.create(pool());assert.equal(U.reward(u,'one',{home:2,away:0},'battles',1),1200);assert.equal(U.reward(u,'one',{home:2,away:0},'battles',1),false);assert.equal(U.claim(u,'first').ok,true);assert.ok(U.claim(u,'first').error);u.battlePoints=2600;const cycle=u.battleCycle;assert.equal(U.claimBattles(u).ok,true);assert.equal(u.battleCycle,cycle+1);assert.ok(U.claimBattles(u).error);
  for(let i=0;i<3;i++)U.reward(u,'div'+i,{home:1,away:0},'divisions');assert.equal(u.division,9);assert.equal(u.divisionPoints,0);
 });
+
+test('failed SBC reward guarantees preserve every card, duplicate, coin and claim counter',()=>{
+ const u=U.create(pool()),ids=U.sbcPool(u,'gold').sort((a,b)=>b.overall-a.overall).slice(0,3).map(p=>p.uid);
+ assert.equal(U.sbcPreview(u,'gold',ids).ok,true);
+ const before=structuredClone(u),rewardPool=pool().filter(p=>p.overall<82),result=U.submitSBC(u,'gold',ids,rewardPool,()=>0);
+ assert.match(result.error,/garantía/);assert.deepEqual(u,before);
+});
+
+test('SBC delivery consumes selected duplicate UIDs without consuming their starter or an unselected copy',()=>{
+ const u=U.create(pool()),starter=u.owned.find(p=>u.xi.includes(p.id)&&p.overall>=76&&p.overall<=79),reserve=U.sbcPool(u,'gold').sort((a,b)=>b.overall-a.overall)[0];
+ assert.ok(starter);assert.ok(reserve);
+ const copies=[1,2,3].map(n=>({...starter,uid:'duplicate:'+n,duplicate:true,tradeable:n===1}));u.duplicates.push(...copies);u.serial=3;
+ const before=structuredClone(starter),xi=u.xi.slice(),coins=u.coins,ids=[copies[0].uid,copies[1].uid,reserve.uid];
+ assert.equal(U.sbcPreview(u,'gold',ids).ok,true);assert.equal(U.submitSBC(u,'gold',ids,pool(),()=>0).ok,true);
+ assert.deepEqual(u.owned.find(p=>p.id===starter.id),before);assert.deepEqual(u.xi,xi);assert.equal(u.coins,coins);assert.equal(u.sbcs,1);
+ assert.ok(!u.duplicates.some(p=>ids.includes(p.uid)));assert.deepEqual(u.duplicates.find(p=>p.uid===copies[2].uid),copies[2]);assert.ok(u.lastPack.some(p=>p.overall>=82));
+});
+
 test('portraits use the correct numeric identity, reject injected URLs and never synthesize a real face',()=>{
  const p={id:'real:231747',name:'Kylian Mbappé',real:true};assert.match(P.sources(p)[0],/pulse.ea.com\/FC25\/full\/player-portraits\/p231747.png/);assert.ok(P.html(p).includes('Retrato de Kylian'));assert.deepEqual(P.sources({id:'new:123',real:false,photo:'javascript:alert(1)'}),[]);const missing=P.html({id:'verified:unknown',name:'Real Player',real:true});assert.match(missing,/Sin foto/);assert.doesNotMatch(missing,/<svg|javascript:/);
 });

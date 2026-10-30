@@ -4,9 +4,28 @@
   "use strict";
   const due=[2,4,6,9,12,15,18,21],dates={playoff:[23,24],round16:[26,27],quarter:[29,30],semi:[33,34],final:[36]},labels={league:"Fase liga",playoff:"Play-off",round16:"Octavos",quarter:"Cuartos",semi:"Semifinal",final:"Final"};
   const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
-  const european=/espa[nñ]a|inglaterra|alemania|italia|francia|portugal|paises bajos|premier league|bundesliga|serie a|ligue 1|eredivisie|belgium|scotland|turkey|austria|switzerland|1a pro league|scottish|brack super|trendyol|hellas|ceska|hrvatska|superliga|ekstraklasa|ukrayina|cyprus|allsvenskan|eliteserien/;
+  const europeanCountries=new Set([
+    'espana','spain','inglaterra','england','alemania','germany','italia','italy','francia','france','portugal','paises bajos','netherlands',
+    'belgica','belgium','escocia','scotland','turquia','turkey','austria','suiza','switzerland','grecia','greece','chequia','czechia','czech republic',
+    'croacia','croatia','dinamarca','denmark','polonia','poland','ucrania','ukraine','chipre','cyprus','suecia','sweden','noruega','norway',
+  ]);
+  const europeanLeagues=new Set([
+    'laliga','laliga ea sports','laliga hypermotion','premier league','efl championship','efl league one','efl league two','bundesliga','bundesliga 2',
+    'serie a','serie a enilive','ligue 1','ligue 1 mcdonalds','liga portugal','eredivisie','trendyol super lig','1a pro league','hellas liga',
+    'scottish premiership','ceska liga','ukrayina liha','liga hrvatska','brack super league','o. bundesliga','liga cyprus','ekstraklasa','allsvenskan','eliteserien','superliga',
+  ]);
+  function isEuropean(club,definitions){
+    const domestic=definitions.filter(d=>d.id!=="exhibition"&&d.clubIds.includes(club.id));
+    const countries=domestic.map(d=>norm(d.country).trim()).filter(country=>country&&!['mundo','internacional','world','international'].includes(country));
+    // Declared origins override shared names such as Serie A or Premier League.
+    if(countries.length)return countries.some(country=>europeanCountries.has(country));
+    const city=norm(club.city).trim(),origin=city.split('·').at(-1).trim();
+    if(city.includes('·')||europeanCountries.has(origin))return europeanCountries.has(origin);
+    // Older catalog entries use the league name as their city and country "Mundo".
+    return europeanLeagues.has(city)||domestic.some(d=>europeanLeagues.has(norm(d.name).trim()));
+  }
   function candidates(clubs,definitions,matching){
-    const seen=new Set();return clubs.filter(c=>c.gender!=="women"&&european.test(norm(c.city+" "+definitions.filter(d=>d.id!=="exhibition"&&d.clubIds.includes(c.id)).map(d=>d.country+" "+d.name).join(" ")))).filter(c=>{const id=matching?.(c)?.id||norm(c.name);if(seen.has(id))return false;seen.add(id);return true;}).sort((a,b)=>b.rating-a.rating||a.id.localeCompare(b.id));
+    const seen=new Set();return clubs.filter(c=>c.gender!=="women"&&isEuropean(c,definitions)).filter(c=>{const id=matching?.(c)?.id||norm(c.name);if(seen.has(id))return false;seen.add(id);return true;}).sort((a,b)=>b.rating-a.rating||a.id.localeCompare(b.id));
   }
   function create(entrants,user,season=2026){
     if(entrants.length!==36||new Set(entrants.map(c=>c.id)).size!==36||!entrants.some(c=>c.id===user))throw Error("La Champions necesita 36 clubes distintos e incluir a tu equipo.");
@@ -56,7 +75,7 @@
   function initCareer(game,clubs,definitions,matching,previousPosition=null){
     game.continentalHistory=[];
     const all=candidates(clubs,definitions,matching),own=clubs.find(c=>c.id===game.club),identity=c=>matching?.(c)?.id||norm(c.name),ownKey=own&&identity(own);
-    if(!own||!all.some(c=>identity(c)===ownKey)){game.champions=null;game.championsReason="Tu club no pertenece a una liga europea.";return null;}
+    if(!own||own.gender==="women"||!isEuropean(own,definitions)||!all.some(c=>identity(c)===ownKey)){game.champions=null;game.championsReason="Tu club no pertenece a una liga europea.";return null;}
     const domestic=game.competition.clubIds.map(id=>clubs.find(c=>c.id===id)).filter(Boolean).sort((a,b)=>b.rating-a.rating||a.id.localeCompare(b.id));
     const qualified=previousPosition===null?domestic.slice(0,4).some(c=>c.id===game.club):previousPosition<=4||game.previousContinentalChampion===game.club;
     if(!qualified){game.champions=null;game.championsReason="Termina entre los cuatro primeros de tu liga para clasificar a la próxima Champions de AURA.";return null;}
