@@ -345,6 +345,43 @@ test('UT market offers every squad position and filters and buys real wide midfi
  }
 });
 
+test('imported South American league names cannot create Champions fixtures or continental rewards',async()=>{
+ const app=boot();app.run(fs.readFileSync(path.join(__dirname,'..','data/world-rosters.js'),'utf8'));
+ await app.run('World.load(clubs,Competitions.definitions)');
+ const positions=['GK','LB','CB','CB','RB','CDM','CM','CM','LW','ST','RW'],leagues=['Brasileirão Serie A','LigaPro Serie A','Argentina Superliga'];
+ const rows=leagues.flatMap((league,n)=>[0,1].flatMap(team=>positions.map((position,i)=>({
+  player_id:String(900000+n*100+team*11+i),common_name:'Imported player '+n+' '+team+' '+i,overall_rating:'85',position,
+  club:'Imported club '+n+' '+team,league,gender:"Men's Football",birthdate:'2000-01-01',nationality:'Brazil',
+ }))));
+ app.run('World.integrate(World.build('+JSON.stringify(rows)+',clubs,Competitions.definitions),clubs,Competitions.definitions)');
+ for(const name of leagues){
+  const definition=app.json('Competitions.definitions.find(d=>d.name==='+JSON.stringify(name)+')'),own=definition.clubIds[0];
+  assert.equal(definition.country,'Mundo','the importer has no declared country for this league name');
+  app.click({competition:definition.id});app.click({pick:own});app.click({action:'start'});
+  assert.equal(app.run('state.champions'),null,name);assert.match(app.run('state.championsReason'),/europea/);
+  assert.equal(app.run('state.budget'),app.run('getClub(state.club).budget'));const xi=app.json('AuraSquad.ensure(state).xi');
+  assert.equal(app.run('AuraContinental.next(state).kind'),'league');app.click({action:'play'});
+  assert.equal(app.run('state.round'),1);assert.equal(app.run('state.history.length'),1);assert.deepEqual(app.json('state.continentalHistory'),[]);assert.deepEqual(app.json('AuraSquad.ensure(state).xi'),xi);
+  app.click({action:'play'});app.run('startNextSeason(state.competition.id)');
+  assert.equal(app.run('state.season'),2027);assert.equal(app.run('state.champions'),null);assert.deepEqual(app.json('state.seasonHistory[0].continentalHistory'),[]);assert.deepEqual(app.json('state.continentalHistory'),[]);assert.equal(app.saved(),undefined);
+  app.click({nav:'modes'});
+ }
+});
+
+test('bundled European leagues and legacy aliases remain eligible without duplicate continental clubs',async()=>{
+ const app=boot();app.run(fs.readFileSync(path.join(__dirname,'..','data/world-rosters.js'),'utf8'));
+ await app.run('World.load(clubs,Competitions.definitions)');
+ app.run('globalThis.continentalCandidates=AuraChampions.candidates(clubs,Competitions.definitions,c=>World.matchingClub(c))');
+ const keys=app.json('continentalCandidates.map(c=>World.matchingClub(c)?.id||c.id)');assert.equal(new Set(keys).size,keys.length);
+ for(const name of ['Trendyol Süper Lig','1A Pro League','Hellas Liga','Scottish Premiership','Česká Liga','Ukrayina Liha','Liga Hrvatska','Brack Super League','Ö. Bundesliga','Liga Cyprus','Ekstraklasa','Allsvenskan','Eliteserien','SUPERLIGA']){
+  const ids=app.json('Competitions.definitions.find(d=>d.name==='+JSON.stringify(name)+').clubIds');assert.ok(ids.length>0);
+  for(const id of ids)assert.ok(keys.includes(id),name+' / '+id);
+ }
+ assert.equal(app.run('continentalCandidates.some(c=>c.gender==="women")'),false);
+ app.click({action:'start'});assert.equal(app.run('state.champions.entrants.length'),36);
+ assert.equal(app.run('state.champions.entrants.filter(c=>(World.matchingClub(c)?.id||c.id)===(World.matchingClub(getClub(state.club))?.id||state.club)).length'),1);
+});
+
 test('UT highest division stops promising another promotion and preserves match rewards',()=>{
  const app=boot();app.click({evoMode:'ultimate'});app.click({ut:'create'});app.click({utTab:'play'});app.click({utMode:'divisions'});
  app.run('globalThis.utClub=AuraUTUI.getClub();AuraArena.preMatch=(home,away,options)=>{globalThis.pendingDivision=options}');

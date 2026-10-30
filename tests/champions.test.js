@@ -40,3 +40,48 @@ test('unavailable and non-European Champions entries also start with an empty cu
   assert.equal(C.initCareer(game,[club],[]),null);assert.deepEqual(game.continentalHistory,[]);
  }
 });
+
+test('continental eligibility gives a declared country precedence over shared league names',()=>{
+ for(const [country,name,eligible] of [
+  ['Italia','Serie A',true],['Inglaterra','Premier League',true],['Países Bajos','Eredivisie',true],
+  ['Brasil','Serie A',false],['Ecuador','LigaPro Serie A',false],['Argentina','Superliga',false],
+  ['Estados Unidos','Premier League',false],['Chile','Bundesliga',false],
+ ]){
+  const club={id:'own',name:'Own Club',city:name,rating:80},definition={id:'domestic',country,name,clubIds:[club.id]};
+  assert.equal(C.candidates([club],[definition]).length,eligible?1:0,country+' / '+name);
+ }
+});
+
+test('countryless leagues require exact supported names and legacy clubs retain their country fallback',()=>{
+ for(const name of ['Trendyol Süper Lig','1A Pro League','Hellas Liga','Scottish Premiership','Česká Liga','Ukrayina Liha','Liga Hrvatska','Brack Super League','Ö. Bundesliga','Liga Cyprus','Ekstraklasa','Allsvenskan','Eliteserien','SUPERLIGA']){
+  const club={id:'own',name:'Own Club',city:name,rating:80};
+  assert.equal(C.candidates([club],[{id:'domestic',country:'Mundo',name,clubIds:[club.id]}]).length,1,name);
+ }
+ for(const name of ['Brasileirão Serie A','LigaPro Serie A','Argentina Superliga','Premier League de otro país']){
+  const club={id:'own',name:'Own Club',city:name,rating:80};
+  assert.deepEqual(C.candidates([club],[{id:'domestic',country:'Mundo',name,clubIds:[club.id]}]),[],name);
+ }
+ const legacy={id:'legacy',name:'Legacy Club',city:'Milán · Italia',rating:80};
+ assert.equal(C.candidates([legacy],[]).length,1);
+ assert.equal(C.candidates([{...legacy,gender:'women'}],[]).length,0);
+ assert.equal(C.candidates([{...legacy,city:'Guayaquil · Ecuador'}],[{id:'domestic',name:'Serie A',clubIds:[legacy.id]}]).length,0);
+});
+
+test('non-European entries cannot qualify as champions or top four and keep archived history and budget',()=>{
+ const european=teams().map(c=>({...c,city:'Inglaterra'})),own={id:'south',name:'South Club',city:'Brasileirão Serie A',rating:95};
+ const definition={id:'south-league',name:own.city,country:'Mundo',clubIds:[own.id]},archive=[{season:2026,continentalHistory:[{id:'old-match'}]}];
+ for(const position of [null,1,8])for(const matching of [null,c=>({id:c.id===own.id?'club-0':c.id})]){
+  const game={club:own.id,season:2027,competition:definition,budget:123456,previousContinentalChampion:own.id,continentalHistory:[{id:'stale-match'}],seasonHistory:structuredClone(archive)};
+  assert.equal(C.initCareer(game,[...european,own],[definition],matching,position)===null,true);
+  assert.equal(game.champions,null);assert.match(game.championsReason,/europea/);
+  assert.deepEqual(game.continentalHistory,[]);assert.deepEqual(game.seasonHistory,archive);assert.equal(game.budget,123456);
+ }
+});
+
+test('eligible European aliases keep the champions exemption and enter only once',()=>{
+ const clubs=teams().map(c=>({...c,city:'Inglaterra'})),own={...clubs[0],id:'legacy-alias'},definition={id:'premier',name:'Premier League',country:'Inglaterra',clubIds:[own.id]};
+ const game={club:own.id,season:2027,competition:definition,budget:123456,previousContinentalChampion:own.id};
+ const matching=c=>({id:c.id===own.id?'club-0':c.id}),champions=C.initCareer(game,[...clubs,own],[definition],matching,8);
+ assert.ok(champions);assert.equal(champions.entrants.length,36);assert.equal(champions.entrants.filter(c=>matching(c).id==='club-0').length,1);
+ assert.ok(champions.entrants.some(c=>c.id===own.id));assert.equal(game.budget,123456);
+});
