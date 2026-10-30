@@ -4,6 +4,31 @@
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
   const packs={silver:{name:"Sobre de plata",cost:750,count:3,min:65,max:74},gold:{name:"Sobre de oro",cost:2500,count:3,min:75,max:92},premium:{name:"Oro premium 82+",cost:7500,count:3,min:75,max:92,guaranteed:82}};
   const challenges={silver:{name:"De plata a oro",count:3,min:65,max:74,score:900,reward:"gold"},gold:{name:"Mejora 82+",count:3,min:75,max:83,score:1900,reward:"premium"}};
+
+  // AURA 4.2: limited-edition fantasy boosts. These cards exist only in Ultimate Team.
+  const sigma=Object.freeze({id:"ultimate-sigma",name:"ULTIMATE SIGMA",version:"4.2",cards:Object.freeze([
+    {id:"sigma:rashford",name:"Marcus Rashford",overall:88,pos:"EI",price:450000,nationality:"Inglaterra",sourceClub:"FC Barcelona"},
+    {id:"sigma:espart",name:"Xavi Espart",overall:87,pos:"LD",price:150000,nationality:"España",sourceClub:"FC Barcelona"},
+    {id:"sigma:yamal",name:"Lamine Yamal",overall:91,pos:"ED",price:900000,nationality:"España",sourceClub:"FC Barcelona"},
+    {id:"sigma:mbappe",name:"Kylian Mbappé",overall:92,pos:"DC",price:1200000,nationality:"Francia",sourceClub:"Real Madrid"},
+    {id:"sigma:haaland",name:"Erling Haaland",overall:91,pos:"DC",price:1000000,nationality:"Noruega",sourceClub:"Manchester City"},
+    {id:"sigma:bellingham",name:"Jude Bellingham",overall:90,pos:"MCO",price:760000,nationality:"Inglaterra",sourceClub:"Real Madrid"},
+    {id:"sigma:pedri",name:"Pedri",overall:90,pos:"MC",price:650000,nationality:"España",sourceClub:"FC Barcelona"},
+    {id:"sigma:vinicius",name:"Vinícius Júnior",overall:90,pos:"EI",price:840000,nationality:"Brasil",sourceClub:"Real Madrid"},
+    {id:"sigma:raphinha",name:"Raphinha",overall:89,pos:"ED",price:540000,nationality:"Brasil",sourceClub:"FC Barcelona"},
+    {id:"sigma:salah",name:"Mohamed Salah",overall:89,pos:"ED",price:580000,nationality:"Egipto",sourceClub:"Liverpool"}
+  ])});
+  const normalizeName=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
+  function eventCards(pool){
+    const available=Array.isArray(pool)?pool:[];
+    return sigma.cards.map(def=>{
+      const wanted=normalizeName(def.name);
+      const base=available.find(p=>p.real&&(normalizeName(p.name)===wanted||normalizeName(p.name).startsWith(wanted+" ")||wanted.startsWith(normalizeName(p.name)+" ")));
+      return {...(base||{}),id:def.id,originalId:base?.id||null,name:def.name,overall:def.overall,pos:def.pos,real:true,event:sigma.id,eventPrice:def.price,
+        nationality:base?.nationality||def.nationality,sourceClub:def.sourceClub,tradeable:true,leagueId:base?.leagueId||"reference",leagueLabel:base?.leagueLabel||"Referencia mundial"};
+    });
+  }
+  function claimSigmaGift(u){if(u.sigmaGiftClaimed)return {error:"Ya reclamaste el bono Ultimate Sigma."};u.coins+=150000;u.sigmaGiftClaimed=true;return {ok:true,coins:150000};}
   function league(p){if(p.leagueId==='reference')return '';return p.leagueId||p.league||String(p.catalogClub||p.club||"").replace(/-[^-]+$/,'');}
   function chemistry(u){
     const formation=Squad.formations[u.formation]||Squad.formations['4-3-3'],ps=u.xi.map(id=>u.owned.find(p=>p.id===id)),valid=ps.filter((p,i)=>p&&Squad.positionPenalty(p,formation[i][0])<=1),counts={club:new Map(),nation:new Map(),league:new Map()};
@@ -17,7 +42,7 @@
     const unique=[...new Map(ranked.map(p=>[p.id,p])).values()],xi=Squad.choose(unique.map(p=>({...p,overall:p.overall+(league(p)===preferredLeague?12:0)})),'4-3-3');if(xi.some(id=>!id))throw Error("El catálogo todavía está cargando. Vuelve a intentarlo.");
     // Choose with a small starter preference; keep a full bench and SBC reserves.
     const first=xi.map(id=>({...unique.find(p=>p.id===id),tradeable:false})),others=unique.filter(p=>!xi.includes(p.id)).sort((a,b)=>Number(league(b)===preferredLeague)-Number(league(a)===preferredLeague)||b.overall-a.overall).slice(0,12).map(p=>({...p,tradeable:false}));
-    return {version:2,name:String(name||"Mi AURA FC").trim().slice(0,24),coins:10000,owned:first.concat(others),duplicates:[],xi,formation:'4-3-3',tactic:'balanced',played:0,wins:0,draws:0,losses:0,claimed:[],lastPack:[],packsOpened:0,purchases:0,sbcs:0,objectives:[],battlePoints:0,battleCycle:0,battlesClaimed:[],division:10,divisionPoints:0,serial:0};
+    return {version:2,name:String(name||"Mi AURA FC").trim().slice(0,24),coins:10000,owned:first.concat(others),duplicates:[],xi,formation:'4-3-3',tactic:'balanced',played:0,wins:0,draws:0,losses:0,claimed:[],lastPack:[],packsOpened:0,purchases:0,sbcs:0,objectives:[],battlePoints:0,battleCycle:0,battlesClaimed:[],division:10,divisionPoints:0,serial:0,sigmaGiftClaimed:false};
   }
   function rating(u){return Math.round(u.xi.reduce((n,id)=>n+(u.owned.find(p=>p.id===id)?.overall||0),0)/11);}
   function addCards(u,cards){return cards.map(p=>{const copy={...p};if(u.owned.some(q=>q.id===p.id)){copy.duplicate=true;copy.uid="duplicate:"+(++u.serial);u.duplicates.push({...copy});}else u.owned.push(copy);return copy;});}
@@ -39,8 +64,8 @@
   }
   function setFormation(u,formation){if(!Squad.formations[formation])return false;const current=u.xi.map(id=>u.owned.find(p=>p.id===id));u.formation=formation;u.xi=Squad.choose(current,formation);return true;}
   function auto(u){u.xi=Squad.choose(u.owned,u.formation);return u.xi;}
-  function price(p){return Math.round((p.overall<65?300:p.overall<75?700+(p.overall-65)*80:p.overall<84?1200+Math.pow(p.overall-74,2)*160:18000*Math.pow(1.6,p.overall-84))/50)*50;}
-  function buy(u,player){if(!player?.real||!player.id)return {error:"Jugador no disponible."};if(u.owned.some(p=>p.id===player.id))return {error:"Este jugador ya está en tu club."};const cost=price(player);if(u.coins<cost)return {error:"No tienes monedas suficientes."};u.coins-=cost;u.owned.push({...player,tradeable:true});u.purchases++;return {ok:true,cost};}
+  function price(p){const special=p?.event===sigma.id&&sigma.cards.find(x=>x.id===p.id);if(special)return special.price;return Math.round((p.overall<65?300:p.overall<75?700+(p.overall-65)*80:p.overall<84?1200+Math.pow(p.overall-74,2)*160:18000*Math.pow(1.6,p.overall-84))/50)*50;}
+  function buy(u,player){if(!player?.real||!player.id)return {error:"Jugador no disponible."};if(player.event===sigma.id&&!sigma.cards.some(p=>p.id===player.id&&p.overall===player.overall))return {error:"Carta Ultimate Sigma no disponible."};if(u.owned.some(p=>p.id===player.id))return {error:"Este jugador ya está en tu club."};const cost=price(player);if(u.coins<cost)return {error:"No tienes monedas suficientes."};u.coins-=cost;u.owned.push({...player,tradeable:true});u.purchases++;return {ok:true,cost};}
   function quickSell(u,id,duplicate=false){
     const list=duplicate?u.duplicates:u.owned,index=list.findIndex(p=>(duplicate?p.uid:p.id)===id),p=list[index];if(!p)return {error:"Esta carta ya no está disponible."};if(!duplicate&&u.xi.includes(id))return {error:"Quita esta carta del once antes de venderla."};if(!p.tradeable)return {error:"Esta carta es intransferible; puedes usarla en DCP."};
     const coins=Math.max(100,Math.round(price(p)*.2));list.splice(index,1);u.coins+=coins;return {ok:true,coins};
@@ -69,5 +94,5 @@
     return coins;
   }
   function claimBattles(u){if(u.battlesClaimed.includes(u.battleCycle)||u.battlePoints<1000)return {error:"Consigue al menos 1.000 puntos en esta serie."};const reward=u.battlePoints>=5000?4000:u.battlePoints>=2500?2500:1000;u.battlesClaimed.push(u.battleCycle);u.coins+=reward;u.battleCycle++;u.battlePoints=0;return {ok:true,coins:reward};}
-  return {create,chemistry,rating,league,packs,challenges,draw,setPlayer,setFormation,auto,price,buy,quickSell,itemScore,sbcPool,sbcPreview,submitSBC,objectives,claim,reward,claimBattles};
+  return {create,chemistry,rating,league,packs,challenges,sigma,eventCards,claimSigmaGift,draw,setPlayer,setFormation,auto,price,buy,quickSell,itemScore,sbcPool,sbcPreview,submitSBC,objectives,claim,reward,claimBattles};
 });
