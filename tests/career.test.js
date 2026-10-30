@@ -411,3 +411,11 @@ test('UT match preparation does not put another edition of a starter on the benc
  const before=app.json('utClub');app.click({ut:'play',opponent:'madrid'});
  const people=app.json('preparedUT.players.concat(preparedUT.bench).map(p=>p.originalId||p.id)');assert.equal(new Set(people).size,people.length,'the match squad must contain one edition per footballer');assert.ok(app.run('preparedUT.bench.length>0'));assert.deepEqual(app.json('utClub'),before);
 });
+
+test('UT market ignores surrounding search whitespace and keeps blank searches on the default catalogue',async()=>{
+ const app=boot();app.run(fs.readFileSync(path.join(__dirname,'..','data/world-rosters.js'),'utf8'));await app.run('World.load(clubs,Competitions.definitions)');app.click({evoMode:'ultimate'});app.click({ut:'create'});app.click({utTab:'market'});
+ const before=app.json('AuraUTUI.getClub()');
+ const search=value=>{app.run('AuraUTUI.input({target:{id:"ut-market-query",value:'+JSON.stringify(value)+'}})');return app.node('ut-market-results').innerHTML;};
+ const clean=search('Pedri');assert.match(clean,/Pedri/);assert.equal(search('  Pedri  '),clean);
+ const empty=search('');assert.equal(search('   '),empty,'spaces alone must not bypass the default rating range');assert.deepEqual(app.json('AuraUTUI.getClub()'),before);
+});
