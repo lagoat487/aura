@@ -1,6 +1,7 @@
 "use strict";
 const test=require("node:test"),assert=require("node:assert/strict");
 const Tour=require("../world-tour"),Squad=require("../squad"),Comp=require("../competitions"),Match=require("../match-engine"),Street=require("../street");
+const Portraits=require("../portraits");
 function roster(cid){return Array.from({length:18},(_,i)=>({id:cid+":"+i,name:cid+" "+i,pos:["POR","LI","DFC","DFC","LD","MCD","MC","MC","EI","DC","ED","POR","DC","MC","DFC","EI","ED","LD"][i],overall:75,age:23,potential:86,club:cid,form:80,value:5000000}));}
 function career(){const ids=["a","b","c","d","e","f"];return {club:"a",season:2026,round:0,competition:Comp.createSeason({id:"test",name:"Test",clubIds:ids,points:{win:3,draw:1,loss:0},tieBreak:"goal-difference"},2026),rosters:Object.fromEntries(ids.map(id=>[id,roster(id)])),history:[],news:[],budget:1000000};}
 test("simulations produce plausible goal totals and make stronger teams win more often without excluding upsets",()=>{
@@ -20,6 +21,21 @@ test("league awards cover the whole league, monthly awards require four rounds, 
     if(i<3)assert.equal(g.tour.monthly.length,0);
   }
   assert.equal(g.tour.monthly.length,2);assert.equal(g.tour.annual.length,1);assert.equal(g.tour.annual[0].shortlist.length,10);assert.equal(g.playerCareer.appearances,10);assert.ok(g.playerCareer.goals>0);assert.ok(g.rosters.a[9].overall>75);
+});
+test("award portraits keep a real missing-photo fallback and never give a generated player a real face",()=>{
+  const g=career(),known={...Tour.kitu,club:g.club};g.rosters.a[9]=known;Squad.ensure(g).xi[9]=known.id;
+  for(let i=0;i<g.competition.fixtures.length;i++){
+    Comp.simulateNextRound(g.competition,(home,away)=>({home:home===g.club?8:0,away:away===g.club?8:0}));g.round=i+1;
+    g.history.unshift({scorers:Array(8).fill(known.name)});Tour.afterRound(g,Squad);
+  }
+  const weekly=g.tour.weekly[0].players.find(p=>p.id===known.id),monthly=g.tour.monthly[0],annual=g.tour.annual[0].winner;
+  for(const award of [weekly,monthly,annual]){
+    assert.equal(award.id,known.id);assert.equal(award.real,true);assert.deepEqual(Portraits.sources(award),[]);
+    assert.match(Portraits.html(award),/Sin foto/);assert.doesNotMatch(Portraits.html(award),/Jugador creado|<img|<svg/);
+  }
+  assert.equal(annual.appearances,10);assert.equal(annual.goals,80);
+  const created=g.tour.weekly[0].players.find(p=>p.id!==known.id);
+  assert.equal(created.real,false);assert.deepEqual(Portraits.sources(created),[]);assert.match(Portraits.html(created),/Jugador creado/);
 });
 test("retirement creates distinct young players and can run only once for a season",()=>{
   const g=career();g.rosters.a[9].age=42;const old={...g.rosters.a[9]};Tour.startPlayer(g,old.id);

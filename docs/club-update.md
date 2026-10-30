@@ -1,5 +1,7 @@
 # Club Update 4.1
 
+Corrección de retratos en premios de carrera: los registros del equipo de la semana, jugador del mes y clasificación anual conservan la identidad real y las referencias de fotografía del futbolista original. Los retratos disponibles se muestran también en el panel de premios; un real sin imagen conserva «Sin foto» y los canteranos generados se identifican como «Creado». Las notas, goles y reglas de elección de los premios se mantienen.
+
 Corrección del banquillo UT: las nueve plazas se cubren con las reservas de mayor GRL, en vez de las primeras cartas recibidas. Se conserva una plaza para un portero de reserva si existe y solo se convoca una edición de cada futbolista. La plantilla muestra exactamente los suplentes disponibles al entrar al partido. Comprar una carta mejor ya permite usarla como suplente sin alterar el once; las demás cartas siguen en Mi club.
 
 Corrección del calendario de Champions en carrera: la final se identifica como partido único, tanto pendiente como terminada. Las semifinales y las demás eliminatorias conservan las etiquetas de ida y vuelta.

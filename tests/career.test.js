@@ -438,3 +438,18 @@ test('UT calls up a stronger new signing on the displayed bench without changing
  assert.equal(app.run('matchWithSigning.players[4].id'),'sigma:espart');
  assert.equal(benchIds.length,9);assert.deepEqual(app.json('AuraUTUI.getClub().xi'),xi);assert.deepEqual(app.json('AuraUTUI.getClub()'),club,'preparing the bench must not spend coins or change the collection');
 });
+
+test('career award portraits use the same real identities as the included catalogue',async()=>{
+ const app=boot();app.run(fs.readFileSync(path.join(__dirname,'..','data/world-rosters.js'),'utf8'));await app.run('World.load(clubs,Competitions.definitions)');
+ app.click({action:'start'});app.run('for(let guard=0;guard<12&&state.round<4;guard++)AuraContinental.advance()');app.click({nav:'tour'});
+ assert.equal(app.run('state.round'),4);assert.equal(app.run('state.tour.monthly.length'),1);
+ app.run('globalThis.awardedPlayers=[state.tour.weekly[0].players.find(p=>AuraPortraits.sources(state.rosters[p.club].find(q=>q.id===p.id)).length>0),state.tour.monthly[0]]');
+ for(let i=0;i<2;i++){
+  const original='state.rosters[awardedPlayers['+i+'].club].find(p=>p.id===awardedPlayers['+i+'].id)';
+  assert.equal(app.run(original+'.real'),true);assert.equal(app.run('awardedPlayers['+i+'].real'),true,'awards must not relabel a real footballer as created');
+  const sources=app.json('AuraPortraits.sources('+original+')');if(i===0)assert.ok(sources.length>0);
+  assert.deepEqual(app.json('AuraPortraits.sources(awardedPlayers['+i+'])'),sources);
+  if(sources.length)assert.ok(app.html().includes('src="'+sources[0]+'"'),'the awards panel must render the available portrait');
+ }
+ assert.equal(app.saved(),undefined,'career progress remains session-only');
+});

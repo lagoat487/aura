@@ -58,8 +58,9 @@
         for(let i=0;i<gf;i++){const p=recorded?.[i]?xi.find(p=>norm(p.name)===norm(recorded[i]))||weighted(xi,rng):weighted(xi,rng);goals[p.id]=(goals[p.id]||0)+1;}
         for(const p of xi){
           const clean=ga===0&&["POR","DFC","LD","LI"].includes(p.pos),rating=Math.round(clamp(6.1+(gf>ga?.65:gf===ga?.1:-.35)+(goals[p.id]||0)*1.05+(clean?.7:0)+(rng()-.5)*.7,3,10)*10)/10;
-          const row={id:p.id,name:p.name,pos:p.pos,club:cid,overall:p.overall,photo:p.photo,goals:goals[p.id]||0,rating,round:game.round};week.push(row);
-          const s=t.stats[p.id]||(t.stats[p.id]={id:p.id,name:p.name,pos:p.pos,club:cid,appearances:0,goals:0,points:0,monthPoints:0,monthApps:0});
+          const identity={id:p.id,name:p.name,pos:p.pos,club:cid,real:p.real===true,photo:p.photo,originalId:p.originalId};
+          const row={...identity,overall:p.overall,goals:goals[p.id]||0,rating,round:game.round};week.push(row);
+          const s=t.stats[p.id]||(t.stats[p.id]={...identity,appearances:0,goals:0,points:0,monthPoints:0,monthApps:0});
           s.appearances++;s.goals+=row.goals;s.points+=rating;s.monthPoints+=rating;s.monthApps++;
           if(game.playerCareer?.playerId===p.id){const pc=game.playerCareer;pc.appearances++;pc.goals+=row.goals;pc.lastRating=rating;pc.xp+=Math.round(20+Math.max(0,rating-6)*20);if(pc.xp>=100&&p.overall<p.potential){pc.xp-=100;p.overall++;}else if(p.overall>=p.potential)pc.xp=Math.min(pc.xp,99);}
         }
