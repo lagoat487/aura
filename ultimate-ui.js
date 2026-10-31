@@ -2,26 +2,20 @@
 const AuraUTUI=(()=>{
   "use strict";
   const U=AuraUT,esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-  // Persist just Ultimate Team, never Career. Data stays on this browser and origin.
-  const SAVE_KEY='aura-ultimate-team-v1';
+  // Independent, versioned Ultimate Team backup; never change career saves.
+  const SAVE_KEY=AuraUTSave.KEY;
+  const allFormations=new Set(Object.keys(AuraSquad.formations));
   function restoreSaved(){
-    try{
-      const saved=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');
-      const u=saved?.club;
-      if(saved?.version!==1||!u||typeof u.name!=='string'||!Number.isFinite(u.coins)||u.coins<0||!Array.isArray(u.owned)||u.owned.length<11||!Array.isArray(u.duplicates)||!Array.isArray(u.xi)||u.xi.length!==11||!AuraSquad.formations[u.formation])return null;
-      const ids=new Set(u.owned.filter(p=>p&&typeof p.id==='string'&&Number.isFinite(p.overall)).map(p=>p.id));
-      if(ids.size!==u.owned.length||u.xi.some(id=>!ids.has(id))||new Set(u.xi).size!==11)return null;
-      if(!Array.isArray(u.objectives)||!Array.isArray(u.claimed)||!Array.isArray(u.lastPack)||!Array.isArray(u.battlesClaimed))return null;
-      return {club:u,tab:typeof saved.tab==='string'&&['home','squad','play','store','market','sbc','objectives','club'].includes(saved.tab)?saved.tab:'home',matchToken:Number.isSafeInteger(saved.matchToken)&&saved.matchToken>=0?saved.matchToken:0};
-    }catch{return null;}
+    const restored=AuraUTSave.load(typeof localStorage==='undefined'?null:localStorage,allFormations);
+    return restored.snapshot?{club:restored.snapshot.club,tab:restored.snapshot.tab,matchToken:restored.snapshot.matchToken}:null;
   }
   function persistClub(){
     if(!club)return false;
-    try{localStorage.setItem(SAVE_KEY,JSON.stringify({version:1,club,tab,matchToken}));return true;}catch{return false;}
+    return AuraUTSave.save(typeof localStorage==='undefined'?null:localStorage,{version:2,club,tab,matchToken},allFormations);
   }
   const restored=restoreSaved();
   let club=restored?.club||null,tab=restored?.tab||'home',pickerSlot=0,marketQuery='',clubQuery='',position='all',packIndex=0,matchToken=restored?.matchToken||0,playMode='battles',sbcType='silver',sbcSelection=new Set(),cachedPool=null,signature='';
-  const tabs=[['home','Inicio'],['squad','Plantilla'],['play','Jugar'],['store','Tienda'],['market','Mercado'],['sbc','DCP'],['objectives','Objetivos'],['club','Mi club']];
+  const tabs=[['home','Inicio'],['squad','Plantilla'],['play','Jugar'],['store','Tienda'],['market','Mercado'],['sbc','DCP'],['objectives','Objetivos'],['club','Mi club'],['backup','Respaldo']];
   function pool(){
     const stamp=World.getStats().players;if(cachedPool&&signature===stamp)return cachedPool;signature=stamp;
     const defs=Competitions.definitions.filter(d=>d.external).slice().sort((a,b)=>b.id.length-a.id.length);
@@ -46,7 +40,13 @@ const AuraUTUI=(()=>{
   function objectives(){return title('OBJETIVOS / FUNDAMENTOS','CADA PASO CUENTA.')+'<div class="ut-objectives">'+U.objectives(club).map(o=>'<article class="'+(o.claimed?'claimed':'')+'"><span class="eyebrow">'+(o.claimed?'RECOMPENSA RECIBIDA':o.complete?'COMPLETADO':'EN PROGRESO')+'</span><h3>'+o.name+'</h3><p>'+Math.min(o.current,o.target)+' / '+o.target+'</p><progress max="'+o.target+'" value="'+Math.min(o.current,o.target)+'"></progress><b>'+o.coins+' monedas</b><button class="btn" data-ut="objective" data-objective="'+o.id+'" '+(!o.complete||o.claimed?'disabled':'')+'>'+(o.claimed?'Recibida':'Cobrar recompensa')+'</button></article>').join('')+'</div>';}
   function collection(){const ps=club.owned.filter(p=>norm(p.name).includes(norm(clubQuery)));return '<div class="ut-card-grid">'+ps.map(p=>card(p,'inspect','data-player="'+esc(p.id)+'"')).join('')+'</div>';}
   function myClub(){return title('MI CLUB / '+club.owned.length+' FUTBOLISTAS','TODAS TUS CARTAS.','Las cartas titulares se cambian desde Plantilla. Los intransferibles se pueden utilizar en DCP.')+'<label class="ut-club-filter">Buscar en mi club<input id="ut-club-query" value="'+esc(clubQuery)+'" placeholder="Nombre del jugador"></label><div id="ut-club-results">'+collection()+'</div>'+(club.duplicates.length?'<section class="ut-panel"><h3>ALMACÉN DE REPETIDOS · '+club.duplicates.length+'</h3><div class="ut-card-grid">'+club.duplicates.map(p=>'<div>'+card(p,'inspect','data-player="'+esc(p.uid)+'" data-duplicate="yes"')+(p.tradeable?'<button class="btn small" data-ut="sell" data-player="'+esc(p.uid)+'" data-duplicate="yes">Venta rápida</button>':'<small>Intransferible · disponible para DCP</small>')+'</div>').join('')+'</div></section>':'');}
-  function render(){if(!club)return '<div class="ut-shell">'+start()+'</div>';return '<div class="ut-shell">'+top()+'<nav class="ut-nav" aria-label="Ultimate Team">'+tabs.map(([id,label])=>'<button data-ut-tab="'+id+'" '+(id===tab?'aria-current="page"':'')+'>'+label+'</button>').join('')+'</nav>'+({home,squad,play,store,market,sbc,objectives,club:myClub}[tab]||home)()+'<footer class="ut-footnote">AURA UT · Guardado automático en este navegador · Monedas de juego · Atributos estimados por AURA</footer></div>';}
+  function backup(){
+    return title("PROTECCIÓN DE TU CLUB","TU EQUIPO. TU RESPALDO.","Descarga tu plantilla y vuelve a cargarla si cambias de dispositivo. Los guardados son locales a cada navegador.")+
+      '<section class="ut-panel"><h3>EXPORTAR EQUIPO</h3><p>Incluye monedas, cartas, once, suplentes y progreso Ultimate Team.</p><button class="btn primary" data-ut="export">Descargar respaldo →</button></section>'+
+      '<section class="ut-panel"><h3>IMPORTAR RESPALDO</h3><p>El archivo reemplazará el club actual solo después de verificar los datos.</p><input id="ut-import-file" type="file" accept=".json,application/json"><button class="btn" data-ut="import">Importar archivo verificado →</button></section>'+
+      '<section class="ut-panel"><h3>RECUPERACIÓN</h3><p>Restablecer el respaldo automático anterior a tu último guardado.</p><button class="btn" data-ut="rollback">Recuperar copia anterior →</button></section>';
+  }
+  function render(){if(!club)return '<div class="ut-shell">'+start()+'</div>';return '<div class="ut-shell">'+top()+'<nav class="ut-nav" aria-label="Ultimate Team">'+tabs.map(([id,label])=>'<button data-ut-tab="'+id+'" '+(id===tab?'aria-current="page"':'')+'>'+label+'</button>').join('')+'</nav>'+({home,squad,play,store,market,sbc,objectives,club:myClub,backup}[tab]||home)()+'<footer class="ut-footnote">AURA UT · Guardado automático en este navegador · Monedas de juego · Atributos estimados por AURA</footer></div>';}
   function reveal(){const p=club.lastPack[packIndex];if(!p)return;openModal('SOBRE ABIERTO','<div class="ut-reveal '+(p.overall>=86?'walkout':'')+'"><span class="eyebrow">'+(p.overall>=86?'JUGADOR DESTACADO':p.overall>=82?'CARTA ESPECIAL DE TU SOBRE':'NUEVO JUGADOR')+'</span>'+card(p)+'<p>'+(p.duplicate?'Repetido: guardado para DCP o venta rápida.':'Añadido a tu club.')+'</p><button class="btn primary" data-ut="reveal-next">'+(packIndex<club.lastPack.length-1?'Ver siguiente carta →':'Ir a mi club →')+'</button><button class="btn subtle" data-ut="reveal-skip">Ver todas las cartas</button></div>');}
   function playMatch(){
     const u=club,token='ut:'+ ++matchToken,chosen=u.xi.map(id=>u.owned.find(p=>p.id===id)),chem=U.chemistry(u),home={id:'aura-ut',name:u.name,rating:U.rating(u)},controlled=AuraArena.team(home,null,chosen),shape=AuraSquad.formations[u.formation];
@@ -73,6 +73,26 @@ const AuraUTUI=(()=>{
       if(action==='lobby'){goToModes();return true;}
       if(action==='create'){club=U.create(pool(),document.getElementById('ut-starter-league')?.value||'all',document.getElementById('ut-club-name')?.value||'Mi AURA FC');tab='home';renderGame();}
       if(!club)return true;
+      if(action==='export'){
+        const data=AuraUTSave.exportData({version:2,club,tab,matchToken},allFormations);
+        const blob=new Blob([data],{type:"application/json"}),url=URL.createObjectURL(blob),link=document.createElement("a");
+        link.href=url;link.download="aura-ut-respaldo.json";document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);notify("Respaldo descargado.");
+      }
+      if(action==='import'){
+        const file=document.getElementById("ut-import-file")?.files?.[0];
+        if(!file||file.size>AuraUTSave.MAX_BYTES+1000){notify("Elige un respaldo JSON válido de hasta 3 MB.");return true;}
+        file.text().then(data=>{
+          const next=AuraUTSave.importData(data,allFormations);
+          if(!next){notify("Respaldo inválido o alterado. Tu equipo sigue intacto.");return;}
+          if(!AuraUTSave.save(localStorage,next,allFormations)){notify("No se pudo guardar. Tu equipo sigue intacto.");return;}
+          club=next.club;tab="backup";matchToken=next.matchToken;renderMain();notify("Equipo importado y verificado.");
+        }).catch(()=>notify("No se pudo leer el respaldo."));
+      }
+      if(action==='rollback'){
+        const previous=AuraUTSave.restoreBackup(localStorage,allFormations);
+        if(!previous){notify("No existe una copia anterior válida.");return true;}
+        club=previous.club;tab="backup";matchToken=previous.matchToken;renderMain();notify("Copia anterior recuperada.");
+      }
       if(action==='auto'){U.auto(club);renderGame();}
       if(action==='pick'){pickerSlot=Number(d.slot);const pos=AuraSquad.formations[club.formation][pickerSlot][0];openModal('ELEGIR '+pos,'<div class="ut-card-grid">'+club.owned.slice().sort((a,b)=>(b.overall-AuraSquad.positionPenalty(b,pos)*2)-(a.overall-AuraSquad.positionPenalty(a,pos)*2)).map(p=>card(p,'choose','data-player="'+esc(p.id)+'"')).join('')+'</div>');}
       if(action==='choose'){if(!U.setPlayer(club,pickerSlot,d.player)){notify('Ya tienes otra edición de este jugador en el once. Sustitúyela en su puesto.');return true;}closeModal();renderGame();}
