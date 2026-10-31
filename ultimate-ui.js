@@ -6,12 +6,12 @@ const AuraUTUI=(()=>{
   const SAVE_KEY=AuraUTSave.KEY;
   const allFormations=new Set(Object.keys(AuraSquad.formations));
   function restoreSaved(){
-    const restored=AuraUTSave.load(localStorage,allFormations);
+    const restored=AuraUTSave.load(typeof localStorage==='undefined'?null:localStorage,allFormations);
     return restored.snapshot?{club:restored.snapshot.club,tab:restored.snapshot.tab,matchToken:restored.snapshot.matchToken}:null;
   }
   function persistClub(){
     if(!club)return false;
-    return AuraUTSave.save(localStorage,{version:2,club,tab,matchToken},allFormations);
+    return AuraUTSave.save(typeof localStorage==='undefined'?null:localStorage,{version:2,club,tab,matchToken},allFormations);
   }
   const restored=restoreSaved();
   let club=restored?.club||null,tab=restored?.tab||'home',pickerSlot=0,marketQuery='',clubQuery='',position='all',packIndex=0,matchToken=restored?.matchToken||0,playMode='battles',sbcType='silver',sbcSelection=new Set(),cachedPool=null,signature='';
