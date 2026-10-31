@@ -5,7 +5,7 @@ function ready(seed=41){const g=M.create({home:team("h"),away:team("a"),seconds:
 test("five difficultly levels and tactical AI preserve valid scores",()=>{
  for(const difficulty of [.68,.82,1,1.16,1.34]){const g=M.create({home:team("h"),away:team("a"),seconds:60,seed:8,difficulty});assert.equal(g.difficulty,difficulty);}
  const g=ready();g.elapsed=98;g.score=[1,0];M.step(g,.02);assert.equal(g.aiTactic,"press","rival goes on the offensive while trailing");
- g.score=[0,1];M.step(g,.02);assert.equal(g.aiTactic,"counter","rival protects its lead with quick breaks");
+ const leading=ready();leading.elapsed=98;leading.score=[0,1];M.step(leading,.02);assert.equal(leading.aiTactic,"counter","rival protects its lead with quick breaks");
 });
 test("a failed slide awards a free kick and records a foul",()=>{
  const g=ready();g.controlled=9;const player=g.players[9],rival=g.players[20];
