@@ -60,6 +60,7 @@ const AuraTourUI=(()=>{
   function cupCandidates(){
     const def=T.cupTypes.find(d=>d.id===cupType);
     if(def.national)return nations().filter(n=>def.region==="world"||def.region==="americas"?["world"].includes(def.region)||["south","north"].includes(n.region):n.region===def.region).sort((a,b)=>b.rating-a.rating);
+    if(def.region==="europe")return AuraChampions.candidates(clubs,Competitions.definitions,c=>World.matchingClub(c));
     const seen=new Set();return clubs.filter(c=>c.gender!=="women"&&(def.youth||regionOf(c)===def.region)).filter(c=>{const k=World.matchingClub(c)?.id||norm(c.name);if(seen.has(k))return false;seen.add(k);return true;}).sort((a,b)=>b.rating-a.rating);
   }
   function storage(){return state?T.initialize(state).cups:friendlyCups;}

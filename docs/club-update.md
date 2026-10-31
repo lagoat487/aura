@@ -1,5 +1,7 @@
 # Club Update 4.1
 
+Corrección del selector de clubes en Copas: Champions, Europa y Conference reutilizan la elegibilidad europea de la Champions de carrera. El selector incluye ligas compatibles del catálogo como Trendyol Süper Lig, prioriza el país declarado y conserva una sola entrada por identidad de club. Se mantienen los formatos AURA de 16 equipos; jugar estas copas avanza su propio cuadro y conserva el calendario y presupuesto de carrera.
+
 Corrección de controles en Calle: perder la captura de un botón táctil libera esa dirección y conserva las demás pulsaciones activas. Pausar con P, Esc o el botón limpia tanto teclado como controles táctiles. Las pulsaciones durante la pausa se descartan; al volver se necesita una pulsación nueva para moverse.
 
 Corrección de retratos en premios de carrera: los registros del equipo de la semana, jugador del mes y clasificación anual conservan la identidad real y las referencias de fotografía del futbolista original. Los retratos disponibles se muestran también en el panel de premios; un real sin imagen conserva «Sin foto» y los canteranos generados se identifican como «Creado». Las notas, goles y reglas de elección de los premios se mantienen.

@@ -13,7 +13,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in index.html game.js evolution-ui.js world-tour.js street.js ultimate-team.js ultimate-ui.js ultimate-sigma.js ultimate-sigma.css match-engine.js match-presentation.js match-graphics.js software-graphics.js match-ui.js; do
+          for file in index.html game.js evolution-ui.js world-tour.js tour-ui.js street.js ultimate-team.js ultimate-ui.js ultimate-sigma.js ultimate-sigma.css match-engine.js match-presentation.js match-graphics.js software-graphics.js match-ui.js; do
             echo "Refreshing $file"
             curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -X DELETE "https://raw.githack.com/purge?url=https://raw.githack.com/lagoat487/aura/main/${file}"
             echo

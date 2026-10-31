@@ -453,3 +453,26 @@ test('career award portraits use the same real identities as the included catalo
  }
  assert.equal(app.saved(),undefined,'career progress remains session-only');
 });
+
+test('European cup selectors include supported catalogue leagues and their clubs can play without advancing the career',async()=>{
+ const app=boot();app.run(fs.readFileSync(path.join(__dirname,'..','data/world-rosters.js'),'utf8'));await app.run('World.load(clubs,Competitions.definitions)');
+ app.click({action:'start'});const career=app.json('({round:state.round,competition:state.competition,champions:state.champions,budget:state.budget})');app.click({evoMode:'cup'});
+ const restoredClubs=app.json('["Galatasaray","Fenerbahçe","Ajax"].map(name=>clubs.find(c=>c.gender!=="women"&&c.name===name))');assert.ok(restoredClubs.every(Boolean));
+ const excluded=app.json('clubs.filter(c=>["Boca Juniors","River Plate","Barcelona SC"].includes(c.name)).map(c=>c.id)');
+ for(const type of ['champions','europa','conference']){
+  app.change('tour-cup-type',type);
+  const options=app.html().match(/<select id="tour-cup-team">([\s\S]*?)<\/select>/)[1],ids=[...options.matchAll(/value="([^"]+)"/g)].map(m=>m[1]);
+  for(const club of restoredClubs)assert.ok(ids.includes(club.id),type+' must offer '+club.name+' from its supported European league');
+  for(const id of excluded)assert.ok(!ids.includes(id),'South American clubs must keep their own cup pool');
+  assert.equal(app.run('('+JSON.stringify(ids)+').some(id=>getClub(id).gender==="women")'),false,'the club cups retain their existing male-team filter');
+  const identities=app.json('('+JSON.stringify(ids)+').map(id=>World.matchingClub(getClub(id))?.id||id)');assert.equal(new Set(identities).size,ids.length,'club aliases must not duplicate cup options');
+  const user=restoredClubs[0].id;app.change('tour-cup-team',user);app.click({tour:'cup-create'});
+  assert.equal(app.run('AuraTourUI.getCup().user'),user);assert.equal(app.run('AuraTourUI.getCup().entrants.length'),16);
+  app.run('AuraArena.preMatch=(home,away,options)=>{globalThis.preparedCup=home;globalThis.pendingCup=options}');app.click({tour:'cup-play'});
+  assert.equal(app.run('preparedCup.id'),user);assert.equal(app.run('preparedCup.players.length'),11);
+  app.run('pendingCup.onFinish({home:2,away:0})');assert.equal(app.run('AuraTourUI.getCup().rounds.length'),1);
+  assert.equal(app.run('AuraTourUI.getCup().rounds[0].find(m=>m.home===AuraTourUI.getCup().user||m.away===AuraTourUI.getCup().user).winner'),user);
+  assert.deepEqual(app.json('({round:state.round,competition:state.competition,champions:state.champions,budget:state.budget})'),career);
+ }
+ assert.equal(app.saved(),undefined);
+});
