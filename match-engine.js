@@ -18,7 +18,7 @@
     }));
     const game={players,ball:{x:0,y:.22,z:0,vx:0,vy:0,vz:0,spin:0,owner:null,lastTouch:0,freeTime:0,lastKicker:null},
       score:[0,0],elapsed:0,visualTime:0,seconds,half:1,phase:"kickoff",phaseTime:1.1,controlled:9,events:[],
-      stats:[0,1].map(()=>({shots:0,onTarget:0,passes:0,completed:0,throughBalls:0,interceptions:0,fouls:0,yellows:0,reds:0,penalties:0,saves:0,parries:0,claims:0,tackles:0,possession:0})),
+      stats:[0,1].map(()=>({shots:0,onTarget:0,passes:0,completed:0,throughBalls:0,crosses:0,interceptions:0,fouls:0,yellows:0,reds:0,penalties:0,saves:0,parries:0,claims:0,tackles:0,possession:0})),
       benches:sides.map(t=>(t.bench||[]).filter(p=>p&&typeof p.id==="string").map(p=>({...p}))),
       participants:sides.map(t=>t.players.map(p=>p.id)),substitutions:[],
       difficulty:clamp(Number(options.difficulty)||1,.65,1.4),tactic:options.tactic||"balanced",aiTactic:"balanced",setPiece:null,goals:[],rng,seed:options.seed};
@@ -83,6 +83,25 @@
     game.stats[p.team].passes++;
     if(through)game.stats[p.team].throughBalls++;
     animate(p,'pass',.34);event(game,"pass",p.name+(lob?" envía un pase elevado":through?" filtra al espacio":" combina"));return true;
+  }
+  function cross(game,p,input={}){
+    const d=direction(game,p.team),front=game.players.filter(q=>q.team===p.team&&!q.sentOff&&q.index!==0&&q!==p&&q.x*d>p.x*d-3);
+    if(!front.length)return false;
+    const target=front.sort((a,b)=>{
+      const score=q=>Math.abs(52.5-q.x*d)*.45+Math.abs(q.z)*.8+dist(p,q)*.1;
+      return score(a)-score(b);
+    })[0];
+    const spot={x:clamp(target.x+target.vx*.2+d*1.5,-50,50),z:clamp(target.z+target.vz*.2,-30,30)},range=dist(p,spot);
+    launch(game,p,spot,clamp(19+range*.28,20,35),clamp(5+range*.08,5.5,8.5));
+    game.passTarget=game.players.indexOf(target);
+    game.passRun={index:game.passTarget,...spot,until:game.elapsed+5};
+    // At a corner there is no offside offence directly from the delivery.
+    const line=game.players.filter(q=>q.team!==p.team&&!q.sentOff).map(q=>q.x*d).sort((a,b)=>b-a)[1];
+    game.offsideTarget=game.setPiece?.kind==="corner"?null:target.x*d>0&&target.x*d>p.x*d+.15&&target.x*d>line+.15?game.passTarget:null;
+    game.setPiece=null;
+    game.stats[p.team].passes++;game.stats[p.team].crosses++;
+    animate(p,"pass",.42);event(game,"cross","¡Centro de "+p.name+" al área!",{team:p.team,player:p.id});
+    return true;
   }
   function shoot(game,p,input={}){
     const d=direction(game,p.team),goalX=53.5*d,r=Math.abs(goalX-p.x),power=clamp(Number(input.power)||.58,.18,1);
@@ -191,6 +210,7 @@
     }
     if(p.sentOff||b.owner!==index||p.cooldown>0)return false;
     if(game.setPiece?.kind==="penalty"&&type!=="shoot")return false;
+    if(type==="cross")return cross(game,p,input);
     if(type==="pass"||type==="through"||type==="lob")return pass(game,p,input,type==="through",type==="lob");
     if(type==="shoot")return shoot(game,p,input);return false;
   }
@@ -281,13 +301,15 @@
     const workRate=working?.28:.07,pressCost=game.tactic==="press"&&p.team===0?.12:0;
     p.stamina=clamp(p.stamina-dt*(workRate+pressCost)*180/game.seconds,0,100);
     if(b.owner===i){
+      if(game.setPiece?.kind==="corner"&&game.setPiece.team===p.team){if(p.cooldown<=0)cross(game,p);return;}
       if(game.setPiece?.kind==="penalty"&&game.setPiece.team===p.team){if(p.cooldown<=0)shoot(game,p,{power:.68,z:game.rng()>.5?.7:-.7,style:"placed"});return;}
       const goalDistance=52.5-p.x*d;
       p.decision=(p.decision||0)-dt;
       const threat=game.players.filter(q=>q.team!==p.team).reduce((m,q)=>Math.min(m,dist(p,q)),99);
       if(p.decision<=0&&p.cooldown<=0){
         p.decision=.6+game.rng()*.6;
-        if(goalDistance<25&&Math.abs(p.z)<20&&(goalDistance<17||game.rng()<.48)){const keeper=game.players.find(q=>q.team!==p.team&&q.index===0);shoot(game,p,{power:.5+game.rng()*.35,z:(keeper.z>=0?-1:1)*(.75+game.rng()*.25)});}
+        if(Math.abs(p.z)>19&&goalDistance<34&&goalDistance>7&&game.rng()<.5){cross(game,p);}
+        else if(goalDistance<25&&Math.abs(p.z)<20&&(goalDistance<17||game.rng()<.48)){const keeper=game.players.find(q=>q.team!==p.team&&q.index===0);shoot(game,p,{power:.5+game.rng()*.35,z:(keeper.z>=0?-1:1)*(.75+game.rng()*.25)});}
         else if(threat<3.3||goalDistance<8||game.rng()<.16)pass(game,p,{x:d,z:-p.z*.05},game.rng()<.15);
       }
       move(p,p.x+d*12,p.z+clamp(-p.z*.16,-2.4,2.4),speed*.87,dt);return;
@@ -354,7 +376,14 @@
         game.phase="goal";game.phaseTime=2.7;game.kickoffTeam=1-team;return;
       }
       const defending=direction(game,0)===Math.sign(b.x)?1:0;
-      restart(game,b.lastTouch===defending?1-defending:defending,b.lastTouch===defending?"Córner":"Saque de portería",edge-(Math.sign(edge)*4),b.lastTouch===defending?Math.sign(b.z||1)*31:0);return;
+      if(b.lastTouch===defending){
+        const attacking=1-defending,side=Math.sign(z||b.z||1),index=nearest(game,attacking,{x:edge,z:side*33}),taker=game.players[index];
+        taker.x=Math.sign(edge)*49;taker.z=side*32;ownBall(game,index);
+        Object.assign(b,{x:taker.x,y:.22,z:taker.z,spin:0});
+        taker.cooldown=.45;game.setPiece={kind:"corner",team:attacking};
+        event(game,"restart","Córner",{team:attacking});return;
+      }
+      restart(game,defending,"Saque de portería",edge-Math.sign(edge)*4,0);return;
     }
     if(Math.abs(b.z)>34){restart(game,1-b.lastTouch,"Saque de banda",b.x,Math.sign(b.z)*32);return;}
     if(b.y>2.5)return;
