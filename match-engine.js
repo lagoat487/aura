@@ -85,7 +85,7 @@
     animate(p,'pass',.34);event(game,"pass",p.name+(lob?" envía un pase elevado":through?" filtra al espacio":" combina"));return true;
   }
   function cross(game,p,input={}){
-    const d=direction(game,p.team),front=game.players.filter(q=>q.team===p.team&&!q.sentOff&&q.index!==0&&q!==p&&q.x*d>p.x*d-3);
+    const d=direction(game,p.team),front=game.players.filter(q=>q.team===p.team&&!q.sentOff&&q.index!==0&&q!==p&&(game.setPiece?.kind==="corner"?q.x*d>0:q.x*d>p.x*d-3));
     if(!front.length)return false;
     const target=front.sort((a,b)=>{
       const score=q=>Math.abs(52.5-q.x*d)*.45+Math.abs(q.z)*.8+dist(p,q)*.1;
