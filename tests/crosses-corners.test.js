@@ -14,7 +14,7 @@ test("corner awarded after defender touch places the ball in the attacking corne
  Object.assign(g.ball,{owner:null,x:52.45,y:.3,z:24,vx:18,vy:0,vz:0,lastTouch:1,lastKicker:12,freeTime:1});
  M.step(g,.05);assert.equal(g.setPiece?.kind,"corner");assert.equal(g.setPiece.team,0);
  assert.equal(g.ball.owner!==null,true);assert.ok(g.ball.z>30);
- const taker=g.players[g.ball.owner];taker.cooldown=0;
+ const taker=g.players[g.ball.owner];g.controlled=g.ball.owner;taker.cooldown=0;
  assert.equal(M.action(g,"cross"),true);assert.equal(g.setPiece,null);
  assert.equal(g.stats[0].crosses,1);assert.equal(g.offsideTarget,null);
 });
