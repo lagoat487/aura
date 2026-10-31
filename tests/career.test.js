@@ -31,6 +31,7 @@ function boot(saved) {
     node,
     click: dataset => events.click({ target: { closest: () => ({ dataset }) } }),
     change: (id, value) => events.change({ target: { id, value } }),
+    submit: id => events.submit({ target: { id }, preventDefault() {} }),
     saved: () => storage.get("aura-fc27-save-v1"),
   };
 }
@@ -475,4 +476,19 @@ test('European cup selectors include supported catalogue leagues and their clubs
   assert.deepEqual(app.json('({round:state.round,competition:state.competition,champions:state.champions,budget:state.budget})'),career);
  }
  assert.equal(app.saved(),undefined);
+});
+
+test('player career cannot lose its protagonist by signing a sale agreed before enabling the mode',()=>{
+ const app=boot();app.click({action:'start'});const id=app.run('clubPlayers(state.club).find(p=>p.pos!=="POR").id');
+ app.click({sell:id});app.node('deal-fee').value=app.run('state.negotiations.at(-1).ceiling');app.submit('deal-form');
+ const dealId=app.run('state.negotiations.at(-1).id');assert.equal(app.run('state.negotiations.at(-1).stage'),'ready');app.click({dealAction:'pause'});
+ app.click({nav:'pro'});app.node('tour-pro-player').value=id;app.click({tour:'enable-pro'});assert.equal(app.run('state.playerCareer.playerId'),id);
+ app.click({nav:'market'});assert.ok(app.html().includes('data-open-deal="'+dealId+'"'));app.click({openDeal:dealId});
+ const before=app.json('state');app.click({dealAction:'sign'});
+ assert.equal(app.run('clubPlayers(state.club).some(p=>p.id===state.playerCareer.playerId)'),true,'signing an old agreement must not remove the controlled player');
+ assert.deepEqual(app.json('state'),before,'a blocked sale must preserve funds, ownership, the XI and transactions');
+ assert.match(app.node('deal-error').textContent,/carrera de jugador/);
+ app.click({dealAction:'withdraw'});assert.equal(app.run('state.negotiations.at(-1).stage'),'withdrawn');app.node('closemodal').onclick();
+ app.run('AuraArena.preMatch=(home,away,options)=>{globalThis.nextPlayerMatch=options;globalThis.playerTeam=home}');app.click({evo:'career-play'});
+ assert.equal(app.run('nextPlayerMatch.playerLock'),id);assert.ok(app.run('playerTeam.players.some(p=>p.id===state.playerCareer.playerId)'));assert.equal(app.saved(),undefined);
 });

@@ -72,6 +72,16 @@ test("sale negotiates with a buyer and pays out the actual fee minus the previou
   assert.equal(g.budget,100000000+Math.round(d.fee*.8));assert.equal(d.obligation,Math.round(d.fee*.2));
   assert.ok(g.rosters.rival.some(x=>x.id===p.id));assert.ok(!g.squad.xi.includes(p.id));
 });
+test("final sale signing protects a newly selected player-career protagonist while other sales remain available",()=>{
+  const g=game(),p=g.rosters.home[9],d=Deals.start(g,p,{mode:"sell",buyer:{id:"rival",name:"Rival"}}).deal;
+  assert.ok(Deals.offerClub(g,d,{fee:d.ceiling}).accepted);
+  g.playerCareer={playerId:p.id,xp:0,appearances:0,goals:0,lastRating:null};const before=structuredClone(g);
+  assert.ok(Deals.complete(g,d).error,'a ready sale must recheck the currently controlled footballer');assert.deepEqual(g,before);
+  const other=g.rosters.home[8],otherDeal=Deals.start(g,other,{mode:"sell",buyer:{id:"rival",name:"Rival"}}).deal;
+  assert.ok(Deals.offerClub(g,otherDeal,{fee:otherDeal.ceiling}).accepted);assert.ok(Deals.complete(g,otherDeal).ok);
+  assert.equal(g.budget,before.budget+otherDeal.fee);assert.equal(g.transactions.length,1);assert.equal(g.transactions[0].playerId,other.id);
+  assert.ok(g.rosters.home.some(player=>player.id===p.id));assert.equal(d.stage,'ready');assert.equal(Deals.withdraw(g,d),true);
+});
 test("pause/resume reuses the active deal and withdrawing never spends money",()=>{
   const g=game(),p=g.rosters.away[9],d=Deals.start(g,p,{buyerRating:90}).deal;
   assert.equal(Deals.start(g,p).deal,d);assert.equal(g.negotiations.length,1);

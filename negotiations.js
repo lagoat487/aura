@@ -110,6 +110,7 @@
     const owner=rosterOwner(game,deal.playerId);
     if(deal.mode==="sell"){
       if(owner?.cid!==game.club)return {error:"El jugador ya no está en tu club."};
+      if(game.playerCareer?.playerId===deal.playerId)return {error:"No puedes vender al protagonista de tu carrera de jugador."};
       if(game.rosters[game.club].length<=11)return {error:"Debes conservar al menos 11 jugadores."};
       const obligation=owner.p.sellOnClause?.percentage||0,payment=Math.round(deal.fee*obligation/100),net=deal.fee-payment;
       game.rosters[game.club]=game.rosters[game.club].filter(p=>p.id!==deal.playerId);

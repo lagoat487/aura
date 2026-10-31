@@ -1,5 +1,7 @@
 # Club Update 4.1
 
+Corrección de ventas pendientes en carrera de jugador: al firmar se vuelve a comprobar si el futbolista es ahora el protagonista. Una venta acordada antes de activar este modo se rechaza conservando plantilla, once, presupuesto y transacciones. El acuerdo puede retirarse y las ventas de otros futbolistas siguen disponibles; el protagonista puede continuar su siguiente partido.
+
 Corrección del selector de clubes en Copas: Champions, Europa y Conference reutilizan la elegibilidad europea de la Champions de carrera. El selector incluye ligas compatibles del catálogo como Trendyol Süper Lig, prioriza el país declarado y conserva una sola entrada por identidad de club. Se mantienen los formatos AURA de 16 equipos; jugar estas copas avanza su propio cuadro y conserva el calendario y presupuesto de carrera.
 
 Corrección de controles en Calle: perder la captura de un botón táctil libera esa dirección y conserva las demás pulsaciones activas. Pausar con P, Esc o el botón limpia tanto teclado como controles táctiles. Las pulsaciones durante la pausa se descartan; al volver se necesita una pulsación nueva para moverse.
