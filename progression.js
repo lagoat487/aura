@@ -118,13 +118,55 @@ const AuraProgression=(()=>{
     current.pressHistory=current.pressHistory.slice(0,12);
     return {ok:true,confidence:current.pressBoost,message:"Rueda de prensa: "+option.label+". Moral "+(option.morale>0?"+":"")+option.morale+" · confianza +"+option.confidence+"."};
   }
-  function afterMatch(game){initialize(game);return dashboard(game);}
+  function rehabilitationCost(player){
+    if(!player||!Number.isInteger(player.injuryRounds)||player.injuryRounds<=0)return null;
+    return 55000+Math.max(0,player.injuryRounds-1)*25000;
+  }
+  function rehabilitate(game,id){
+    const p=initialize(game),player=roster(game).find(x=>x.id===id);
+    const cost=rehabilitationCost(player);
+    if(cost===null)return {error:"El jugador no requiere recuperación médica."};
+    const key=game.season+":"+game.round+":"+id;
+    if(p.rehabilitated?.includes(key))return {error:"Este jugador ya recibió atención médica esta jornada."};
+    if(game.budget<cost)return {error:"No hay presupuesto suficiente para su recuperación."};
+    // Validate before touching any money or metadata.
+    p.rehabilitated??=[];
+    game.budget-=cost;player.injuryRounds=Math.max(0,player.injuryRounds-1);
+    p.rehabilitated.push(key);if(p.rehabilitated.length>100)p.rehabilitated.shift();
+    return {ok:true,cost,player,message:player.name+" completó una fase de rehabilitación. "+(player.injuryRounds?"Restan "+player.injuryRounds+" jornadas.":"Ya está disponible para jugar.")};
+  }
+  function afterMatch(game){
+    const p=initialize(game),last=game.history?.[0];
+    if(!last||last.round!==game.round||last.season!==game.season||p.medicalRound===game.round)return dashboard(game);
+    p.medicalRound=game.round;
+    const team=roster(game);
+    // Heal exactly once after a completed league fixture, not on menu render.
+    const recovering=new Set(team.filter(x=>x.injuryRounds>0).map(x=>x.id));
+    for(const player of team)if(player.injuryRounds>0)player.injuryRounds--;
+    if(team.filter(x=>!(x.injuryRounds>0)).length<=11)return dashboard(game);
+    const lineup=game.squad?.xi||team.slice(0,11).map(p=>p.id);
+    const ids=Array.isArray(last.match?.participants?.[0])?last.match.participants[0]:lineup;
+    const key=game.club+":"+game.season+":"+game.round+":injury";
+    const rng=random(Array.from(key).reduce((n,c)=>Math.imul(n,31)+c.charCodeAt(0),37));
+    for(const id of ids){
+      const player=team.find(q=>q.id===id);
+      if(!player||recovering.has(id)||player.injuryRounds>0||game.playerCareer?.playerId===id)continue;
+      const chance=player.fitness<65?.055:player.fitness<80?.027:.008;
+      if(rng()<chance){
+        player.injuryRounds=1+Math.floor(rng()*3);
+        game.news??=[];game.news.unshift("Parte médico: "+player.name+" estará de baja "+player.injuryRounds+" jornadas.");
+        game.news=game.news.slice(0,20);
+        break;
+      }
+    }
+    return dashboard(game);
+  }
   function dashboard(game){
     const p=initialize(game),goals=objectives(game),complete=goals.filter(o=>o.complete).length;
     const performance=game.round>0?clamp(((Number(game.wins)||0)*3+(Number(game.draws)||0))/game.round/3,0,1):.5;
     const confidence=Math.round(clamp(45+performance*30+goals.reduce((s,o)=>s+Math.min(1,o.current/o.target),0)/3*25+(p.pressBoost||0),25,100));
-    return {objectives:goals,confidence,complete,pressAvailable:game.round>0&&p.pressRound!==game.round,pressHistory:(p.pressHistory||[]).slice(),pressBoost:p.pressBoost||0,sessionsLeft:Math.max(0,SESSIONS-p.training.used),trained:p.training.players.slice(),report:p.report,canScout:p.lastScoutRound!==game.round&&!finished(game),signings:p.signings,finished:finished(game)};
+    return {objectives:goals,confidence,complete,injuries:roster(game).filter(p=>p.injuryRounds>0).map(p=>({id:p.id,name:p.name,rounds:p.injuryRounds,cost:rehabilitationCost(p)})),pressAvailable:game.round>0&&p.pressRound!==game.round,pressHistory:(p.pressHistory||[]).slice(),pressBoost:p.pressBoost||0,sessionsLeft:Math.max(0,SESSIONS-p.training.used),trained:p.training.players.slice(),report:p.report,canScout:p.lastScoutRound!==game.round&&!finished(game),signings:p.signings,finished:finished(game)};
   }
-  return {initialize,train,objectives,claim,scout,signYouth,pressConference,pressChoices,afterMatch,dashboard,focuses,regions,SESSIONS,MAX_SQUAD};
+  return {initialize,train,objectives,claim,scout,signYouth,pressConference,pressChoices,rehabilitate,rehabilitationCost,afterMatch,dashboard,focuses,regions,SESSIONS,MAX_SQUAD};
 })();
 if(typeof module==="object"&&module.exports)module.exports=AuraProgression;
