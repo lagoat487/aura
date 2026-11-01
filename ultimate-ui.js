@@ -118,7 +118,7 @@ const AuraUTUI=(()=>{
         else{closeModal();renderGame();notify('Carta Liga Argentina fichada: '+candidate.name+'.');}
       }
       if(action==='argentina-play'){
-        const allowed=['boca','river','racing','independiente'];
+        const allowed=['boca','river'];
         playMatch(U.argentina.id,allowed.includes(d.opponent)?d.opponent:'boca');
       }
       if(action==='auto'){U.auto(club);renderGame();}
