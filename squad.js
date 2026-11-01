@@ -87,9 +87,11 @@
   function swap(game,first,second){
     const sheet=ensure(game),roster=game.rosters[game.club];
     if(first===second||!roster.some(p=>p.id===first)||!roster.some(p=>p.id===second))return false;
-    if(roster.filter(p=>!(p.injuryRounds>0)).length>=11&&roster.find(p=>p.id===second)?.injuryRounds>0)return false;
     const a=sheet.xi.indexOf(first),b=sheet.xi.indexOf(second);
     if(a<0&&b<0)return false;
+    if(roster.filter(p=>!(p.injuryRounds>0)).length>=11&&
+      (a>=0&&roster.find(p=>p.id===second)?.injuryRounds>0||
+       b>=0&&roster.find(p=>p.id===first)?.injuryRounds>0))return false;
     if(a>=0)sheet.xi[a]=second;if(b>=0)sheet.xi[b]=first;
     ensure(game);return true;
   }
