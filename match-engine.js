@@ -47,7 +47,7 @@
       }
       else game.stats[p.team].interceptions++;
     }
-    b.owner=index;b.lastTouch=p.team;b.vx=b.vz=b.vy=b.spin=0;b.y=.22;game.passTarget=null;game.passRun=null;game.offsideTarget=null;
+    b.owner=index;game.wallFlight=null;b.lastTouch=p.team;b.vx=b.vz=b.vy=b.spin=0;b.y=.22;game.passTarget=null;game.passRun=null;game.offsideTarget=null;
     if(!['save','dive','parry','smother','tackle'].includes(p.action)){
       // A controlled first touch becomes quicker as technique increases.
       const technique=clamp((p.overall-50)/49,0,1);
@@ -126,7 +126,7 @@
     const speed=22+power*12+(style==="power"?5:style==="placed"?-1:0);
     const wall=game.setPiece?.kind==="free-kick"&&game.setPiece.team===p.team?game.setPiece.wall:null;
     launch(game,p,{x:goalX,z:aim},speed,clamp(r*.07+power*.6+(style==="placed"?-.25:style==="power"?.3:0),.9,4.4));
-    game.wallFlight=wall?.length?{team:p.team,positions:wall.map(i=>({x:game.players[i].x,z:game.players[i].z})),until:game.elapsed+1.5}:null;
+    game.wallFlight=wall?.length?{team:p.team,positions:wall.map(i=>({x:game.players[i].x,z:game.players[i].z})),indices:wall.slice(),until:game.elapsed+1.5}:null;
     if(style==="curve")game.ball.spin=-(Math.sign(Number(input.z)||0)||Math.sign(aim)||1)*(1+power*1.4);
     game.stats[p.team].shots++;if(Math.abs(aim)<3.66)game.stats[p.team].onTarget++;
     game.passTarget=null;game.passRun=null;game.setPiece=null;animate(p,'shoot',.48);event(game,"shot","¡"+({normal:"Dispara",placed:"Tiro colocado de",power:"Cañonazo de",curve:"Tiro con efecto de"}[style])+" "+p.name+"!",{team:p.team,player:p.id,style});return true;
@@ -502,7 +502,7 @@
     for(let i=0;i<game.players.length;i++){
       const p=game.players[i];if(p.sentOff)continue;p.cooldown=Math.max(0,p.cooldown-dt);p.skillCooldown=Math.max(0,p.skillCooldown-dt);
       if(game.setPiece&&((i===game.controlled&&game.setPiece.team===p.team&&b.owner===i)||
-        (game.setPiece.kind==="free-kick"&&game.setPiece.wall?.includes(i)))){
+        ((game.setPiece.kind==="free-kick"&&game.setPiece.wall?.includes(i))||game.wallFlight?.indices?.includes(i)))){
         p.vx=p.vz=0;continue;
       }
       if(i===game.controlled){
