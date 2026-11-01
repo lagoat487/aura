@@ -40,7 +40,7 @@ test("completed win, draw and loss each reward exactly 35000 only in this event"
  assert.equal(u.argentinaPlayed,3);assert.equal(u.argentinaWins,1);assert.equal(u.argentinaEarned,105000);
  assert.equal(u.battlePoints,battle);assert.equal(u.divisionPoints,division);
  assert.deepEqual([u.wins,u.draws,u.losses],[1,1,1]);
- assert.equal(U.reward(u,"ut:argentina:bad",{home:0,away:0},U.argentina.id),600);
+ assert.equal(U.reward(u,"ut:argentina:bad",{home:0,away:0},U.argentina.id),false);
  assert.equal(U.reward(u,"ut:argentina:4",{home:-1,away:0},U.argentina.id),false);
 });
 test("normal modes never receive the event reward, and existing Sigma prices remain unchanged",()=>{
