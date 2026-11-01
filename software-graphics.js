@@ -6,7 +6,7 @@ const AuraSoftwareGraphics=(()=>{
   const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
   function create(container,options={}){
     const canvas=document.createElement("canvas"),ctx=canvas.getContext("2d",{alpha:false});container.appendChild(canvas);
-    const P=AuraPresentation,preview=!!options.preview,night=options.stadium!=="day",sunset=options.stadium==="sunset";
+    const P=AuraPresentation,preview=!!options.preview,night=options.stadium!=="day",sunset=options.stadium==="sunset",raining=options.weather==="rain";
     let width=1,height=1,focal=1,camera=[0,63,88],right=[1,0,0],up=[0,1,0],forward=[0,0,-1],disposed=false,backgroundKey="",cameraState=null,lastTime=null;
     const background=document.createElement("canvas"),backgroundCtx=background.getContext("2d");
     const kits=P.separateKits(AuraGraphics.kit(options.home),AuraGraphics.kit(options.away));
@@ -47,7 +47,7 @@ const AuraSoftwareGraphics=(()=>{
     rect(-52.5,-34,52.5,34);line([0,.04,-34],[0,.04,34]);arc(0,0,9.15);
     for(const s of [-1,1]){rect(s*52.5,-20.16,s*36,20.16);rect(s*52.5,-9.16,s*47,9.16);arc(s*41.5,0,.15);arc(s*41.5,0,9.15,s===1?Math.PI*.7:-Math.PI*.3,s===1?Math.PI*1.3:Math.PI*.3);}
     function stadium(){
-      const gradient=ctx.createLinearGradient(0,0,0,height);gradient.addColorStop(0,night?sunset?"#5f5260":"#111e2e":"#a1bec5");gradient.addColorStop(1,"#182e30");ctx.fillStyle=gradient;ctx.fillRect(0,0,width,height);
+      const gradient=ctx.createLinearGradient(0,0,0,height);gradient.addColorStop(0,raining?"#435361":night?sunset?"#5f5260":"#111e2e":"#a1bec5");gradient.addColorStop(1,"#182e30");ctx.fillStyle=gradient;ctx.fillRect(0,0,width,height);
       quad(-150,-110,150,110,-2,"#122831");
       for(const e of elements)e.depth=(e.center[0]-camera[0])*forward[0]+(e.center[1]-camera[1])*forward[1]+(e.center[2]-camera[2])*forward[2];
       elements.sort((a,b)=>b.depth-a.depth).forEach(e=>polygon(e.vertices,e.color));
@@ -134,6 +134,19 @@ const AuraSoftwareGraphics=(()=>{
         entities.sort((a,b)=>b.depth-a.depth).forEach(e=>e.draw());
       }
       goals();
+      if(raining&&!preview){
+        // Screen-space rain: fixed budget, no per-frame textures or DOM nodes.
+        ctx.save();ctx.strokeStyle="rgba(215,230,242,.34)";ctx.lineWidth=.85;
+        const drops=options.quality==="low"?48:options.quality==="high"?180:105;
+        const t=Math.max(0,now)*.1;
+        ctx.beginPath();
+        for(let i=0;i<drops;i++){
+          const x=((i*149.27+t*.18)%Math.max(1,width)+width)%Math.max(1,width);
+          const y=((i*83.31+t*(.8+i%4*.1))%Math.max(1,height)+height)%Math.max(1,height);
+          ctx.moveTo(x,y);ctx.lineTo(x-2,y+10);
+        }
+        ctx.stroke();ctx.restore();
+      }
       // A gentle vignette gives the pitch the same broadcast framing as WebGL.
       const shade=ctx.createRadialGradient(width*.5,height*.5,height*.28,width*.5,height*.5,Math.max(width,height)*.8);shade.addColorStop(0,"#06111900");shade.addColorStop(1,"#06111940");ctx.fillStyle=shade;ctx.fillRect(0,0,width,height);
     }
