@@ -65,6 +65,7 @@ const AuraGraphics=(()=>{
     arc(0,0,.18);
     const lineGeo=new T.BufferGeometry();lineGeo.setAttribute("position",new T.Float32BufferAttribute(lines,3));scene.add(new T.LineSegments(lineGeo,new T.LineBasicMaterial({color:0xe2ecd7,transparent:true,opacity:.88})));
     const netMat=new T.LineBasicMaterial({color:0xe1e4d7,transparent:true,opacity:.44});
+    const goalNets=[];
     for(const sign of [-1,1]){
       const x=sign*52.8,back=sign*55;
       cylinder(.095,2.5,lightMat,x,1.25,-3.66);cylinder(.095,2.5,lightMat,x,1.25,3.66);
@@ -73,6 +74,21 @@ const AuraGraphics=(()=>{
       for(let z=-3.66;z<=3.7;z+=.37){add([back,.06,z],[back,2.48,z]);add([x,2.48,z],[back,2.48,z]);}
       for(let y=0;y<=2.5;y+=.35){add([back,y,-3.66],[back,y,3.66]);add([x,y,-3.66],[back,y,-3.66]);add([x,y,3.66],[back,y,3.66]);}
       const g=new T.BufferGeometry();g.setAttribute("position",new T.Float32BufferAttribute(points,3));scene.add(new T.LineSegments(g,netMat));
+       goalNets.push({sign,geometry:g,base:new Float32Array(g.attributes.position.array),last:0});
+    }
+    function updateGoalNets(game){
+      for(const net of goalNets){
+        const impulse=P.goalNetImpulse(game,net.sign);
+        if(Math.abs(impulse-net.last)<.002)continue;
+        net.last=impulse;
+        const positions=net.geometry.attributes.position.array;
+        for(let i=0;i<net.base.length;i+=3){
+          const x=net.base[i],height=net.base[i+1],width=net.base[i+2];
+          const weight=Math.abs(x)>53.2?1:.12;
+          positions[i]=x+net.sign*impulse*weight*(1-Math.abs(width)/8)*(.5+height/4);
+        }
+        net.geometry.attributes.position.needsUpdate=true;
+      }
     }
     // Three tiers, individual instanced seats and spectators: few draw calls.
     const seatPositions=[];
@@ -220,7 +236,7 @@ const AuraGraphics=(()=>{
       }else {ring.visible=false;marker.visible=false;}
       const desired=P.cameraFrame(game,cam,camera.aspect,preview);cameraState=P.smoothCamera(cameraState,desired,dt);camera.position.fromArray(cameraState.position);camera.lookAt(new T.Vector3().fromArray(cameraState.target));
       if(Math.abs(camera.fov-cameraState.fov)>.01){camera.fov=cameraState.fov;camera.updateProjectionMatrix();}lastTime=now;
-      cheerCrowd(now,game?.score);updateRain(now);renderer.render(scene,camera);
+      cheerCrowd(now,game?.score);updateGoalNets(game);updateRain(now);renderer.render(scene,camera);
     }
     function project(player){const v=new T.Vector3(player.x,2.2,player.z).project(camera);return {x:(v.x*.5+.5)*container.clientWidth,y:(-.5*v.y+.5)*container.clientHeight,visible:v.z>-1&&v.z<1&&Math.abs(v.x)<1&&Math.abs(v.y)<1};}
     function dispose(){
