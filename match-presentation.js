@@ -34,6 +34,14 @@
       dive:save*finite(p.diveSide,1)*(p.action==='save'?.35:p.action==='smother'?.25:1),crouch:keeper?.12+smother*.5:0,
       saveLift:keeper?save*clamp((height-1.4)*.25,0,.35):0,highSave:save*clamp(height/2.3,.15,1),tackle:p.action==='tackle'&&active?pulse:0,speed};
   }
+  function goalNetImpulse(game,sign){
+    if(game?.phase!=="goal")return 0;
+    const last=game.goals?.at(-1);if(!last||!Number.isFinite(game.phaseTime))return 0;
+    const scoredToward=(last.team===0?1:-1)*(game.half===1?1:-1);
+    if(sign!==scoredToward)return 0;
+    const age=clamp(2.7-game.phaseTime,0,2.7);
+    return .34*Math.exp(-age*1.35)*Math.sin(age*15);
+  }
   function separateKits(home,away){
     const rgb=c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)/255),a=rgb(home[0]),b=rgb(away[0]),gap=Math.hypot(...a.map((n,i)=>n-b[i]));
     if(gap>.5)return [home,away];
@@ -46,5 +54,5 @@
     return {...a,score:a.score.slice(),visualTime:mix(a.visualTime,b.visualTime),elapsed:mix(a.elapsed,b.elapsed),ball:{...a.ball,...Object.fromEntries(['x','y','z','vx','vy','vz'].map(k=>[k,mix(a.ball[k],b.ball[k])]))},
       players:a.players.map((p,i)=>{const q=b.players[i];if(!q||q.id!==p.id)return {...p};return {...p,...Object.fromEntries(['x','z','vx','vz','faceX','faceZ','run','actionTime','turn','dribbleTime'].map(k=>[k,mix(p[k],q[k])]))};})};
   }
-  return {cameraFrame,smoothCamera,appearance,pose,separateKits,capture,interpolate};
+  return {cameraFrame,smoothCamera,appearance,pose,goalNetImpulse,separateKits,capture,interpolate};
 });
