@@ -57,8 +57,6 @@
     if(p.team===0&&!game.playerLock)game.controlled=index;
   }
   function launch(game,p,target,speed,lift){
-    game.wallFlight=game.setPiece?.kind==="free-kick"&&game.setPiece.team===p.team&&game.setPiece.wall?.length?
-      {team:p.team,positions:game.setPiece.wall.map(i=>({x:game.players[i].x,z:game.players[i].z})),until:game.elapsed+1.5}:null;
     const b=game.ball,dx=target.x-b.x,dz=target.z-b.z,len=Math.hypot(dx,dz)||1;
     Object.assign(b,{owner:null,vx:dx/len*speed,vz:dz/len*speed,vy:lift,spin:0,y:.26,freeTime:0,lastTouch:p.team,lastKicker:game.players.indexOf(p),lastKickerIdentity:{id:p.id,name:p.name,team:p.team}});game.offsideTarget=null;p.cooldown=.42;
   }
@@ -83,6 +81,7 @@
     const target=candidates[0];if(!target)return false;
     const r=dist(p,target),lead=through?clamp(4+r*.12,4,8):lob?1.5:1.1,flight=clamp(r/(lob?26:24),.15,lob?2:1.2);
     const spot={x:clamp(target.x+target.vx*flight*.55+d*lead,-50,50),z:clamp(target.z+target.vz*flight*.55,-32,32)};
+    game.setPiece=null;
     launch(game,p,spot,lob?clamp(18+r*.32,20,38):clamp(14+r*.4+(through?2:0),15,32),lob?clamp(4+r*.095,5.5,8.2):through?1.7:.35);
     game.passTarget=game.players.indexOf(target);game.passRun={index:game.passTarget,...spot,until:game.elapsed+(lob?5:3.5)};
     // Judge the recipient at the moment the pass is released: the second-last
@@ -101,12 +100,13 @@
       return score(a)-score(b);
     })[0];
     const spot={x:clamp(target.x+target.vx*.2+d*1.5,-50,50),z:clamp(target.z+target.vz*.2,-30,30)},range=dist(p,spot);
+    const wasCorner=game.setPiece?.kind==="corner";
     launch(game,p,spot,clamp(19+range*.28,20,35),clamp(5+range*.08,5.5,8.5));
     game.passTarget=game.players.indexOf(target);
     game.passRun={index:game.passTarget,...spot,until:game.elapsed+5};
     // At a corner there is no offside offence directly from the delivery.
     const line=game.players.filter(q=>q.team!==p.team&&!q.sentOff).map(q=>q.x*d).sort((a,b)=>b-a)[1];
-    game.offsideTarget=game.setPiece?.kind==="corner"?null:target.x*d>0&&target.x*d>p.x*d+.15&&target.x*d>line+.15?game.passTarget:null;
+    game.offsideTarget=wasCorner?null:target.x*d>0&&target.x*d>p.x*d+.15&&target.x*d>line+.15?game.passTarget:null;
     game.setPiece=null;
     game.stats[p.team].passes++;game.stats[p.team].crosses++;
     animate(p,"pass",.42);event(game,"cross","¡Centro de "+p.name+" al área!",{team:p.team,player:p.id});
@@ -124,7 +124,9 @@
     game.stats[p.team].xg+=chance;
     const aim=clamp(clamp(Number(input.z)||0,-1,1)*2.9+(game.rng()-.5)*accuracy,-5.5,5.5);
     const speed=22+power*12+(style==="power"?5:style==="placed"?-1:0);
+    const wall=game.setPiece?.kind==="free-kick"&&game.setPiece.team===p.team?game.setPiece.wall:null;
     launch(game,p,{x:goalX,z:aim},speed,clamp(r*.07+power*.6+(style==="placed"?-.25:style==="power"?.3:0),.9,4.4));
+    game.wallFlight=wall?.length?{team:p.team,positions:wall.map(i=>({x:game.players[i].x,z:game.players[i].z})),until:game.elapsed+1.5}:null;
     if(style==="curve")game.ball.spin=-(Math.sign(Number(input.z)||0)||Math.sign(aim)||1)*(1+power*1.4);
     game.stats[p.team].shots++;if(Math.abs(aim)<3.66)game.stats[p.team].onTarget++;
     game.passTarget=null;game.passRun=null;game.setPiece=null;animate(p,'shoot',.48);event(game,"shot","¡"+({normal:"Dispara",placed:"Tiro colocado de",power:"Cañonazo de",curve:"Tiro con efecto de"}[style])+" "+p.name+"!",{team:p.team,player:p.id,style});return true;
@@ -429,6 +431,7 @@
     const index=nearest(game,team,{x,z}),p=game.players[index];
     game.setPiece=null;game.wallFlight=null;
     p.x=clamp(x,-49,49);p.z=clamp(z,-32,32);ownBall(game,index);p.cooldown=.8;
+    if(team===0&&!game.playerLock)game.controlled=index;
     game.ball.x=p.x;game.ball.z=p.z;game.ball.y=.22;game.ball.spin=0;
     event(game,"restart",kind,{team});
   }
@@ -498,7 +501,7 @@
     const chasers=[nearest(game,0),nearest(game,1)],keeperStarts=game.players.flatMap((p,i)=>p.index===0?[[i,{x:p.x,z:p.z}]]:[]);
     for(let i=0;i<game.players.length;i++){
       const p=game.players[i];if(p.sentOff)continue;p.cooldown=Math.max(0,p.cooldown-dt);p.skillCooldown=Math.max(0,p.skillCooldown-dt);
-      if(game.setPiece&&((game.setPiece.team===p.team&&b.owner===i)||
+      if(game.setPiece&&((i===game.controlled&&game.setPiece.team===p.team&&b.owner===i)||
         (game.setPiece.kind==="free-kick"&&game.setPiece.wall?.includes(i)))){
         p.vx=p.vz=0;continue;
       }
