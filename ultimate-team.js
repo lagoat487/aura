@@ -3,7 +3,7 @@
   "use strict";
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
   const packs={silver:{name:"Sobre de plata",cost:750,count:3,min:65,max:74},gold:{name:"Sobre de oro",cost:2500,count:3,min:75,max:92},premium:{name:"Oro premium 82+",cost:7500,count:3,min:75,max:92,guaranteed:82}};
-  const challenges={silver:{name:"De plata a oro",count:3,min:65,max:74,score:900,reward:"gold"},gold:{name:"Mejora 82+",count:3,min:75,max:83,score:1900,reward:"premium"}};
+  const challenges={silver:{name:"De plata a oro",count:3,min:65,max:74,score:900,reward:"gold"},gold:{name:"Mejora 82+",count:3,min:75,max:83,score:1900,reward:"premium"},elite:{name:"Desafío élite 82+",count:4,min:82,max:90,score:4400,reward:"premium"}};
 
   // AURA 4.2: limited-edition fantasy boosts. These cards exist only in Ultimate Team.
   const sigma=Object.freeze({id:"ultimate-sigma",name:"ULTIMATE SIGMA",version:"4.2",cards:Object.freeze([
