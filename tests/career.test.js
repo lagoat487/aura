@@ -562,3 +562,17 @@ test("Liga Argentina buying special cards preserves the starting XI and saved or
  assert.deepEqual(app.json('AuraUTUI.getClub()'),snapshot);
  assert.match(app.html(),/En tu club/);
 });
+
+test("Liga Argentina is discoverable from the first screen and preserves the UT club when re-entering",()=>{
+ const app=boot();
+ assert.match(app.html(),/data-evo="argentina-open"/);
+ app.click({evo:"argentina-open"});
+ assert.match(app.html(),/NUEVO EVENTO: LIGA ARGENTINA/);
+ app.click({ut:"create"});
+ app.click({ut:"lobby"});
+ app.click({evo:"argentina-open"});
+ assert.match(app.html(),/35.000 MONEDAS POR PARTIDO/);
+ assert.equal((app.html().match(/class="arg-product"/g)||[]).length,8);
+ assert.equal(app.run("AuraUTUI.getClub().coins"),10000);
+ assert.equal(app.run('AuraUTSave.load(localStorage,new Set(Object.keys(AuraSquad.formations))).snapshot.tab'),"argentina");
+});
