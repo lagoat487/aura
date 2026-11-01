@@ -207,7 +207,7 @@
     for(const q of flight.positions){
       const t=clamp(((q.x-from.x)*dx+(q.z-from.z)*dz)/len2,0,1);
       const x=from.x+dx*t,z=from.z+dz*t,y=from.y+(b.y-from.y)*t;
-      if(Math.hypot(x-q.x,z-q.z)>.55||y>2.15)continue;
+      if(Math.hypot(x-q.x,z-q.z)>1.0||y>2.15)continue;
       Object.assign(b,{x,z,y:Math.max(.23,y),vx:-b.vx*.28,vz:b.vz*.4+(game.rng()-.5)*2,vy:Math.max(.6,Math.abs(b.vy)*.25),lastTouch:1-flight.team,freeTime:0});
       game.stats[flight.team].blockedShots++;game.passTarget=null;game.passRun=null;game.offsideTarget=null;game.wallFlight=null;
       event(game,"block","¡La barrera bloquea el disparo!",{team:1-flight.team});return true;
