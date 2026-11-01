@@ -83,7 +83,7 @@ const AuraSoftwareGraphics=(()=>{
       const pose=P.pose(p,game),look=P.appearance(p),keeper=p.index===0,scale=look.height/1.88;
       const colors=keeper?[p.team===0?'#e2a72f':'#9266bf','#19342e','#f2edd9']:kits[p.team];
       const f=[p.faceX,p.faceZ],side=[p.faceZ,-p.faceX],elevation=pose.jump+pose.saveLift-pose.crouch,tilt=pose.dive*1.05;
-      const world=(x,y,z)=>[p.x+(side[0]*x+f[0]*z)*look.build,y*scale*Math.cos(tilt)+elevation,p.z+(side[1]*x+f[1]*z)*look.build+y*scale*Math.sin(tilt)];
+      const world=(x,y,z)=>[p.x+(side[0]*(x+pose.turn*y*.025)+f[0]*(z+pose.lean*y*.035))*look.build,y*scale*Math.cos(tilt)+elevation,p.z+(side[1]*(x+pose.turn*y*.025)+f[1]*(z+pose.lean*y*.035))*look.build+y*scale*Math.sin(tilt)];
       const ground=point(p.x,.02,p.z),size=Math.max(2,ground.scale*.22),head=point(...world(0,1.70,0));
       const shade=ctx.createRadialGradient(ground.x,ground.y,0,ground.x,ground.y,size*2.2);shade.addColorStop(0,'#0920167a');shade.addColorStop(1,'#09201600');ctx.save();ctx.translate(ground.x,ground.y);ctx.scale(1,.38);ctx.fillStyle=shade;ctx.beginPath();ctx.arc(0,0,size*2.1,0,Math.PI*2);ctx.fill();ctx.restore();
       if(selected){ctx.strokeStyle='#d5ff83';ctx.lineWidth=1.7;ctx.beginPath();ctx.ellipse(ground.x,ground.y,size*2.25,size*.66,0,0,Math.PI*2);ctx.stroke();}
@@ -124,7 +124,7 @@ const AuraSoftwareGraphics=(()=>{
         stadium();if(background.width!==canvas.width||background.height!==canvas.height){background.width=canvas.width;background.height=canvas.height;}backgroundCtx.drawImage(canvas,0,0);backgroundKey=key;
       }else ctx.drawImage(background,0,0,width,height);
       if(game){
-        const entities=game.players.map((p,i)=>({depth:point(p.x,0,p.z).depth,draw:()=>player(p,i===game.controlled,game)}));
+        const entities=game.players.filter(p=>!p.sentOff).map(p=>({depth:point(p.x,0,p.z).depth,draw:()=>player(p,game.players[game.controlled]===p,game)}));
         entities.push({depth:point(game.ball.x,game.ball.y,game.ball.z).depth,draw:()=>{
           const ball=game.ball,b=point(ball.x,ball.y,ball.z),shadow=point(ball.x,0,ball.z),radius=Math.max(2.2,b.scale*.18);
           ctx.fillStyle='#0e271b66';ctx.beginPath();ctx.ellipse(shadow.x,shadow.y,radius*1.1,radius*.4,0,0,Math.PI*2);ctx.fill();

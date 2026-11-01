@@ -28,7 +28,8 @@ const AuraGraphics=(()=>{
     let renderer;
     try{renderer=new T.WebGLRenderer({antialias:quality!=="low",alpha:false,powerPreference:"high-performance"});}
     catch(error){webglUnavailable=true;throw error;}
-    renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio||1,quality==="high"?2:quality==="low"?1:1.5));
+    const basePixelRatio=Math.min(globalThis.devicePixelRatio||1,quality==="high"?2:quality==="low"?1:1.5);
+    renderer.setPixelRatio(basePixelRatio);
     renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
     renderer.shadowMap.enabled=quality==="high";renderer.shadowMap.type=T.PCFSoftShadowMap;
     renderer.domElement.setAttribute("aria-label","Estadio y partido de fútbol en tres dimensiones");container.appendChild(renderer.domElement);
@@ -91,6 +92,20 @@ const AuraGraphics=(()=>{
     seatPositions.forEach(([x,y,z],i)=>{dummy.position.set(x,y,z);dummy.updateMatrix();seats.setMatrixAt(i,dummy.matrix);color.set([0x294269,0x3c5479,0x5f243a,0x747568,0x253240][i%5]);seats.setColorAt(i,color);});scene.add(seats);
     const count=Math.floor(seatPositions.length*.72),crowd=new T.InstancedMesh(new T.SphereGeometry(.24,5,4),material(0xffffff),count);
     for(let i=0;i<count;i++){const p=seatPositions[(i*17)%seatPositions.length];dummy.position.set(p[0],p[1]+.52,p[2]);dummy.scale.set(1,1.25,1);dummy.updateMatrix();crowd.setMatrixAt(i,dummy.matrix);color.set([0xb1907b,0x293d62,0xbac3ca,0x9c394c,0xdec89c][i%5]);crowd.setColorAt(i,color);}scene.add(crowd);
+    // Animate only a small subset of spectators, at 2 Hz, without adding draw calls.
+    let lastCrowdUpdate=-Infinity;
+    function cheerCrowd(now,score){
+      if(quality==="low"||now-lastCrowdUpdate<500||!count)return;
+      lastCrowdUpdate=now;
+      const active=Math.min(120,count),joy=(score?.[0]>0||score?.[1]>0)? .14 : .06;
+      for(let i=0;i<active;i++){
+        const point=seatPositions[(i*17)%seatPositions.length];
+        dummy.position.set(point[0],point[1]+.52+Math.sin(now*.003+i)*joy,point[2]);
+        dummy.scale.set(1,1.25+Math.sin(now*.004+i*.14)*.12,1);dummy.rotation.set(0,0,0);
+        dummy.updateMatrix();crowd.setMatrixAt(i,dummy.matrix);
+      }
+      crowd.instanceMatrix.needsUpdate=true;
+    }
     for(const side of [-1,1]){
       box(156,.65,13,black,0,17.2,side*58);box(14,.65,88,black,side*78,17,0);
       for(const x of [-63,-32,0,32,63])cylinder(.24,16,rail,x,8,side*61);
@@ -116,8 +131,17 @@ const AuraGraphics=(()=>{
       const torso=mesh(geometry('torso',()=>new T.LatheGeometry([new T.Vector2(.22,0),new T.Vector2(.25,.12),new T.Vector2(.31,.48),new T.Vector2(.30,.58)],12)),shirt,0,.86,0,body);torso.scale.z=.64;
       if(!keeper)for(const x of [-.16,.12])box(.075,.53,.012,material(colors[1]),x,1.15,.20,body);
       cylinder(.065,.14,skin,0,1.49,0,body);oval(.16,.205,.16,skin,0,1.69,0,body);
+       // Shoulder / collar detail uses a handful of cached meshes.
+       oval(.245,.034,.22,material(colors[2]),0,1.43,0,body);
       const hair=mesh(geometry('hair:'+look.hairStyle,()=>new T.SphereGeometry(.165,10,8,0,Math.PI*2,0,Math.PI*(look.hairStyle===2?.34:.56))),material(look.hair),0,1.73,-.012,body);hair.scale.y=look.hairStyle===1?1.12:.95;
-      if(quality!=='low'){oval(.028,.04,.04,skin,0,1.68,.156,body);for(const x of [-.054,.054])oval(.014,.012,.009,material(0x222728),x,1.72,.147,body);}
+      if(quality!=='low'){
+         oval(.028,.04,.04,skin,0,1.68,.156,body);
+         for(const x of [-.054,.054]){
+           oval(.014,.012,.009,material(0x222728),x,1.72,.147,body);
+           oval(.045,.009,.012,material(look.hair),x,1.755,.143,body);
+         }
+         if((p.index%5)===2)oval(.067,.020,.025,material(look.hair),0,1.535,.119,body);
+       }
       box(.44,.22,.32,shorts,0,.82,0,root);const legs=[],knees=[],arms=[],elbows=[];
       for(const s of [-1,1]){
         const leg=new T.Group();leg.position.set(s*.125,.80,0);root.add(leg);cylinder(.102,.32,shorts,0,-.15,0,leg);oval(.091,.11,.087,skin,0,-.32,0,leg);
@@ -161,11 +185,24 @@ const AuraGraphics=(()=>{
       rainGeometry.attributes.position.needsUpdate=true;
     }
     let disposed=false,lastTime=null,lastCamera=options.camera||"broadcast",cameraState=null;
+    let adaptiveRatio=basePixelRatio,slowFrames=0,fastFrames=0;
+    function optimizeResolution(frameMs){
+      if(preview||quality==="low"||!Number.isFinite(frameMs)||frameMs<=0)return;
+      slowFrames=frameMs>25?slowFrames+1:0;fastFrames=frameMs<17?fastFrames+1:0;
+      if(slowFrames>=26&&adaptiveRatio>Math.max(.7,basePixelRatio*.55)){
+        adaptiveRatio=Math.max(Math.max(.7,basePixelRatio*.55),adaptiveRatio-.2);
+        renderer.setPixelRatio(adaptiveRatio);slowFrames=0;fastFrames=0;
+      }else if(fastFrames>=125&&adaptiveRatio<basePixelRatio){
+        adaptiveRatio=Math.min(basePixelRatio,adaptiveRatio+.1);
+        renderer.setPixelRatio(adaptiveRatio);fastFrames=0;slowFrames=0;
+      }
+    }
     function resize(){if(disposed)return;const w=Math.max(1,container.clientWidth),h=Math.max(1,container.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
     const observer=typeof ResizeObserver!=="undefined"?new ResizeObserver(resize):null;observer?.observe(container);resize();
     function render(game,cam=lastCamera,now=0){
       if(disposed)return;lastCamera=cam;
-      const dt=lastTime===null?1/60:Math.max(0,Math.min(.1,(now-lastTime)/1000));
+      const frameMs=lastTime===null?16.7:Math.max(0,now-lastTime);
+      const dt=Math.max(0,Math.min(.1,frameMs/1000));optimizeResolution(frameMs);
       if(game){
         if(!actors.length)actors=game.players.map(footballer);
         game.players.forEach((p,i)=>{
@@ -174,7 +211,8 @@ const AuraGraphics=(()=>{
           a.root.position.set(p.x,pose.jump+pose.saveLift-pose.crouch,p.z);a.root.rotation.set(pose.dive*1.05,a.yaw,0);
           a.body.rotation.x=pose.lean-pose.kick*.13+pose.crouch*.35;a.legs[0].rotation.x=pose.stride-pose.kick*1.25-pose.tackle*.8-pose.crouch*.6;a.legs[1].rotation.x=-pose.stride-pose.crouch*.6;
           a.knees[0].rotation.x=pose.kneeLeft+pose.kick*.4+pose.crouch;a.knees[1].rotation.x=pose.kneeRight+pose.crouch;
-          for(let side=0;side<2;side++){const sign=side===0?-1:1;a.arms[side].rotation.x=(side===0?-pose.stride:pose.stride)*.65-pose.highSave*1.4;a.arms[side].rotation.z=sign*(.13+pose.celebrate*2.4+pose.save*.8+(p.index===0?.15:0));a.elbows[side].rotation.x=-.25-pose.speed*.5;}
+          for(let side=0;side<2;side++){const sign=side===0?-1:1;a.arms[side].rotation.x=(side===0?-pose.stride:pose.stride)*.65-pose.highSave*1.4-pose.control*.14;a.arms[side].rotation.z=sign*(.13+pose.celebrate*2.4+pose.save*.8+(p.index===0?.15:0)+pose.turn*.16);a.elbows[side].rotation.x=-.25-pose.speed*.5;}
+           a.body.rotation.z=pose.turn*.12*(p.faceZ>=0?1:-1);a.root.visible=!p.sentOff;
           a.shadow.position.set(p.x,.045,p.z);a.shadow.material.opacity=.25-pose.jump*.2;
         });
         ball.position.set(game.ball.x,game.ball.y,game.ball.z);ball.rotation.z+=game.ball.vx*.008;ball.rotation.x+=game.ball.vz*.008;ballShadow.position.set(game.ball.x,.06,game.ball.z);ballShadow.material.opacity=.34/Math.max(1,game.ball.y);
@@ -182,7 +220,7 @@ const AuraGraphics=(()=>{
       }else {ring.visible=false;marker.visible=false;}
       const desired=P.cameraFrame(game,cam,camera.aspect,preview);cameraState=P.smoothCamera(cameraState,desired,dt);camera.position.fromArray(cameraState.position);camera.lookAt(new T.Vector3().fromArray(cameraState.target));
       if(Math.abs(camera.fov-cameraState.fov)>.01){camera.fov=cameraState.fov;camera.updateProjectionMatrix();}lastTime=now;
-      updateRain(now);renderer.render(scene,camera);
+      cheerCrowd(now,game?.score);updateRain(now);renderer.render(scene,camera);
     }
     function project(player){const v=new T.Vector3(player.x,2.2,player.z).project(camera);return {x:(v.x*.5+.5)*container.clientWidth,y:(-.5*v.y+.5)*container.clientHeight,visible:v.z>-1&&v.z<1&&Math.abs(v.x)<1&&Math.abs(v.y)<1};}
     function dispose(){

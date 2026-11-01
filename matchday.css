@@ -69,3 +69,38 @@
   #arena .match-scoreboard{top:12px;left:16px;transform:scale(.86);transform-origin:top left}#arena .arena-top-actions{top:12px;right:16px}#arena .arena-fallback{top:66px;left:16px}#arena .arena-camera-label{top:55px;right:16px}
   #arena .arena-bottom{left:18px;right:18px;bottom:135px}#arena .controlled-card{padding:6px 9px;min-width:195px;max-width:235px}#arena .arena-portrait{width:27px;height:33px}#arena .controlled-rating{font-size:24px}#arena .arena-bottom>canvas{width:105px;height:67px}#arena .opponent-card{min-width:155px;max-width:190px;padding:10px}#arena .opponent-card span{font-size:9px}#arena .arena-replay:not([hidden]){top:75px;left:16px;right:16px}#arena .arena-banner[data-phase="kickoff"]{bottom:36%;padding:9px 20px}#arena .arena-banner[data-phase="kickoff"] strong{font-size:22px}#arena .arena-key-guide{display:none}
 }
+
+/* AURA PREMIUM broadcast polish: scoped and responsive; no extra assets. */
+#arena .match-scoreboard{
+  border-radius:8px;background:linear-gradient(125deg,#07191aef,#132c2eea 60%,#0c1e22ec);
+  border:1px solid #c5f7cb40;box-shadow:0 14px 42px #0006,0 0 0 1px #ffffff08;
+  backdrop-filter:blur(11px);
+}
+#arena .match-live{border-radius:7px 0 0 7px;background:linear-gradient(150deg,#e7ffb9,#b2df79)}
+#arena .match-clock{background:#041c1ccb}
+#arena .arena-replay:not([hidden])>span{
+  background:#11232af0;box-shadow:0 4px 18px #0005;backdrop-filter:blur(8px);
+  border-radius:5px;border-left:3px solid #b5f38f;
+}
+#arena .controlled-card,#arena .opponent-card{
+  border-radius:7px;backdrop-filter:blur(8px);
+  box-shadow:0 8px 25px #0005;
+}
+#arena .arena-bottom>canvas{
+  border-radius:6px;box-shadow:0 7px 26px #0005;
+  border:1px solid #b9f4b15c;opacity:.9;
+}
+#arena .arena-banner[data-phase="goal"].visible strong{
+  text-shadow:0 0 32px #d9ff8c75,0 5px 25px #000;
+  animation:aura-goal-pulse .7s ease-out both;
+}
+@keyframes aura-goal-pulse{
+  from{opacity:.25;transform:scale(.88)}
+  to{opacity:1;transform:scale(1)}
+}
+#arena .arena-label{border-radius:5px}
+#arena button:focus-visible{outline:2px solid #e7ffa8;outline-offset:3px}
+@media(prefers-reduced-motion:reduce){
+  #arena .arena-banner[data-phase="goal"].visible strong{animation:none}
+  #arena .arena-camera-label{transition:none}
+}

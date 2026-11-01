@@ -6,12 +6,16 @@
   function appearance(p){const n=hash(p.id);return {skin:['#c6926c','#9a6547','#e2b28b','#754a34','#c9a17d','#573b2d'][n%6],hair:['#201c19','#34271e','#191c20','#72513a'][n%4],height:1.74+(n%18)/100,build:.94+(n%12)/100,hairStyle:n%4};}
   function cameraFrame(game,mode='broadcast',aspect=16/9,preview=false){
     const b=game?.ball||{},x=clamp(finite(b.x),-53,53),z=clamp(finite(b.z),-35,35),vx=clamp(finite(b.vx),-35,35);
-    const look=clamp(x+vx*.12,-45,45),portrait=aspect<1?1.32:aspect<1.3?1.12:1;
+    const look=clamp(x+vx*.16,-45,45),portrait=aspect<1?1.32:aspect<1.3?1.12:1;
+    const urgency=clamp((Math.abs(x)-24)/27,0,1);
+    const tracking=clamp(Math.abs(vx)/35,0,1);
+    // A little wider in transitional play and tighter in the final third.
+    const dynamicFov=clamp(44+tracking*1.2-urgency*1.8,41.5,45.2);
     if(preview)return {position:[72,73,98],target:[0,0,-2],fov:44};
     if(mode==='tactical')return {position:[look*.15,108,.1],target:[look*.15,0,0],fov:45};
     if(mode==='wide')return {position:[look*.46,49*portrait,65*portrait],target:[look*.5,0,z*.18],fov:44};
-    if(mode==='tele'||mode==='replay')return {position:[look*.88,22*portrait,32*portrait+z*.3],target:[look*.91,.65,z*.63],fov:43};
-    return {position:[look*.83,30*portrait,42*portrait+z*.24],target:[look*.86,.35,z*.56],fov:44};
+    if(mode==='tele'||mode==='replay')return {position:[look*.88,22*portrait,32*portrait+z*.3],target:[look*.91,.65,z*.63],fov:mode==='replay'?41:43};
+    return {position:[look*.83,30*portrait-urgency*1.2,42*portrait+z*.24],target:[look*.86,.35,z*.56],fov:dynamicFov};
   }
   function smoothCamera(previous,desired,delta){
     if(!previous)return {position:desired.position.slice(),target:desired.target.slice(),fov:desired.fov};
@@ -20,11 +24,13 @@
   }
   function pose(p,game){
     const speed=clamp(Math.hypot(finite(p.vx),finite(p.vz))/7,0,1),cycle=finite(p.run)*2.8+(hash(p.id)%17)*.37,stride=Math.sin(cycle)*.72*speed;
+    const turn=clamp(finite(p.turn),0,1),control=clamp(finite(p.dribbleTime),0,1);
     const active=finite(p.actionTime)>0,progress=active?1-clamp(p.actionTime/(p.actionDuration||.4),0,1):1,pulse=active?Math.sin(progress*Math.PI):0;
     const kick=['shoot','pass'].includes(p.action)&&active?pulse:0,save=['save','dive','parry','smother'].includes(p.action)&&active?pulse:0,celebrate=p.action==='celebrate'&&active?1:0;
     const keeper=p.index===0,smother=p.action==='smother'?save:0,height=clamp(finite(p.saveHeight,1.7),.22,2.8);
     return {stride,kneeLeft:Math.max(0,-Math.cos(cycle))*.9*speed,kneeRight:Math.max(0,Math.cos(cycle))*.9*speed,kick,save,celebrate,
-      lean:speed*.12,jump:celebrate?Math.max(0,Math.sin(finite(game?.visualTime)*9))*.16:Math.abs(Math.sin(cycle*2))*.025*speed,
+      lean:speed*.12+turn*.12,jump:celebrate?Math.max(0,Math.sin(finite(game?.visualTime)*9))*.16:Math.abs(Math.sin(cycle*2))*.025*speed,
+      turn,control,
       dive:save*finite(p.diveSide,1)*(p.action==='save'?.35:p.action==='smother'?.25:1),crouch:keeper?.12+smother*.5:0,
       saveLift:keeper?save*clamp((height-1.4)*.25,0,.35):0,highSave:save*clamp(height/2.3,.15,1),tackle:p.action==='tackle'&&active?pulse:0,speed};
   }
@@ -38,7 +44,7 @@
   function interpolate(a,b,alpha){
     const t=clamp(finite(alpha),0,1),mix=(x,y)=>finite(x)+(finite(y)-finite(x))*t;
     return {...a,score:a.score.slice(),visualTime:mix(a.visualTime,b.visualTime),elapsed:mix(a.elapsed,b.elapsed),ball:{...a.ball,...Object.fromEntries(['x','y','z','vx','vy','vz'].map(k=>[k,mix(a.ball[k],b.ball[k])]))},
-      players:a.players.map((p,i)=>{const q=b.players[i];if(!q||q.id!==p.id)return {...p};return {...p,...Object.fromEntries(['x','z','vx','vz','faceX','faceZ','run','actionTime'].map(k=>[k,mix(p[k],q[k])]))};})};
+      players:a.players.map((p,i)=>{const q=b.players[i];if(!q||q.id!==p.id)return {...p};return {...p,...Object.fromEntries(['x','z','vx','vz','faceX','faceZ','run','actionTime','turn','dribbleTime'].map(k=>[k,mix(p[k],q[k])]))};})};
   }
   return {cameraFrame,smoothCamera,appearance,pose,separateKits,capture,interpolate};
 });
