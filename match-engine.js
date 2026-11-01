@@ -21,7 +21,7 @@
       stats:[0,1].map(()=>({shots:0,onTarget:0,passes:0,completed:0,throughBalls:0,crosses:0,interceptions:0,fouls:0,yellows:0,reds:0,penalties:0,saves:0,parries:0,claims:0,tackles:0,possession:0})),
       benches:sides.map(t=>(t.bench||[]).filter(p=>p&&typeof p.id==="string").map(p=>({...p}))),
       participants:sides.map(t=>t.players.map(p=>p.id)),substitutions:[],
-      difficulty:clamp(Number(options.difficulty)||1,.65,1.4),tactic:options.tactic||"balanced",aiTactic:"balanced",setPiece:null,goals:[],rng,seed:options.seed};
+      difficulty:clamp(Number(options.difficulty)||1,.65,1.4),weather:options.weather==="rain"?"rain":"clear",tactic:options.tactic||"balanced",aiTactic:"balanced",setPiece:null,goals:[],rng,seed:options.seed};
     if(options.playerLock){const index=players.findIndex(p=>p.team===0&&p.id===options.playerLock);if(index<1)throw Error("El jugador de carrera debe ser titular y de campo.");game.playerLock=options.playerLock;}
     reset(game,0);return game;
   }
@@ -360,8 +360,8 @@
     if(b.owner!==null){const p=game.players[b.owner],pace=Math.min(1,Math.hypot(p.vx,p.vz)/6),touch=.65+(.5+.5*Math.sin(p.run*4))*.33*pace;b.x=p.x+p.faceX*touch;b.z=p.z+p.faceZ*touch;b.y=.23+Math.abs(Math.sin(p.run*5))*.035*pace;return;}
     b.freeTime+=dt;const previousX=b.x,previousZ=b.z,previousY=b.y;
     b.x+=b.vx*dt;b.z+=b.vz*dt;b.y+=b.vy*dt;b.vy-=12*dt;b.vz+=(b.spin||0)*dt;b.spin=(b.spin||0)*Math.exp(-dt*1.5);
-    if(b.y<.22){b.y=.22;b.vy=Math.abs(b.vy)>.9?-b.vy*.32:0;}
-    const drag=Math.exp(-dt*(b.y<.3?.7:.12));b.vx*=drag;b.vz*=drag;
+    if(b.y<.22){b.y=.22;b.vy=Math.abs(b.vy)>.9?-b.vy*(game.weather==="rain"?.22:.32):0;}
+    const drag=Math.exp(-dt*(b.y<.3?(game.weather==="rain"?.36:.7):.12));b.vx*=drag;b.vz*=drag;
     if(keeperContact(game,{x:previousX,y:previousY,z:previousZ},keeperStarts))return;
     if(Math.abs(b.x)>52.5){
       const edge=Math.sign(b.x)*52.5,progress=clamp((edge-previousX)/(b.x-previousX||1),0,1),z=previousZ+(b.z-previousZ)*progress,y=previousY+(b.y-previousY)*progress;
