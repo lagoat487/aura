@@ -1,0 +1,72 @@
+/* Liga Argentina fantasy event — all styles scoped to the UT event. */
+.arg-event{padding:18px 0 38px;color:#effaff}
+.arg-event-hero{display:flex;gap:26px;align-items:center;justify-content:space-around;padding:34px;min-height:332px;
+  border:1px solid #b4e6ff77;border-radius:17px;overflow:hidden;
+  background:radial-gradient(ellipse at 72% 10%,#92d8ff72,transparent 50%),
+    linear-gradient(133deg,#092844 0%,#1268ac 49%,#e0f8ff 140%);
+  box-shadow:inset 0 0 100px #ffffff12,0 14px 35px #00152c55}
+.arg-event-hero>div:first-child{max-width:610px}
+.arg-kicker,.arg-section-heading>span{color:#ceefff;letter-spacing:2px;font:900 10px Arial,sans-serif}
+.arg-event-hero h2{font:italic 85px/.85 var(--display,Impact,Arial);letter-spacing:-3px;text-shadow:0 4px 18px #001c4b77;margin:22px 0}
+.arg-event-hero h2 em{font-style:italic;color:#edfaff}
+.arg-event-hero p,.arg-section-heading p{font-size:13px;line-height:1.65;color:#d9efff}
+.arg-stats{display:flex;flex-wrap:wrap;gap:11px;margin-top:26px}.arg-stats span{padding:8px 15px;border:1px solid #c8ecff66;background:#002f5b55;border-radius:7px;font-size:11px;color:#e9f7ff}.arg-stats strong{display:block;font:900 20px Arial}
+.arg-card{position:relative;flex:none;width:183px;height:268px;padding:13px 12px 16px;
+  display:flex;flex-direction:column;align-items:center;isolation:isolate;text-align:center;
+  clip-path:polygon(9% 0,91% 0,100% 10%,100% 88%,91% 97%,50% 100%,9% 97%,0 88%,0 10%);
+  background:radial-gradient(ellipse at 60% 21%,#f6ffff 0%,#d9f7ff 18%,#62c4ee 42%,#0e78bc 70%,#063e79 100%);
+  color:#003b68;box-shadow:inset 0 0 34px #ffffffbc}
+.arg-card:before{position:absolute;inset:5px;content:"";z-index:-1;clip-path:inherit;border:2px solid #f5ffff;
+  background:repeating-linear-gradient(110deg,#e4faff66 0 16px,#3aace733 17px 29px);pointer-events:none}
+.arg-card-header{font:900 8px Arial;letter-spacing:.8px;color:#004577;text-shadow:0 1px #fff}
+.arg-card-body{display:flex;align-items:start;justify-content:center;width:100%;flex:1;min-height:0}
+.arg-card-overall{position:absolute;top:42px;left:11px;font:italic 37px/.9 var(--display,Impact);z-index:1;color:#00345f}
+.arg-card-overall small{display:block;font:900 12px Arial;margin-top:5px}
+.arg-card-image{width:128px;height:137px;margin:8px 0 0 28px;display:grid;place-items:center;overflow:hidden}
+.arg-card-image .tour-face{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:transparent}
+.arg-card-image .tour-face img{height:100%;width:100%;object-fit:contain}
+.arg-card-player{width:100%;font:900 15px/1.15 Arial;min-height:33px;color:#00365e}
+.arg-card-footer{width:100%;border-top:1px solid #ffffffc9;padding-top:8px;font:900 8px Arial;letter-spacing:.3px;color:#eaffff;text-shadow:0 1px #0c4b7a}
+.arg-section-heading{margin:30px 0 20px}.arg-section-heading>span{color:#69c7fb}
+.arg-section-heading h3{font:italic 36px var(--display,Impact);margin:6px 0 8px;color:#edfaff}
+.arg-section-heading p{margin:0;color:#aecedf}
+.arg-opponents{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.arg-opponents article{padding:22px;border-radius:13px;border:1px solid #74cbfd77;
+  background:linear-gradient(130deg,#07518a,#102e53 80%);display:flex;flex-direction:column;gap:9px}
+.arg-opponents article>span{font:900 9px Arial;letter-spacing:1.5px;color:#b9e5ff}
+.arg-opponents article h4{font:italic 32px var(--display,Impact);margin:0;color:#f4feff}
+.arg-opponents article p{font-size:12px;color:#d5eafd;flex:1}
+.arg-opponents .btn{align-self:flex-start}
+.arg-market-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:16px}
+.arg-product{display:flex;flex-direction:column;align-items:center;gap:13px;
+  background:linear-gradient(145deg,#123d66,#0b233c);border:1px solid #7abfec77;
+  border-radius:12px;padding:18px 10px}
+.arg-product>strong{font:900 18px Arial;color:#edfbff}.arg-product>strong small{font:900 9px Arial}
+.arg-product .btn{width:100%;font-size:11px}.arg-product .btn:disabled{opacity:.65}
+.arg-disclaimer{margin:22px 0 0;color:#9dc1d8;font-size:11px;line-height:1.6}
+.argentina-home-promo{background:linear-gradient(120deg,#115997,#0b2546);border-color:#78c4ee!important}
+.ut-shell .ut-card.argentina{color:#003e6e!important;
+  background:radial-gradient(ellipse at 55% 15%,#edffff,#c8edff 23%,#62c4ef 46%,#147db7 75%,#064572)!important;
+  box-shadow:inset 0 0 20px #fff8}
+.ut-shell .ut-card.argentina:before{border:2px solid #eaffff}
+.ut-shell .ut-card.argentina:after{content:"🇦🇷 AURA";color:#02416e;opacity:.85}
+.ut-shell .ut-card.argentina .ut-card-rating,.ut-shell .ut-card.argentina strong,.ut-shell .ut-card.argentina .ut-card-stats b{color:#00365e}
+.ut-shell .ut-card.argentina .ut-card-stats span,.ut-shell .ut-card.argentina .ut-card-club{color:#044b77}
+.ut-shell .ut-card.argentina .ut-sigma-label{font:900 8px Arial;letter-spacing:1px;color:#063f72}
+@media(max-width:650px){
+ .arg-event-hero{padding:22px 13px;flex-direction:column}
+ .arg-event-hero h2{font-size:60px}
+ .arg-opponents{grid-template-columns:1fr}
+ .arg-market-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .arg-product{padding:11px 3px}
+ .arg-card{width:149px;height:232px;padding:11px 7px 13px}
+ .arg-card-overall{font-size:30px;top:35px}
+ .arg-card-header{font-size:6.5px}
+ .arg-card-image{width:105px;height:119px;margin-left:20px}
+ .arg-card-player{font-size:12px;min-height:29px}
+ .arg-card-footer{font-size:6px}
+ .arg-product>strong{font-size:14px}
+ .arg-section-heading h3{font-size:28px}
+}
+@media(max-width:360px){.arg-market-grid{grid-template-columns:1fr}.arg-card{width:180px;height:268px}}
+@media(prefers-reduced-motion:reduce){.arg-card{animation:none;transition:none}}

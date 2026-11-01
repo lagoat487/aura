@@ -21,7 +21,7 @@ function boot(saved) {
     localStorage: { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value) },
     setTimeout() {}, clearTimeout() {},
   });
-  for (const file of ["clubs.js", "competitions.js", "world.js", "real-players.js", "world-tour.js", "roster-sync.js", "club-badges.js", "portraits.js", "squad.js", "champions.js", "ultimate-team.js", "ultimate-save.js", "progression.js", "negotiations.js", "loans.js", "career-ui.js", "progression-ui.js", "match-engine.js", "match-presentation.js", "match-graphics.js", "match-ui.js", "evolution-ui.js", "street.js", "tour-ui.js", "ultimate-ui.js", "career-continental.js", "game.js"]) {
+  for (const file of ["clubs.js", "competitions.js", "world.js", "real-players.js", "world-tour.js", "roster-sync.js", "club-badges.js", "portraits.js", "squad.js", "champions.js", "ultimate-team.js", "ultimate-save.js", "progression.js", "negotiations.js", "loans.js", "career-ui.js", "progression-ui.js", "match-engine.js", "match-presentation.js", "match-graphics.js", "match-ui.js", "evolution-ui.js", "street.js", "tour-ui.js", "ultimate-ui.js", "argentina-event.js", "career-continental.js", "game.js"]) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, "..", file), "utf8"), context, { filename: file });
   }
   return {
@@ -517,4 +517,48 @@ test("career loan buttons show fixed terms, confirmation and optional purchase w
  assert.ok(app.run('!state.rosters[state.club].find(p=>p.id===loanTarget.id).onLoan'));
  assert.ok(app.run('state.transactions.some(t=>t.mode==="loan-buy")'));
  assert.equal(app.saved(),undefined,"career remains session-only");
+});
+
+test("Liga Argentina menu lists 8 cards and paid matches grant 35000 once without touching other modes",()=>{
+ const app=boot();app.click({evoMode:"ultimate"});app.click({ut:"create"});
+ app.click({utTab:"argentina"});
+ const markup=app.html();
+ assert.match(markup,/LIGA ARGENTINA/);
+ assert.equal((markup.match(/class="arg-product"/g)||[]).length,8);
+ assert.match(markup,/35.000/);
+ app.run('AuraArena.preMatch=(home,away,options)=>{globalThis.argentinaMatch=options;globalThis.argentinaAway=away}');
+ const before=app.run('AuraUTUI.getClub().coins');
+ app.click({ut:"argentina-play",opponent:"boca"});
+ assert.match(app.run('argentinaMatch.label'),/LIGA ARGENTINA/);
+ assert.equal(app.run('argentinaAway.id'),"boca");
+ assert.equal(app.run('AuraUTUI.getClub().coins'),before);
+ app.run('argentinaMatch.onFinish({home:0,away:3})');
+ assert.equal(app.run('AuraUTUI.getClub().coins'),before+35000);
+ assert.equal(app.run('AuraUTUI.getClub().argentinaPlayed'),1);
+ app.run('argentinaMatch.onFinish({home:0,away:3})');
+ assert.equal(app.run('AuraUTUI.getClub().coins'),before+35000);
+ app.click({ut:"argentina-play",opponent:"river"});
+ assert.equal(app.run('argentinaAway.id'),"river");
+ app.run('argentinaMatch.onFinish({home:2,away:2})');
+ assert.equal(app.run('AuraUTUI.getClub().coins'),before+70000);
+ assert.equal(app.run('AuraUTUI.getClub().argentinaPlayed'),2);
+ assert.equal(app.run('AuraUTUI.getClub().argentinaEarned'),70000);
+ assert.equal(app.run('AuraUTUI.getClub().divisionPoints'),0);
+ assert.equal(app.run('AuraUTUI.getClub().battlePoints'),0);
+ assert.equal(app.run('AuraUTSave.load(localStorage,new Set(Object.keys(AuraSquad.formations))).snapshot.tab'),"argentina");
+});
+test("Liga Argentina buying special cards preserves the starting XI and saved original players",()=>{
+ const app=boot();app.click({evoMode:"ultimate"});app.click({ut:"create"});
+ app.click({utTab:"argentina"});app.run('AuraUTUI.getClub().coins=500000');
+ const before=app.json('AuraUTUI.getClub().xi');
+ const original=app.json('AuraUTUI.getClub().owned.map(p=>p.id)');
+ app.click({ut:"argentina-buy",player:"argentina:enner-valencia"});
+ assert.equal(app.run('AuraUTUI.getClub().coins'),80000);
+ assert.ok(app.run('AuraUTUI.getClub().owned.some(p=>p.id==="argentina:enner-valencia")'));
+ assert.deepEqual(app.json('AuraUTUI.getClub().xi'),before);
+ assert.deepEqual(app.json('AuraUTUI.getClub().owned.slice(0,'+original.length+').map(p=>p.id)'),original);
+ const snapshot=app.json('AuraUTUI.getClub()');
+ app.click({ut:"argentina-buy",player:"argentina:enner-valencia"});
+ assert.deepEqual(app.json('AuraUTUI.getClub()'),snapshot);
+ assert.match(app.html(),/En tu club/);
 });
