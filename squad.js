@@ -46,6 +46,8 @@
   }
   function ensure(game){
     const roster=game.rosters[game.club]||[],ranked=roster.slice().sort((a,b)=>b.overall-a.overall);
+    const healthy=roster.filter(p=>!(p.injuryRounds>0));
+    const eligible=healthy.length>=11?healthy:roster;
     for(const p of roster){
       if(!Number.isFinite(p.morale))p.morale=75;
       if(!Number.isFinite(p.fitness))p.fitness=95;
@@ -57,14 +59,14 @@
     if(!game.squad)game.squad={formation:"4-3-3",xi:[],captain:null};
     const sheet=game.squad;
     if(!formations[sheet.formation])sheet.formation="4-3-3";
-    const valid=new Set(roster.map(p=>p.id)),seen=new Set();
+    const valid=new Set(eligible.map(p=>p.id)),seen=new Set();
     sheet.xi=Array.from({length:11},(_,i)=>{
       const id=sheet.xi[i];if(!valid.has(id)||seen.has(id))return null;seen.add(id);return id;
     });
-    if(!sheet.xi.some(Boolean))sheet.xi=choose(roster,sheet.formation);
+    if(!sheet.xi.some(Boolean))sheet.xi=choose(eligible,sheet.formation);
     else sheet.xi=sheet.xi.map((id,index)=>{
       if(id)return id;
-      const available=roster.filter(p=>!seen.has(p.id)).sort((a,b)=>effective(b,formations[sheet.formation][index][0])-effective(a,formations[sheet.formation][index][0]));
+      const available=eligible.filter(p=>!seen.has(p.id)).sort((a,b)=>effective(b,formations[sheet.formation][index][0])-effective(a,formations[sheet.formation][index][0]));
       const next=available[0]?.id;if(next)seen.add(next);return next||null;
     });
     if(!valid.has(sheet.captain)||!sheet.xi.includes(sheet.captain))sheet.captain=sheet.xi.find(Boolean)||null;
@@ -77,7 +79,7 @@
     const sheet=ensure(game),roster=game.rosters[game.club];
     return Math.round(sheet.xi.reduce((sum,id,i)=>sum+(id?effective(roster.find(p=>p.id===id),formations[sheet.formation][i][0]):0),0)/11);
   }
-  function autoPick(game){const sheet=ensure(game);sheet.xi=choose(game.rosters[game.club],sheet.formation);ensure(game);return sheet}
+  function autoPick(game){const sheet=ensure(game),roster=game.rosters[game.club],healthy=roster.filter(p=>!(p.injuryRounds>0));sheet.xi=choose(healthy.length>=11?healthy:roster,sheet.formation);ensure(game);return sheet}
   function setFormation(game,name){
     if(!formations[name])return false;
     const current=players(game);game.squad.formation=name;game.squad.xi=choose(current,name);ensure(game);return true;
@@ -85,6 +87,7 @@
   function swap(game,first,second){
     const sheet=ensure(game),roster=game.rosters[game.club];
     if(first===second||!roster.some(p=>p.id===first)||!roster.some(p=>p.id===second))return false;
+    if(roster.filter(p=>!(p.injuryRounds>0)).length>=11&&roster.find(p=>p.id===second)?.injuryRounds>0)return false;
     const a=sheet.xi.indexOf(first),b=sheet.xi.indexOf(second);
     if(a<0&&b<0)return false;
     if(a>=0)sheet.xi[a]=second;if(b>=0)sheet.xi[b]=first;
