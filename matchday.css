@@ -104,3 +104,16 @@
   #arena .arena-banner[data-phase="goal"].visible strong{animation:none}
   #arena .arena-camera-label{transition:none}
 }
+
+/* Contextual set-piece broadcast overlay, responsive and non-blocking. */
+#arena .arena-setpiece:not([hidden]){
+  position:absolute;left:50%;top:105px;transform:translateX(-50%);
+  max-width:calc(100% - 30px);text-align:center;white-space:normal;
+  z-index:5;pointer-events:none;padding:8px 16px;
+  border-radius:5px;background:#102322ea;border:1px solid #d6f29762;
+  color:#e7f7d2;font:700 10px Arial,sans-serif;letter-spacing:.4px;
+  box-shadow:0 8px 24px #0005;
+}
+@media(max-width:620px){
+ #arena .arena-setpiece:not([hidden]){top:118px;max-width:65%;font-size:8px;padding:7px}
+}
