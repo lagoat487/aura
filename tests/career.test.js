@@ -493,3 +493,28 @@ test('player career cannot lose its protagonist by signing a sale agreed before 
  app.run('AuraArena.preMatch=(home,away,options)=>{globalThis.nextPlayerMatch=options;globalThis.playerTeam=home}');app.click({evo:'career-play'});
  assert.equal(app.run('nextPlayerMatch.playerLock'),id);assert.ok(app.run('playerTeam.players.some(p=>p.id===state.playerCareer.playerId)'));assert.equal(app.saved(),undefined);
 });
+
+test("career loan buttons show fixed terms, confirmation and optional purchase without touching UT",()=>{
+ const app=boot();app.click({action:"start"});
+ app.run('state.budget=200000000;state.wageBudget=200000000;globalThis.loanTarget=Object.entries(state.rosters).filter(([cid,ps])=>cid!==state.club&&ps.length>11).map(([cid,ps])=>ps[0]).find(p=>Number.isSafeInteger(p.value)&&p.value>0)');
+ const id=app.run("loanTarget.id"),initial=app.json('({owned:state.rosters[state.club].map(p=>p.id),budget:state.budget})');
+ app.click({nav:"market"});
+ assert.match(app.html(),/JUGADORES CEDIDOS/);
+ app.click({loan:id});
+ assert.match(app.node("modal").innerHTML,/CESIÓN|Cesión|cesión/);
+ assert.match(app.node("modal").innerHTML,/opción de compra/i);
+ assert.deepEqual(app.json('state.rosters[state.club].map(p=>p.id)'),initial.owned,"preview is non-mutating");
+ app.click({loanConfirm:id});
+ assert.ok(app.run('state.rosters[state.club].some(p=>p.id===loanTarget.id)'));
+ assert.equal(app.run('AuraLoans.active(state).length'),1);
+ assert.ok(app.run('state.budget')<initial.budget);
+ app.click({nav:"market"});
+ assert.match(app.html(),/Comprar definitivamente/);
+ app.click({loanOption:id});
+ assert.match(app.node("modal").innerHTML,/PRECIO ACORDADO/);
+ app.click({loanBuyConfirm:id});
+ assert.equal(app.run('AuraLoans.active(state).length'),0);
+ assert.ok(app.run('!state.rosters[state.club].find(p=>p.id===loanTarget.id).onLoan'));
+ assert.ok(app.run('state.transactions.some(t=>t.mode==="loan-buy")'));
+ assert.equal(app.saved(),undefined,"career remains session-only");
+});
