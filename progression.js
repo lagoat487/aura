@@ -149,7 +149,7 @@ const AuraProgression=(()=>{
     const rng=random(Array.from(key).reduce((n,c)=>Math.imul(n,31)+c.charCodeAt(0),37));
     for(const id of ids){
       const player=team.find(q=>q.id===id);
-      if(!player||recovering.has(id)||player.injuryRounds>0)continue;
+      if(!player||recovering.has(id)||player.injuryRounds>0||game.playerCareer?.playerId===id)continue;
       const chance=player.fitness<65?.055:player.fitness<80?.027:.008;
       if(rng()<chance){
         player.injuryRounds=1+Math.floor(rng()*3);
