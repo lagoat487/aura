@@ -126,10 +126,11 @@ const AuraProgression=(()=>{
     const p=initialize(game),player=roster(game).find(x=>x.id===id);
     const cost=rehabilitationCost(player);
     if(cost===null)return {error:"El jugador no requiere recuperación médica."};
-    p.rehabilitated??=[];
     const key=game.season+":"+game.round+":"+id;
-    if(p.rehabilitated.includes(key))return {error:"Este jugador ya recibió atención médica esta jornada."};
+    if(p.rehabilitated?.includes(key))return {error:"Este jugador ya recibió atención médica esta jornada."};
     if(game.budget<cost)return {error:"No hay presupuesto suficiente para su recuperación."};
+    // Validate before touching any money or metadata.
+    p.rehabilitated??=[];
     game.budget-=cost;player.injuryRounds=Math.max(0,player.injuryRounds-1);
     p.rehabilitated.push(key);if(p.rehabilitated.length>100)p.rehabilitated.shift();
     return {ok:true,cost,player,message:player.name+" completó una fase de rehabilitación. "+(player.injuryRounds?"Restan "+player.injuryRounds+" jornadas.":"Ya está disponible para jugar.")};
