@@ -178,6 +178,8 @@ const AuraGraphics=(()=>{
     const ballShadow=mesh(new T.CircleGeometry(.32,12),new T.MeshBasicMaterial({color:0x08160f,transparent:true,opacity:.35}),0,.06,0);ballShadow.rotation.x=-Math.PI/2;
     const ring=mesh(new T.RingGeometry(.68,.83,32),new T.MeshBasicMaterial({color:0xc8ff69,side:T.DoubleSide,transparent:true,opacity:.95}),0,.085,0);ring.rotation.x=-Math.PI/2;
     const marker=mesh(new T.ConeGeometry(.24,.36,3),new T.MeshBasicMaterial({color:0xc8ff69}),0,2.5,0);marker.rotation.z=Math.PI;
+    const awayRing=mesh(new T.RingGeometry(.68,.83,32),new T.MeshBasicMaterial({color:0x59c7ff,side:T.DoubleSide,transparent:true,opacity:.95}),0,.085,0);awayRing.rotation.x=-Math.PI/2;
+    const awayMarker=mesh(new T.ConeGeometry(.24,.36,3),new T.MeshBasicMaterial({color:0x59c7ff}),0,2.5,0);awayMarker.rotation.z=Math.PI;
     // Lightweight mesh-based rain with one draw call and a fixed particle budget.
     const rainCount=!preview&&raining?(quality==="low"?105:quality==="high"?390:220):0;
     const rainCoords=new Float32Array(rainCount*6);
@@ -233,7 +235,10 @@ const AuraGraphics=(()=>{
         });
         ball.position.set(game.ball.x,game.ball.y,game.ball.z);ball.rotation.z+=game.ball.vx*.008;ball.rotation.x+=game.ball.vz*.008;ballShadow.position.set(game.ball.x,.06,game.ball.z);ballShadow.material.opacity=.34/Math.max(1,game.ball.y);
         const selected=game.players[game.controlled];ring.position.set(selected.x,.09,selected.z);marker.position.set(selected.x,2.5,selected.z);marker.rotation.y=now*.001;
-      }else {ring.visible=false;marker.visible=false;}
+        const rival=game.localTwoPlayer?game.players[game.awayControlled]:null;
+        awayRing.visible=awayMarker.visible=!!rival&&!rival.sentOff;
+        if(rival){awayRing.position.set(rival.x,.09,rival.z);awayMarker.position.set(rival.x,2.5,rival.z);awayMarker.rotation.y=-now*.001;}
+      }else {ring.visible=false;marker.visible=false;awayRing.visible=false;awayMarker.visible=false;}
       const desired=P.cameraFrame(game,cam,camera.aspect,preview);cameraState=P.smoothCamera(cameraState,desired,dt);camera.position.fromArray(cameraState.position);camera.lookAt(new T.Vector3().fromArray(cameraState.target));
       if(Math.abs(camera.fov-cameraState.fov)>.01){camera.fov=cameraState.fov;camera.updateProjectionMatrix();}lastTime=now;
       cheerCrowd(now,game?.score);updateGoalNets(game);updateRain(now);renderer.render(scene,camera);

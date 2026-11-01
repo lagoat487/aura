@@ -2,7 +2,7 @@
 const AuraArena=(()=>{
   "use strict";
   let session=null;
-  const settings={seconds:180,difficulty:1,stadium:"night",weather:"clear",quality:"medium",camera:"broadcast",sound:true};
+  const settings={seconds:180,difficulty:1,stadium:"night",weather:"clear",quality:"medium",camera:"broadcast",sound:true,localTwoPlayer:false};
   const escape=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const cameraNames={broadcast:'TV · Transmisión',tele:'Tele · Cercana',wide:'Panorámica',tactical:'Táctica'};
   const short=s=>String(s||"").replace(/FC | CF| CF|Club |Manchester /g,"").slice(0,19);
@@ -26,15 +26,15 @@ const AuraArena=(()=>{
   function preMatch(home,away,options={}){
     if(session)return;
     const label=options.label|| (options.career?"JORNADA "+(state.round+1)+" · "+competitionName():options.draft?"DRAFT XI · AMISTOSO":"PARTIDO RÁPIDO");
-    openModal("DÍA DE PARTIDO",'<div class="prematch"><div class="matchday-release">AURA / MATCHDAY PREMIUM <span>NUEVA FÍSICA · CÁMARA DINÁMICA · ESTADIOS 3D</span></div><span class="eyebrow">'+escape(label)+'</span><div class="prematch-teams"><div>'+AuraEvolution.badge(home,70)+'<h3>'+escape(home.name)+'</h3><span>'+home.formation+'</span></div><b>VS</b><div>'+AuraEvolution.badge(away,70)+'<h3>'+escape(away.name)+'</h3><span>'+away.formation+'</span></div></div><div class="prematch-options"><label>Duración<select id="arena-duration">'+[[120,"2 minutos"],[180,"3 minutos"],[300,"5 minutos"],[480,"8 minutos"]].map(([v,t])=>'<option value="'+v+'" '+(settings.seconds===v?'selected':'')+'>'+t+'</option>').join("")+'</select></label><label>Dificultad<select id="arena-difficulty">'+[[.68,"Principiante"],[.82,"Aficionado"],[1,"Normal"],[1.16,"Profesional"],[1.34,"Leyenda"]].map(([v,t])=>'<option value="'+v+'" '+(settings.difficulty===v?'selected':'')+'>'+t+'</option>').join("")+'</select></label><label>Ambiente<select id="arena-stadium">'+[["night","Noche de fútbol"],["sunset","Atardecer"],["day","Tarde soleada"]].map(([v,t])=>'<option value="'+v+'" '+(settings.stadium===v?'selected':'')+'>'+t+'</option>').join("")+'</select></label><label>Clima<select id="arena-weather">'+'<option value="clear" '+(settings.weather==="clear"?"selected":"")+'>Despejado</option><option value="rain" '+(settings.weather==="rain"?"selected":"")+'>Lluvia · césped mojado</option>'+'</select></label><label>Gráficos<select id="arena-quality">'+[["low","Rendimiento"],["medium","Equilibrado"],["high","Alto · sombras"]].map(([v,t])=>'<option value="'+v+'" '+(settings.quality===v?'selected':'')+'>'+t+'</option>').join("")+'</select></label><label>Cámara<select id="arena-camera">'+Object.entries(cameraNames).map(([v,t])=>'<option value="'+v+'" '+(settings.camera===v?'selected':'')+'>'+t+'</option>').join('')+'</select></label></div><div class="prematch-guide"><span><kbd>WASD</kbd> o <kbd>↑↓←→</kbd> Mover</span><span><kbd>J</kbd> Tiro · mantén para potencia</span><span><kbd>K</kbd> Pase</span><span><kbd>L</kbd> Al hueco</span><span><kbd>O</kbd> Pase largo</span><span><kbd>F</kbd> Centro</span><span><kbd>R</kbd> Regate</span><span><kbd>1/2/3</kbd> Tipo de tiro</span><span><kbd>Espacio</kbd> Entrada</span><span><kbd>V</kbd> Barrida</span><span><kbd>E</kbd> Cambiar jugador</span><span><kbd>Shift</kbd> Sprint</span><span><kbd>P</kbd> Pausa</span></div><p class="save-info">Los porteros salen al mano a mano y pueden desviar tiros fuertes. Abre el ángulo y dirige el remate para superarlos. También puedes jugar con mando o controles táctiles. Tu equipo comienza atacando hacia la derecha.</p><button id="arena-kickoff" class="btn primary">Entrar al estadio <span>→</span></button></div>');
+    openModal("DÍA DE PARTIDO",'<div class="prematch"><div class="matchday-release">AURA / MATCHDAY PREMIUM <span>NUEVA FÍSICA · CÁMARA DINÁMICA · ESTADIOS 3D</span></div><span class="eyebrow">'+escape(label)+'</span><div class="prematch-teams"><div>'+AuraEvolution.badge(home,70)+'<h3>'+escape(home.name)+'</h3><span>'+home.formation+'</span></div><b>VS</b><div>'+AuraEvolution.badge(away,70)+'<h3>'+escape(away.name)+'</h3><span>'+away.formation+'</span></div></div><div class="prematch-options"><label>Duración<select id="arena-duration">'+[[120,"2 minutos"],[180,"3 minutos"],[300,"5 minutos"],[480,"8 minutos"]].map(([v,t])=>'<option value="'+v+'" '+(settings.seconds===v?'selected':'')+'>'+t+'</option>').join("")+'</select></label><label>Dificultad<select id="arena-difficulty">'+[[.68,"Principiante"],[.82,"Aficionado"],[1,"Normal"],[1.16,"Profesional"],[1.34,"Leyenda"]].map(([v,t])=>'<option value="'+v+'" '+(settings.difficulty===v?'selected':'')+'>'+t+'</option>').join("")+'</select></label><label>Ambiente<select id="arena-stadium">'+[["night","Noche de fútbol"],["sunset","Atardecer"],["day","Tarde soleada"]].map(([v,t])=>'<option value="'+v+'" '+(settings.stadium===v?'selected':'')+'>'+t+'</option>').join("")+'</select></label><label>Clima<select id="arena-weather">'+'<option value="clear" '+(settings.weather==="clear"?"selected":"")+'>Despejado</option><option value="rain" '+(settings.weather==="rain"?"selected":"")+'>Lluvia · césped mojado</option>'+'</select></label><label>Gráficos<select id="arena-quality">'+[["low","Rendimiento"],["medium","Equilibrado"],["high","Alto · sombras"]].map(([v,t])=>'<option value="'+v+'" '+(settings.quality===v?'selected':'')+'>'+t+'</option>').join("")+'</select></label><label>Cámara<select id="arena-camera">'+Object.entries(cameraNames).map(([v,t])=>'<option value="'+v+'" '+(settings.camera===v?'selected':'')+'>'+t+'</option>').join('')+'</select></label>'+( !options.career&&!options.draft&&!options.onFinish?'<label>Jugadores<select id="arena-local-players"><option value="1">1 · Contra la IA</option><option value="2">2 · Local en teclado o mandos</option></select></label>':'')+'</div><div class="prematch-guide"><span><kbd>WASD</kbd> o <kbd>↑↓←→</kbd> Mover</span><span><kbd>J</kbd> Tiro · mantén para potencia</span><span><kbd>K</kbd> Pase</span><span><kbd>L</kbd> Al hueco</span><span><kbd>O</kbd> Pase largo</span><span><kbd>F</kbd> Centro</span><span><kbd>R</kbd> Regate</span><span><kbd>1/2/3</kbd> Tipo de tiro</span><span><kbd>Espacio</kbd> Entrada</span><span><kbd>V</kbd> Barrida</span><span><kbd>E</kbd> Cambiar jugador</span><span><kbd>Shift</kbd> Sprint</span><span><kbd>P</kbd> Pausa</span></div>'+( !options.career&&!options.draft&&!options.onFinish?'<p class="save-info">Si eliges 2 jugadores: J1 usa WASD, J/K/L/E y Shift. J2 usa flechas, 0 tiro, 9 pase, 8 al hueco, 7 cambio, 6 entrada y 5 sprint. También funcionan dos mandos conectados.</p>':'')+'<p class="save-info">Los porteros salen al mano a mano y pueden desviar tiros fuertes. Abre el ángulo y dirige el remate para superarlos. También puedes jugar con mando o controles táctiles. Tu equipo comienza atacando hacia la derecha.</p><button id="arena-kickoff" class="btn primary">Entrar al estadio <span>→</span></button></div>');
     document.getElementById("arena-kickoff").onclick=()=>{
-      settings.seconds=Number(document.getElementById("arena-duration").value);settings.difficulty=Number(document.getElementById("arena-difficulty").value);settings.stadium=document.getElementById("arena-stadium").value;settings.weather=document.getElementById("arena-weather").value;settings.quality=document.getElementById("arena-quality").value;settings.camera=document.getElementById("arena-camera").value;
+      settings.seconds=Number(document.getElementById("arena-duration").value);settings.difficulty=Number(document.getElementById("arena-difficulty").value);settings.stadium=document.getElementById("arena-stadium").value;settings.weather=document.getElementById("arena-weather").value;settings.quality=document.getElementById("arena-quality").value;settings.camera=document.getElementById("arena-camera").value;settings.localTwoPlayer=!options.career&&!options.draft&&!options.onFinish&&document.getElementById("arena-local-players")?.value==="2";
       closeModal();start(home,away,options);
     };
   }
   function start(home,away,options={}){
     if(session)return;
-    const game=AuraMatch.create({home,away,...settings,tactic:options.tactic||"balanced",playerLock:options.playerLock});
+    const game=AuraMatch.create({home,away,...settings,tactic:options.tactic||"balanced",playerLock:options.playerLock,localTwoPlayer:!!settings.localTwoPlayer&&!options.career&&!options.draft&&!options.onFinish});
     const node=document.createElement("section");node.id="arena";node.className="arena";node.setAttribute("role","dialog");node.setAttribute("aria-modal","true");node.setAttribute("aria-label","Partido de fútbol");node.tabIndex=-1;
     node.innerHTML='<div class="arena-view" id="arena-view"></div><header class="match-scoreboard"><span class="match-live">AURA <b>MATCHDAY</b></span><div class="scoreboard-team home"><i style="background:'+AuraGraphics.kit(home)[0]+'"></i>'+scoreboardCrest(home)+'<span>'+escape(short(home.name))+'</span><b id="arena-home-score">0</b></div><div class="match-clock"><span id="arena-clock">00:00</span><small id="arena-half">1.ª PARTE</small></div><div class="scoreboard-team away"><b id="arena-away-score">0</b>'+scoreboardCrest(away)+'<span>'+escape(short(away.name))+'</span><i style="background:'+AuraGraphics.kit(away)[0]+'"></i></div></header><div class="arena-top-actions"><button data-arena="camera" aria-label="Cambiar cámara" title="Cambiar cámara (C)">◫</button><button data-arena="sound" aria-label="Activar o desactivar sonido" title="Sonido">♪</button><button data-arena="pause" aria-label="Pausar partido" title="Pausa (P)">Ⅱ</button></div><div class="arena-camera-label" id="arena-camera-label"></div><div id="arena-setpiece" class="arena-setpiece" hidden aria-live="polite"></div><div class="arena-replay" id="arena-replay" hidden><span>REPETICIÓN CINEMÁTICA <b>●</b></span><button data-arena="skip-replay">Volver al directo →</button></div><div class="arena-banner" id="arena-banner"></div><div id="arena-label" class="arena-label"></div><div class="arena-bottom"><div class="controlled-card"><span id="arena-portrait" class="arena-portrait" aria-hidden="true"></span><span class="controlled-rating" id="arena-grl"></span><div><span id="arena-player"></span><small id="arena-pos"></small><div class="stamina-bar"><i id="arena-stamina"></i></div></div></div><div class="arena-commentary"><span id="arena-comment">Un nuevo partido. Una nueva historia.</span><small id="arena-direction">ATACAS HACIA LA DERECHA →</small></div><canvas id="arena-minimap" width="180" height="115" aria-label="Radar de posiciones"></canvas><div class="opponent-card"><div><span id="arena-opponent"></span><small id="arena-opponent-pos"></small></div><i id="arena-opponent-kit"></i></div></div><div id="arena-power" class="shot-power" hidden><span>POTENCIA</span><div><i></i></div></div><div class="arena-key-guide"><span><kbd>K</kbd> Pase</span><span><kbd>J</kbd> Tiro</span><span><kbd>L</kbd> Al hueco</span><span><kbd>O</kbd> Pase largo</span><span><kbd>R</kbd> Regate</span><span><kbd>1/2/3</kbd> Tiro</span><span><kbd>E</kbd> Cambio</span><span><kbd>Espacio</kbd> Entrada</span><span><kbd>V</kbd> Barrida</span><span><kbd>Shift</kbd> Sprint</span></div><div class="touch-controls"><div class="touch-stick" id="touch-stick" aria-label="Joystick de movimiento"><span></span></div><div class="touch-actions"><button data-touch="switch">CAMBIO</button><button data-touch="through">HUECO</button><button data-touch="lob">LARGO</button><button data-touch="cross">CENTRO</button><button data-touch="skill">REGATE</button><button data-touch="pass">PASE</button><button data-touch="shoot" class="touch-shot">TIRO</button><button data-touch="tackle">ENTRADA</button><button data-touch="slide">BARRIDA</button><button data-touch="sprint">SPRINT</button></div></div><div class="arena-layer" id="arena-layer" hidden></div>';
     document.body.appendChild(node);document.body.classList.add("in-match");
@@ -43,7 +43,7 @@ const AuraArena=(()=>{
     let graphics;
     try {graphics=AuraGraphics.create(node.querySelector("#arena-view"),{home,away,...settings});}
     catch(error){graphics=AuraGraphics.fallback(node.querySelector("#arena-view"),{home,away,...settings});const badge=document.createElement("span");badge.className="arena-fallback";badge.textContent="3D compatible · sin aceleración gráfica";node.appendChild(badge);}
-    const s=session={node,home,away,game,graphics,options,keys:new Set(),stick:{x:0,z:0},touchSprint:false,charging:null,shotStyle:"normal",raf:0,last:0,hudTime:0,lastEvent:null,done:false,gamepadButtons:[],audio:null,voice:null,disposed:false,replay:null,replayFrames:[],recordTime:0,seenGoals:0,portraitId:null,cameraNotice:0};
+    const s=session={node,home,away,game,graphics,options,keys:new Set(),stick:{x:0,z:0},touchSprint:false,charging:null,shotStyle:"normal",raf:0,last:0,hudTime:0,lastEvent:null,done:false,gamepadButtons:[],awayPadButtons:[],audio:null,voice:null,disposed:false,replay:null,replayFrames:[],recordTime:0,seenGoals:0,portraitId:null,cameraNotice:0};
     const find=id=>node.querySelector("#"+id),layer=find("arena-layer"),previousFocus=document.activeElement;
     function ensureAudio(){
       if(!settings.sound)return null;
@@ -67,14 +67,34 @@ const AuraArena=(()=>{
       }catch{}
     }
     function controls(){
-      const key=s.keys,axes={x:(key.has("d")||key.has("arrowright")?1:0)-(key.has("a")||key.has("arrowleft")?1:0)+s.stick.x,z:(key.has("s")||key.has("arrowdown")?1:0)-(key.has("w")||key.has("arrowup")?1:0)+s.stick.z,sprint:key.has("shift")||s.touchSprint};
-      let pads=[];try{if(typeof navigator.getGamepads==="function")pads=navigator.getGamepads();}catch{}
-      let pad;for(const p of pads)if(p?.connected){pad=p;break;}
-      if(pad){axes.x+=Math.abs(pad.axes[0]||0)>.15?pad.axes[0]:0;axes.z+=Math.abs(pad.axes[1]||0)>.15?pad.axes[1]:0;axes.sprint||=!!pad.buttons[5]?.pressed;
-        for(const [index,type] of [[0,"pass"],[1,"shoot"],[2,"tackle"],[3,"through"],[4,"switch"],[5,"cross"],[6,"lob"],[7,"skill"],[8,"slide"]])if(!s.replay&&!game.paused&&!s.done&&pad.buttons[index]?.pressed&&!s.gamepadButtons[index])AuraMatch.action(game,type,axes);
-        if(pad.buttons[9]?.pressed&&!s.gamepadButtons[9])pause();s.gamepadButtons=pad.buttons.map(b=>b.pressed);
-      }
-      return axes;
+      const key=s.keys,local=game.localTwoPlayer;
+      const axes={x:(key.has("d")||(!local&&key.has("arrowright"))?1:0)-(key.has("a")||(!local&&key.has("arrowleft"))?1:0)+s.stick.x,
+        z:(key.has("s")||(!local&&key.has("arrowdown"))?1:0)-(key.has("w")||(!local&&key.has("arrowup"))?1:0)+s.stick.z,
+        sprint:key.has("shift")||s.touchSprint};
+      const away={x:(key.has("arrowright")?1:0)-(key.has("arrowleft")?1:0),
+        z:(key.has("arrowdown")?1:0)-(key.has("arrowup")?1:0),sprint:key.has("5")};
+      let pads=[];try{if(typeof navigator.getGamepads==="function")pads=Array.from(navigator.getGamepads()||[]).filter(p=>p?.connected);}catch{}
+      const map=[[0,"pass"],[1,"shoot"],[2,"tackle"],[3,"through"],[4,"switch"],[5,"cross"],[6,"lob"],[7,"skill"],[8,"slide"]];
+      const first=pads[0];
+      if(first){
+        axes.x+=Math.abs(first.axes[0]||0)>.15?first.axes[0]:0;
+        axes.z+=Math.abs(first.axes[1]||0)>.15?first.axes[1]:0;
+        axes.sprint||=!!first.buttons[5]?.pressed;
+        for(const [index,type] of map)if(!s.replay&&!game.paused&&!s.done&&first.buttons[index]?.pressed&&!s.gamepadButtons[index])AuraMatch.action(game,type,axes);
+        if(first.buttons[9]?.pressed&&!s.gamepadButtons[9])pause();
+        s.gamepadButtons=first.buttons.map(b=>b.pressed);
+      }else s.gamepadButtons=[];
+      const second=local?pads[1]:null;
+      if(second){
+        away.x+=Math.abs(second.axes[0]||0)>.15?second.axes[0]:0;
+        away.z+=Math.abs(second.axes[1]||0)>.15?second.axes[1]:0;
+        away.sprint||=!!second.buttons[5]?.pressed;
+        for(const [index,type] of map)if(!s.replay&&!game.paused&&!s.done&&second.buttons[index]?.pressed&&!s.awayPadButtons[index])
+          AuraMatch.action(game,type,{...away,team:1,power:.72});
+        if(second.buttons[9]?.pressed&&!s.awayPadButtons[9])pause();
+        s.awayPadButtons=second.buttons.map(b=>b.pressed);
+      }else s.awayPadButtons=[];
+      return {...axes,away};
     }
     function pause(){
       if(s.done)return;game.paused=!game.paused;s.keys.clear();releaseStick();s.touchSprint=false;s.charging=null;find("arena-power").hidden=true;layer.hidden=!game.paused;
@@ -100,13 +120,18 @@ const AuraArena=(()=>{
     }
     function keydown(e){
       if(e.ctrlKey||e.metaKey||e.altKey)return;
-      const k=e.key.toLowerCase(),known=["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright","shift","j","k","l","o","r","v","f","1","2","3","e"," ","p","escape","c"];
+      const k=e.key.toLowerCase(),known=["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright","shift","j","k","l","o","r","v","f","1","2","3","5","6","7","8","9","0","e"," ","p","escape","c"];
       if(game.paused&&e.target.matches?.('select,input,textarea')&&k!=="escape"&&k!=="p")return;
       if(k===" "&&e.target.closest?.('button'))return;
       if(k==="tab"){const buttons=[...node.querySelectorAll('button:not([disabled]),select:not([disabled]),input:not([disabled])')].filter(b=>b.getClientRects().length);if(buttons.length){const first=buttons[0],last=buttons.at(-1);if(e.shiftKey&&(document.activeElement===first||document.activeElement===node)){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}return;}
       if(!known.includes(k))return;e.preventDefault();e.stopImmediatePropagation();if(e.repeat)return;
       if(k==="p"||k==="escape"){pause();return;}if(k==="c"){changeCamera();return;}if(s.replay){if(k===" ")skipReplay();return;}if(game.paused||s.done)return;s.keys.add(k);
-      if(["1","2","3"].includes(k)){s.shotStyle=({"1":"placed","2":"power","3":"curve"})[k];return;}if(k==="j"){s.charging=performance.now();find("arena-power").hidden=false;}
+      if(["1","2","3"].includes(k)){s.shotStyle=({"1":"placed","2":"power","3":"curve"})[k];return;}
+       if(game.localTwoPlayer){
+         const awayAction=({"0":"shoot","9":"pass","8":"through","7":"switch","6":"tackle"})[k];
+         if(awayAction){AuraMatch.action(game,awayAction,{...controls().away,team:1,power:.76});sound(awayAction==="shoot"?"shot":"pass");return;}
+       }
+       if(k==="j"){s.charging=performance.now();find("arena-power").hidden=false;}
       const types={k:"pass",l:"through",o:"lob",r:"skill",v:"slide",f:"cross",e:"switch"," ":"tackle"};if(types[k]){AuraMatch.action(game,types[k],controls());sound("pass");}
     }
     function shoot(){if(s.charging===null||s.replay||game.paused||s.done)return;const power=Math.min(1,(performance.now()-s.charging)/950+.2);AuraMatch.action(game,"shoot",{...controls(),power,style:s.shotStyle});s.charging=null;find("arena-power").hidden=true;sound("shot");}

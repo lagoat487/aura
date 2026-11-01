@@ -3,7 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const Match=require('../match-engine'),Presentation=require('../match-presentation');
 // Exercise the actual arena controller and frame loop; the renderer/DOM only
 // supply the surfaces it uses. Real layout and input are checked in the browser.
-function boot(){
+function boot(options={}){
  const nodes=new Map(),windowEvents={},docEvents={},raf=new Map();let now=0,nextRaf=0,commits=0,cancels=0,lastView=null;
  const classList={add(){},remove(){},toggle(){}};
  const context2d=new Proxy({},{get:()=>()=>{}});
@@ -25,7 +25,8 @@ function boot(){
   requestAnimationFrame:fn=>{raf.set(++nextRaf,fn);return nextRaf;},cancelAnimationFrame:id=>raf.delete(id),home,away,commit:()=>commits++,cancel:()=>cancels++,
  });
  vm.runInContext(fs.readFileSync(path.join(__dirname,'..','match-ui.js'),'utf8'),context);
- vm.runInContext('AuraArena.settings.sound=false;AuraArena.settings.seconds=30;AuraArena.start(home,away,{onFinish:commit,onCancel:cancel})',context);
+ vm.runInContext('AuraArena.settings.sound=false;AuraArena.settings.seconds=30;'+
+   (options.local?'AuraArena.settings.localTwoPlayer=true;AuraArena.start(home,away,{})':'AuraArena.start(home,away,{onFinish:commit,onCancel:cancel})'),context);
  const session=vm.runInContext('AuraArena.getSession()',context);
  return {session,node,run:code=>vm.runInContext(code,context),frame(ms=100){now+=ms;const callbacks=[...raf.values()];raf.clear();callbacks.forEach(fn=>fn(now));},
   key(type,key,target=node()){const event={key,target,defaultPrevented:false,preventDefault(){this.defaultPrevented=true;},stopImmediatePropagation(){this.stopped=true;}};windowEvents[type]?.(event);return event;},click(action){session.node.fire('click',{target:{closest:()=>({dataset:{arena:action}})}});},
@@ -100,4 +101,27 @@ test('the final match summary shows real keeper saves and parries without double
  const html=a.node('arena-layer').innerHTML;
  assert.match(html,/<span>Paradas<\/span><b>4<\/b>/);assert.match(html,/<span>Desvíos del portero<\/span><b>2<\/b>/);assert.doesNotMatch(html,/undefined|NaN/);
  a.click('complete');a.click('complete');assert.equal(a.commits(),1);
+});
+
+test('two-player exhibition assigns arrows to the visitor without moving the home player',()=>{
+ const a=boot({local:true}),g=a.session.game;
+ assert.equal(g.localTwoPlayer,true);
+ g.phase='playing';a.frame();
+ const home=g.players[g.controlled],away=g.players[g.awayControlled],xHome=home.x,xAway=away.x;
+ a.key('keydown','arrowleft');
+ for(let i=0;i<9;i++)a.frame(50);
+ a.key('keyup','arrowleft');
+ assert.ok(away.x<xAway-.4,'Player 2 arrow movement should reach the away footballer');
+ assert.ok(Math.abs(home.x-xHome)<.3,'Player 2 input should not move Player 1');
+ a.key('keydown','d');for(let i=0;i<9;i++)a.frame(50);a.key('keyup','d');
+ assert.ok(home.x>xHome+.4,'Player 1 continues to move with WASD');
+ a.click('pause');a.click('exit');a.click('confirm-exit');
+});
+test('visitor shooting shortcut works only for the away-controlled player in local mode',()=>{
+ const a=boot({local:true}),g=a.session.game;g.phase='playing';const away=g.players[g.awayControlled];
+ away.cooldown=0;Object.assign(g.ball,{owner:g.awayControlled,x:away.x-.65,z:away.z,y:.22});
+ a.key('keydown','0');
+ assert.equal(g.stats[1].shots,1);
+ assert.equal(g.stats[0].shots,0);
+ a.key('keyup','0');a.click('pause');a.click('exit');a.click('confirm-exit');
 });

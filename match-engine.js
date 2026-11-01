@@ -17,7 +17,7 @@
         baseX,baseZ,x:0,z:0,vx:0,vz:0,faceX:team===0?1:-1,faceZ:0,stamina:clamp(Number.isFinite(p.fitness)?p.fitness:100,0,100),cooldown:0,skillTime:0,skillCooldown:0,yellows:0,sentOff:false,run:0,turn:0,dribbleTime:0,action:null,actionTime:0,actionDuration:0,diveSide:1};
     }));
     const game={players,ball:{x:0,y:.22,z:0,vx:0,vy:0,vz:0,spin:0,owner:null,lastTouch:0,freeTime:0,lastKicker:null},
-      score:[0,0],elapsed:0,visualTime:0,seconds,half:1,phase:"kickoff",phaseTime:1.1,controlled:9,events:[],
+      score:[0,0],elapsed:0,visualTime:0,seconds,half:1,phase:"kickoff",phaseTime:1.1,controlled:9,awayControlled:20,localTwoPlayer:!!options.localTwoPlayer,events:[],
       stats:[0,1].map(()=>({shots:0,onTarget:0,passes:0,completed:0,throughBalls:0,crosses:0,interceptions:0,fouls:0,yellows:0,reds:0,penalties:0,saves:0,parries:0,claims:0,tackles:0,possession:0,xg:0,keyPasses:0,blockedShots:0})),
       benches:sides.map(t=>(t.bench||[]).filter(p=>p&&typeof p.id==="string").map(p=>({...p}))),
       participants:sides.map(t=>t.players.map(p=>p.id)),substitutions:[],
@@ -33,7 +33,7 @@
     const taker=game.players.find(p=>p.team===kicking&&p.index===9&&!p.sentOff)||game.players.find(p=>p.team===kicking&&p.index!==0&&!p.sentOff),support=game.players.find(p=>p.team===kicking&&p.index===7&&!p.sentOff)||taker;
     if(!taker)throw Error("No hay sacador disponible.");taker.x=-direction(game,kicking)*1.4;taker.z=0;if(support!==taker){support.x=-direction(game,kicking)*5;support.z=6;}
     Object.assign(game.ball,{x:taker.x,y:.22,z:0,vx:0,vy:0,vz:0,owner:game.players.indexOf(taker),lastTouch:kicking,freeTime:0,lastKicker:null});
-    game.controlled=game.playerLock?game.players.findIndex(p=>p.team===0&&p.id===game.playerLock):(kicking===0?game.players.indexOf(taker):nearest(game,0));game.setPiece=null;game.wallFlight=null;game.passTarget=null;game.passRun=null;game.offsideTarget=null;game.ball.lastKickerIdentity=null;
+    game.controlled=game.playerLock?game.players.findIndex(p=>p.team===0&&p.id===game.playerLock):(kicking===0?game.players.indexOf(taker):nearest(game,0));if(game.localTwoPlayer)game.awayControlled=kicking===1?game.players.indexOf(taker):nearest(game,1);game.setPiece=null;game.wallFlight=null;game.passTarget=null;game.passRun=null;game.offsideTarget=null;game.ball.lastKickerIdentity=null;
   }
   function nearest(game,team,point=game.ball,excludeKeeper=true){
     let best=null,bestD=Infinity;
@@ -55,6 +55,7 @@
       p.dribbleTime=.25+(1-technique)*.16;
     }
     if(p.team===0&&!game.playerLock)game.controlled=index;
+    if(p.team===1&&game.localTwoPlayer)game.awayControlled=index;
   }
   function launch(game,p,target,speed,lift){
     const b=game.ball,dx=target.x-b.x,dz=target.z-b.z,len=Math.hypot(dx,dz)||1;
@@ -236,15 +237,20 @@
 
   function action(game,type,input={}){
     if(game.phase!=="playing"||game.paused)return false;
-    if(type==="switch"){if(game.playerLock)return false;game.controlled=nearest(game,0)??game.controlled;return true;}
-    const index=game.controlled,p=game.players[index],b=game.ball;
+    const away=game.localTwoPlayer&&input.team===1;
+    if(type==="switch"){
+      if(away){game.awayControlled=nearest(game,1)??game.awayControlled;return true;}
+      if(game.playerLock)return false;
+      game.controlled=nearest(game,0)??game.controlled;return true;
+    }
+    const index=away?game.awayControlled:game.controlled,p=game.players[index],b=game.ball;
     if(type==="tackle"||type==="slide"){
       if(p.sentOff||p.cooldown>0||b.owner===null)return false;
       const carrier=game.players[b.owner];if(carrier.team===p.team||dist(p,carrier)>3)return false;
       p.cooldown=type==="slide"?1.2:.9;
       animate(p,"tackle",.4);
       if(game.rng()<clamp(.62+(p.overall-carrier.overall)*.009+(type==="slide"?.09:0),.35,.9)){
-        ownBall(game,index);carrier.cooldown=.8;game.stats[0].tackles++;event(game,"tackle",p.name+" recupera");return true;
+        ownBall(game,index);carrier.cooldown=.8;game.stats[p.team].tackles++;event(game,"tackle",p.name+" recupera");return true;
       }
       if(type==="slide"||game.rng()<.24)return whistleFoul(game,p,carrier,type==="slide");
       return false;
@@ -432,6 +438,7 @@
     game.setPiece=null;game.wallFlight=null;
     p.x=clamp(x,-49,49);p.z=clamp(z,-32,32);ownBall(game,index);p.cooldown=.8;
     if(team===0&&!game.playerLock)game.controlled=index;
+    if(team===1&&game.localTwoPlayer)game.awayControlled=index;
     game.ball.x=p.x;game.ball.z=p.z;game.ball.y=.22;game.ball.spin=0;
     event(game,"restart",kind,{team});
   }
@@ -501,14 +508,15 @@
     const chasers=[nearest(game,0),nearest(game,1)],keeperStarts=game.players.flatMap((p,i)=>p.index===0?[[i,{x:p.x,z:p.z}]]:[]);
     for(let i=0;i<game.players.length;i++){
       const p=game.players[i];if(p.sentOff)continue;p.cooldown=Math.max(0,p.cooldown-dt);p.skillCooldown=Math.max(0,p.skillCooldown-dt);
-      if((game.setPiece&&((i===game.controlled&&game.setPiece.team===p.team&&b.owner===i)||
+      if((game.setPiece&&(((i===game.controlled||(game.localTwoPlayer&&i===game.awayControlled))&&game.setPiece.team===p.team&&b.owner===i)||
         (game.setPiece.kind==="free-kick"&&game.setPiece.wall?.includes(i))))||
         game.wallFlight?.indices?.includes(i)){
         p.vx=p.vz=0;continue;
       }
-      if(i===game.controlled){
-        let x=clamp(Number(input.x)||0,-1,1),z=clamp(Number(input.z)||0,-1,1),len=Math.hypot(x,z);if(len>1){x/=len;z/=len;}
-        const sprint=input.sprint&&p.stamina>10&&len>.1;p.stamina=clamp(p.stamina+dt*(sprint?-8:3.2),0,100);
+      if(i===game.controlled||(game.localTwoPlayer&&i===game.awayControlled)){
+        const intent=game.localTwoPlayer&&i===game.awayControlled?(input.away||{}):input;
+        let x=clamp(Number(intent.x)||0,-1,1),z=clamp(Number(intent.z)||0,-1,1),len=Math.hypot(x,z);if(len>1){x/=len;z/=len;}
+        const sprint=intent.sprint&&p.stamina>10&&len>.1;p.stamina=clamp(p.stamina+dt*(sprint?-8:3.2),0,100);
         const burst=p.skillTime>0;
         const speed=(4.9+p.overall*.027)*(sprint?1.38:1)*(b.owner===i?.94:1)*(.78+p.stamina*.0022)*(burst?1.24:1);
         if(burst){p.skillTime=Math.max(0,p.skillTime-dt);p.stamina=clamp(p.stamina-dt*4,0,100);}

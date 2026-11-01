@@ -86,7 +86,7 @@ const AuraSoftwareGraphics=(()=>{
       const world=(x,y,z)=>[p.x+(side[0]*(x+pose.turn*y*.025)+f[0]*(z+pose.lean*y*.035))*look.build,y*scale*Math.cos(tilt)+elevation,p.z+(side[1]*(x+pose.turn*y*.025)+f[1]*(z+pose.lean*y*.035))*look.build+y*scale*Math.sin(tilt)];
       const ground=point(p.x,.02,p.z),size=Math.max(2,ground.scale*.22),head=point(...world(0,1.70,0));
       const shade=ctx.createRadialGradient(ground.x,ground.y,0,ground.x,ground.y,size*2.2);shade.addColorStop(0,'#0920167a');shade.addColorStop(1,'#09201600');ctx.save();ctx.translate(ground.x,ground.y);ctx.scale(1,.38);ctx.fillStyle=shade;ctx.beginPath();ctx.arc(0,0,size*2.1,0,Math.PI*2);ctx.fill();ctx.restore();
-      if(selected){ctx.strokeStyle='#d5ff83';ctx.lineWidth=1.7;ctx.beginPath();ctx.ellipse(ground.x,ground.y,size*2.25,size*.66,0,0,Math.PI*2);ctx.stroke();}
+      if(selected){ctx.strokeStyle=p.team===1?'#59c7ff':'#d5ff83';ctx.lineWidth=1.7;ctx.beginPath();ctx.ellipse(ground.x,ground.y,size*2.25,size*.66,0,0,Math.PI*2);ctx.stroke();}
       function limb(a,b,color,thickness){const u=point(...a),v=point(...b);ctx.lineCap='round';ctx.strokeStyle='#10271f70';ctx.lineWidth=Math.max(1,u.scale*thickness)+.65;ctx.beginPath();ctx.moveTo(u.x,u.y);ctx.lineTo(v.x,v.y);ctx.stroke();ctx.strokeStyle=color;ctx.lineWidth=Math.max(.8,u.scale*thickness);ctx.stroke();}
       const bone=(x,y,z,angle,length)=>[x,y-Math.cos(angle)*length,z-Math.sin(angle)*length];
       for(let i=0;i<2;i++){
@@ -112,7 +112,7 @@ const AuraSoftwareGraphics=(()=>{
       const r=Math.max(1.5,head.scale*.16),face=ctx.createRadialGradient(head.x-r*.35,head.y-r*.4,.2,head.x,head.y,r*1.4);face.addColorStop(0,look.skin);face.addColorStop(1,'#654638');ctx.fillStyle=face;ctx.beginPath();ctx.ellipse(head.x,head.y,r,r*1.19,0,0,Math.PI*2);ctx.fill();
       ctx.fillStyle=look.hair;ctx.beginPath();ctx.ellipse(head.x,head.y-r*.35,r*1.01,r*.76,0,Math.PI,Math.PI*2);ctx.fill();
       const label=point(...world(0,1.15,front?.19:-.19));ctx.fillStyle=colors[2];ctx.textAlign='center';ctx.font='700 '+Math.max(5,label.scale*(front?.11:.27))+'px Arial';ctx.fillText(front?'A':String(p.number),label.x,label.y+label.scale*.10);
-      if(selected){const h=point(p.x,2.22,p.z);ctx.fillStyle='#d5ff83';ctx.beginPath();ctx.moveTo(h.x-4,h.y-5);ctx.lineTo(h.x+4,h.y-5);ctx.lineTo(h.x,h.y+1);ctx.fill();}
+      if(selected){const h=point(p.x,2.22,p.z);ctx.fillStyle=p.team===1?'#59c7ff':'#d5ff83';ctx.beginPath();ctx.moveTo(h.x-4,h.y-5);ctx.lineTo(h.x+4,h.y-5);ctx.lineTo(h.x,h.y+1);ctx.fill();}
     }
     function resize(){const dpr=Math.min(globalThis.devicePixelRatio||1,options.quality==='low'?1:options.quality==='high'?2:1.5);width=Math.max(1,container.clientWidth);height=Math.max(1,container.clientHeight);if(canvas.width!==Math.round(width*dpr)||canvas.height!==Math.round(height*dpr)){canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);canvas.style.width=width+'px';canvas.style.height=height+'px';}ctx.setTransform(dpr,0,0,dpr,0,0);}
     function render(game,cam='broadcast',now=0){
@@ -124,7 +124,7 @@ const AuraSoftwareGraphics=(()=>{
         stadium();if(background.width!==canvas.width||background.height!==canvas.height){background.width=canvas.width;background.height=canvas.height;}backgroundCtx.drawImage(canvas,0,0);backgroundKey=key;
       }else ctx.drawImage(background,0,0,width,height);
       if(game){
-        const entities=game.players.filter(p=>!p.sentOff).map(p=>({depth:point(p.x,0,p.z).depth,draw:()=>player(p,game.players[game.controlled]===p,game)}));
+        const entities=game.players.filter(p=>!p.sentOff).map(p=>({depth:point(p.x,0,p.z).depth,draw:()=>player(p,game.players[game.controlled]===p||(game.localTwoPlayer&&game.players[game.awayControlled]===p),game)}));
         entities.push({depth:point(game.ball.x,game.ball.y,game.ball.z).depth,draw:()=>{
           const ball=game.ball,b=point(ball.x,ball.y,ball.z),shadow=point(ball.x,0,ball.z),radius=Math.max(2.2,b.scale*.18);
           ctx.fillStyle='#0e271b66';ctx.beginPath();ctx.ellipse(shadow.x,shadow.y,radius*1.1,radius*.4,0,0,Math.PI*2);ctx.fill();
