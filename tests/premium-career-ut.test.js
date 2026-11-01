@@ -8,7 +8,7 @@ function career(){
    competition:{fixtures:Array(12).fill([])},rosters:{a:Array.from({length:18},(_,i)=>({id:"p"+i,name:"Player "+i,pos:i===0?"POR":"MC",overall:75,potential:83,morale:70,fitness:95,wage:1000}))}};
 }
 test("manager press conference is available after a match and changes morale exactly once",()=>{
- const g=career();let before=JSON.stringify(g);assert.match(Career.pressConference(g,"protect").error,/Primero/);
+ const g=career();Career.initialize(g);let before=JSON.stringify(g);assert.match(Career.pressConference(g,"protect").error,/Primero/);
  assert.equal(JSON.stringify(g),before);
  g.round=1;let morale=g.rosters.a[0].morale,coins=g.budget;
  const result=Career.pressConference(g,"protect");assert.equal(result.ok,true);
