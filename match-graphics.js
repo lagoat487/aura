@@ -97,7 +97,7 @@ const AuraGraphics=(()=>{
     function cheerCrowd(now,score){
       if(quality==="low"||now-lastCrowdUpdate<500||!count)return;
       lastCrowdUpdate=now;
-      const active=Math.min(120,count),joy=score?.[0]>0||score?.[1]>0?.14:.06;
+      const active=Math.min(120,count),joy=(score?.[0]>0||score?.[1]>0)? .14 : .06;
       for(let i=0;i<active;i++){
         const point=seatPositions[(i*17)%seatPositions.length];
         dummy.position.set(point[0],point[1]+.52+Math.sin(now*.003+i)*joy,point[2]);
