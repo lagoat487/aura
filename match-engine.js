@@ -501,8 +501,9 @@
     const chasers=[nearest(game,0),nearest(game,1)],keeperStarts=game.players.flatMap((p,i)=>p.index===0?[[i,{x:p.x,z:p.z}]]:[]);
     for(let i=0;i<game.players.length;i++){
       const p=game.players[i];if(p.sentOff)continue;p.cooldown=Math.max(0,p.cooldown-dt);p.skillCooldown=Math.max(0,p.skillCooldown-dt);
-      if(game.setPiece&&((i===game.controlled&&game.setPiece.team===p.team&&b.owner===i)||
-        ((game.setPiece.kind==="free-kick"&&game.setPiece.wall?.includes(i))||game.wallFlight?.indices?.includes(i)))){
+      if((game.setPiece&&((i===game.controlled&&game.setPiece.team===p.team&&b.owner===i)||
+        (game.setPiece.kind==="free-kick"&&game.setPiece.wall?.includes(i))))||
+        game.wallFlight?.indices?.includes(i)){
         p.vx=p.vz=0;continue;
       }
       if(i===game.controlled){
