@@ -47,10 +47,39 @@ const AuraCareerUI=(()=>{
         const p=roster.find(p=>p.id===sheet.xi[i]);return p?'<div class="pitch-slot" style="left:'+x+'%;top:'+y+'%">'+playerButton(p,"pitch",slot)+'</div>':'';
       }).join("")+'</div><div class="bench-heading"><h3>SUPLENTES Y RESERVAS</h3><span>'+bench.length+'</span></div><div class="bench-strip">'+bench.map(p=>playerButton(p,"bench")).join("")+'</div></section>'+profile()+'</div>'+note;
   }
+  function loanPanel(){
+    const active=AuraLoans.active(state).filter(l=>l.to===state.club);
+    return '<section class="transfer-hub"><div class="panel-title"><div><span class="eyebrow">FICHAJES TEMPORALES</span><h3>JUGADORES CEDIDOS</h3></div><span class="pill">'+active.length+' activos</span></div>'+
+      (active.length?'<div class="deal-list">'+active.map(l=>
+        '<div class="deal-list-item"><span class="deal-type">⇄</span><span><strong>'+safeText(l.name)+'</strong><small>Hasta temporada '+l.expires+' · Compra opcional '+money(l.optionPrice)+'</small></span><button class="btn small" data-loan-option="'+safeText(l.playerId)+'">Comprar definitivamente →</button></div>').join('')+'</div>':
+      '<p class="empty-deals">Todavía no tienes jugadores cedidos. En el mercado puedes solicitar una cesión de una temporada.</p>')+'</section>';
+  }
+  function openLoan(id){
+    const found=findPlayer(id),p=found?.p,price=AuraLoans.terms(p);
+    if(!p||!price||found.cid===state.club)return notify("Este jugador no está disponible para una cesión.");
+    openModal("CESIÓN CON OPCIÓN DE COMPRA",
+      '<section class="deal-screen"><h3>'+safeText(p.name)+'</h3><p>Se incorpora durante una temporada. Al finalizar volverá a su club si no ejerces la opción de compra.</p>'+
+      '<dl class="offer-facts"><div><dt>Coste de cesión</dt><dd>'+money(price.fee)+'</dd></div>'+
+      '<div><dt>Salario semanal</dt><dd>'+money(price.wage)+'</dd></div>'+
+      '<div><dt>Opción de compra</dt><dd>'+money(price.optionPrice)+'</dd></div>'+
+      '<div><dt>Fin de cesión</dt><dd>'+ (state.season+1) +'</dd></div></dl>'+
+      '<p class="save-info">Solo se cobrará el coste de cesión al confirmar. La opción de compra no es obligatoria.</p>'+
+      '<button class="btn primary" data-loan-confirm="'+safeText(id)+'">Confirmar cesión →</button></section>');
+  }
+  function openLoanOption(id){
+    const l=AuraLoans.active(state).find(l=>l.playerId===id&&l.to===state.club);
+    if(!l)return notify("No existe una cesión activa con opción de compra.");
+    openModal("EJERCER OPCIÓN DE COMPRA",
+      '<section class="deal-screen"><h3>'+safeText(l.name)+'</h3>'+
+      '<p>Compra definitiva del jugador, manteniendo su puesto en la plantilla.</p>'+
+      '<div class="counter-offer"><span>PRECIO ACORDADO</span><strong>'+money(l.optionPrice)+'</strong></div>'+
+      '<p class="save-info">Esta operación descontará el importe del presupuesto del club solo al confirmarla.</p>'+
+      '<button class="btn primary" data-loan-buy-confirm="'+safeText(id)+'">Comprar definitivamente →</button></section>');
+  }
   function transferHub(){
     const deals=Deals.initialize(state),active=deals.filter(d=>!Deals.terminal.has(d.stage)),done=deals.filter(d=>["signed","sold","renewed"].includes(d.stage));
     return '<section class="transfer-hub"><div class="panel-title"><div><span class="eyebrow">TU MESA DE OPERACIONES</span><h3>CENTRAL DE NEGOCIACIONES</h3></div><div class="row"><span class="pill">'+active.length+' abiertas</span><span class="pill">'+done.length+' cerradas</span></div></div>'+
-      (deals.length?'<div class="deal-list">'+deals.slice().reverse().slice(0,12).map(d=>'<button class="deal-list-item" data-open-deal="'+d.id+'"><span class="deal-type">'+(d.mode==="buy"?'↙':d.mode==="sell"?'↗':'↻')+'</span><span><strong>'+safeText(shortName(d.player))+'</strong><small>'+(d.mode==="buy"?'Fichaje':d.mode==="sell"?'Venta':'Renovación')+' · '+safeText(d.sourceName)+'</small></span><span class="deal-status '+(Deals.terminal.has(d.stage)?'':'accent')+'">'+status[d.stage]+(d.rival?' · rival en puja':'')+'</span><span>→</span></button>').join("")+'</div>':'<p class="empty-deals">Tu próximo gran fichaje empieza con una llamada. Busca un jugador y pulsa <b>Negociar</b>.</p>')+'</section>';
+      (deals.length?'<div class="deal-list">'+deals.slice().reverse().slice(0,12).map(d=>'<button class="deal-list-item" data-open-deal="'+d.id+'"><span class="deal-type">'+(d.mode==="buy"?'↙':d.mode==="sell"?'↗':'↻')+'</span><span><strong>'+safeText(shortName(d.player))+'</strong><small>'+(d.mode==="buy"?'Fichaje':d.mode==="sell"?'Venta':'Renovación')+' · '+safeText(d.sourceName)+'</small></span><span class="deal-status '+(Deals.terminal.has(d.stage)?'':'accent')+'">'+status[d.stage]+(d.rival?' · rival en puja':'')+'</span><span>→</span></button>').join("")+'</div>':'<p class="empty-deals">Tu próximo gran fichaje empieza con una llamada. Busca un jugador y pulsa <b>Negociar</b>.</p>')+'</section>'+loanPanel();
   }
   function buyerFor(player){
     const candidates=clubs.filter(c=>c.id!==state.club&&c.rating>=player.overall-14&&c.budget>=player.value*.85);
@@ -149,6 +178,20 @@ const AuraCareerUI=(()=>{
       if(data.squadAction==="captain"){state.squad.captain=p.id;notify(p.name+" es el nuevo capitán.")}
       if(data.squadAction==="auto"){Squad.autoPick(state);swapFrom=null;notify("Once elegido según posición, media y estado.")}
       render();return true;
+    }
+    if(data.loan){openLoan(data.loan);return true}
+    if(data.loanConfirm){
+      const result=AuraLoans.borrow(state,data.loanConfirm);
+      if(result.error)notify(result.error);
+      else {state.news.unshift("Cesión acordada: "+result.loan.name+" hasta "+result.loan.expires+".");state.news=state.news.slice(0,20);closeModal();render();notify("Cesión confirmada.");}
+      return true;
+    }
+    if(data.loanOption){openLoanOption(data.loanOption);return true}
+    if(data.loanBuyConfirm){
+      const result=AuraLoans.buyOption(state,data.loanBuyConfirm);
+      if(result.error)notify(result.error);
+      else {state.news.unshift("Compra definitiva de "+result.loan.name+".");state.news=state.news.slice(0,20);closeModal();render();notify("Opción de compra ejecutada.");}
+      return true;
     }
     if(data.renew){start(data.renew,"renew");return true}
     if(data.openDeal){openDeal(data.openDeal);return true}
