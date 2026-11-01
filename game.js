@@ -81,9 +81,11 @@ function startNextSeason(competitionId) {
   state.seasonHistory=state.seasonHistory||[];
   state.seasonHistory.push({season:state.season,competition:competitionName(),position:rank(),
     table:seasonTable(),history:state.history.slice(),champion:state.champions?.champion,continentalHistory:(state.continentalHistory||[]).slice()});
+  const returnedLoans=AuraLoans.returnExpired(state,state.season+1);
   const regenerated=AuraTour.rollover(state);
   state.season++; state.version=2; state.round=0;
   AuraSquad.ensure(state);
+  if(returnedLoans.length)state.news.unshift("Finalizan "+returnedLoans.length+" cesiones: "+returnedLoans.slice(0,3).join(", ")+(returnedLoans.length>3?"…":"")+".");
   if(regenerated.length)state.news.unshift(regenerated.length+" veteranos se retiraron: una nueva generación llega a sus clubes.");
   state.competition=Competitions.createSeason(definition,state.season);
   state.wins=state.draws=state.losses=state.goals=state.against=0;
@@ -225,7 +227,7 @@ function marketResults(){
     .slice(0,50).map(p=>findPlayer(p.id)?.p||p);
   if(!matches.length)return '<p class="save-info">No encontramos jugadores disponibles con ese nombre.</p>';
   return '<div class="table-wrap"><table class="table"><thead><tr><th>Jugador</th><th>Club</th><th>GRL</th><th>Valor</th><th>Negociar</th></tr></thead><tbody>'+
-    matches.map(p=>'<tr><td><div class="face-name">'+portrait(p)+safeText(p.name)+'</div></td><td>'+safeText(clubs.find(c=>c.id===p.club)?.name||p.sourceClub||"Club de origen")+'</td><td class="accent">'+p.overall+'</td><td>'+money(p.value)+'</td><td><button class="btn small" data-buy="'+safeText(p.id)+'" '+(state.budget<=0?'disabled':'')+'>Negociar</button></td></tr>').join("")+'</tbody></table></div>';
+    matches.map(p=>'<tr><td><div class="face-name">'+portrait(p)+safeText(p.name)+'</div></td><td>'+safeText(clubs.find(c=>c.id===p.club)?.name||p.sourceClub||"Club de origen")+'</td><td class="accent">'+p.overall+'</td><td>'+money(p.value)+'</td><td><button class="btn small" data-buy="'+safeText(p.id)+'" '+(state.budget<=0?'disabled':'')+'>Negociar</button> <button class="btn small subtle" data-loan="'+safeText(p.id)+'" title="Cesión por una temporada con opción de compra" '+(state.budget<=0?'disabled':'')+'>Cesión</button></td></tr>').join("")+'</tbody></table></div>';
 }
 function renderMarket(){
   const pool=Object.entries(state.rosters).filter(([cid])=>cid!==state.club).flatMap(([,ps])=>ps).sort((a,b)=>b.overall-a.overall);
@@ -233,7 +235,7 @@ function renderMarket(){
     AuraCareerUI.transferHub()+'<div class="notice">Consulta → negociación con el club → contrato → firma. Los importes son de simulación; puedes pausar una llamada y retomarla aquí.</div>'+
     '<section class="card" style="margin:15px 0"><h3>BUSCADOR MUNDIAL DE JUGADORES</h3><label for="market-search">Nombre o club</label> <input id="market-search" type="search" placeholder="Ej. Lamine Yamal" value="'+safeText(marketSearch)+'" autocomplete="off"><div id="world-results" style="margin-top:12px">'+marketResults()+'</div></section>'+
     '<h3>Jugadores en las plantillas de tu competición</h3><div class="table-wrap"><table class="table"><thead><tr><th>Jugador</th><th>Club</th><th>POS</th><th>GRL</th><th>Valor</th><th>Acción</th></tr></thead><tbody>'+
-    pool.slice(0,75).map(p=>'<tr><td><div class="face-name">'+portrait(p)+safeText(p.name)+'</div></td><td>'+safeText(getClub(p.club).name)+'</td><td>'+safeText(p.pos)+'</td><td class="accent">'+p.overall+'</td><td>'+money(p.value)+'</td><td><button class="btn small" data-buy="'+safeText(p.id)+'" '+(state.budget<=0?'disabled':'')+'>Negociar</button></td></tr>').join("")+'</tbody></table></div>';
+    pool.slice(0,75).map(p=>'<tr><td><div class="face-name">'+portrait(p)+safeText(p.name)+'</div></td><td>'+safeText(getClub(p.club).name)+'</td><td>'+safeText(p.pos)+'</td><td class="accent">'+p.overall+'</td><td>'+money(p.value)+'</td><td><button class="btn small" data-buy="'+safeText(p.id)+'" '+(state.budget<=0?'disabled':'')+'>Negociar</button> <button class="btn small subtle" data-loan="'+safeText(p.id)+'" title="Cesión por una temporada con opción de compra" '+(state.budget<=0?'disabled':'')+'>Cesión</button></td></tr>').join("")+'</tbody></table></div>';
 }
 function fixtureHtml(game) {
   const home=getClub(game.home),away=getClub(game.away);
