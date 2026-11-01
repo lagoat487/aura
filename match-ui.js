@@ -67,14 +67,34 @@ const AuraArena=(()=>{
       }catch{}
     }
     function controls(){
-      const key=s.keys,axes={x:(key.has("d")||key.has("arrowright")?1:0)-(key.has("a")||key.has("arrowleft")?1:0)+s.stick.x,z:(key.has("s")||key.has("arrowdown")?1:0)-(key.has("w")||key.has("arrowup")?1:0)+s.stick.z,sprint:key.has("shift")||s.touchSprint};
-      let pads=[];try{if(typeof navigator.getGamepads==="function")pads=navigator.getGamepads();}catch{}
-      let pad;for(const p of pads)if(p?.connected){pad=p;break;}
-      if(pad){axes.x+=Math.abs(pad.axes[0]||0)>.15?pad.axes[0]:0;axes.z+=Math.abs(pad.axes[1]||0)>.15?pad.axes[1]:0;axes.sprint||=!!pad.buttons[5]?.pressed;
-        for(const [index,type] of [[0,"pass"],[1,"shoot"],[2,"tackle"],[3,"through"],[4,"switch"],[5,"cross"],[6,"lob"],[7,"skill"],[8,"slide"]])if(!s.replay&&!game.paused&&!s.done&&pad.buttons[index]?.pressed&&!s.gamepadButtons[index])AuraMatch.action(game,type,axes);
-        if(pad.buttons[9]?.pressed&&!s.gamepadButtons[9])pause();s.gamepadButtons=pad.buttons.map(b=>b.pressed);
-      }
-      return axes;
+      const key=s.keys,local=game.localTwoPlayer;
+      const axes={x:(key.has("d")||(!local&&key.has("arrowright"))?1:0)-(key.has("a")||(!local&&key.has("arrowleft"))?1:0)+s.stick.x,
+        z:(key.has("s")||(!local&&key.has("arrowdown"))?1:0)-(key.has("w")||(!local&&key.has("arrowup"))?1:0)+s.stick.z,
+        sprint:key.has("shift")||s.touchSprint};
+      const away={x:(key.has("arrowright")?1:0)-(key.has("arrowleft")?1:0),
+        z:(key.has("arrowdown")?1:0)-(key.has("arrowup")?1:0),sprint:key.has("5")};
+      let pads=[];try{if(typeof navigator.getGamepads==="function")pads=Array.from(navigator.getGamepads()||[]).filter(p=>p?.connected);}catch{}
+      const map=[[0,"pass"],[1,"shoot"],[2,"tackle"],[3,"through"],[4,"switch"],[5,"cross"],[6,"lob"],[7,"skill"],[8,"slide"]];
+      const first=pads[0];
+      if(first){
+        axes.x+=Math.abs(first.axes[0]||0)>.15?first.axes[0]:0;
+        axes.z+=Math.abs(first.axes[1]||0)>.15?first.axes[1]:0;
+        axes.sprint||=!!first.buttons[5]?.pressed;
+        for(const [index,type] of map)if(!s.replay&&!game.paused&&!s.done&&first.buttons[index]?.pressed&&!s.gamepadButtons[index])AuraMatch.action(game,type,axes);
+        if(first.buttons[9]?.pressed&&!s.gamepadButtons[9])pause();
+        s.gamepadButtons=first.buttons.map(b=>b.pressed);
+      }else s.gamepadButtons=[];
+      const second=local?pads[1]:null;
+      if(second){
+        away.x+=Math.abs(second.axes[0]||0)>.15?second.axes[0]:0;
+        away.z+=Math.abs(second.axes[1]||0)>.15?second.axes[1]:0;
+        away.sprint||=!!second.buttons[5]?.pressed;
+        for(const [index,type] of map)if(!s.replay&&!game.paused&&!s.done&&second.buttons[index]?.pressed&&!s.awayPadButtons[index])
+          AuraMatch.action(game,type,{...away,team:1,power:.72});
+        if(second.buttons[9]?.pressed&&!s.awayPadButtons[9])pause();
+        s.awayPadButtons=second.buttons.map(b=>b.pressed);
+      }else s.awayPadButtons=[];
+      return {...axes,away};
     }
     function pause(){
       if(s.done)return;game.paused=!game.paused;s.keys.clear();releaseStick();s.touchSprint=false;s.charging=null;find("arena-power").hidden=true;layer.hidden=!game.paused;
