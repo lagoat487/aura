@@ -101,13 +101,30 @@ const AuraProgression=(()=>{
     game.budget-=candidate.fee;game.wageBudget=wageBudget;players.push(player);candidate.signed=true;p.signings++;
     return {ok:true,player,message:player.name+" se incorpora a tu plantilla."};
   }
+  const pressChoices=Object.freeze({
+    protect:{label:"Proteger al vestuario",morale:3,confidence:2,description:"Respalda a todos y reduce la presión."},
+    challenge:{label:"Exigir más al equipo",morale:-2,confidence:5,description:"Presiona a los jugadores para recuperar resultados."},
+    inspire:{label:"Motivar a la plantilla",morale:2,confidence:3,description:"Anima a titulares y suplentes a seguir mejorando."}
+  });
+  function pressConference(game,choice){
+    const current=initialize(game),option=pressChoices[choice];
+    if(!option)return {error:"Selecciona una respuesta de rueda de prensa válida."};
+    if(!game.round||current.pressRound===game.round)return {error:!game.round?"Primero disputa una jornada.":"Ya atendiste a la prensa después de esta jornada."};
+    // Commit only after validation: no transfer, training or budget effects.
+    for(const player of roster(game))player.morale=clamp((Number.isFinite(player.morale)?player.morale:75)+option.morale,20,100);
+    current.pressRound=game.round;current.pressBoost=clamp((current.pressBoost||0)+option.confidence,0,12);
+    current.pressHistory??=[];
+    current.pressHistory.unshift({round:game.round,season:game.season,choice,label:option.label});
+    current.pressHistory=current.pressHistory.slice(0,12);
+    return {ok:true,confidence:current.pressBoost,message:"Rueda de prensa: "+option.label+". Moral "+(option.morale>0?"+":"")+option.morale+" · confianza +"+option.confidence+"."};
+  }
   function afterMatch(game){initialize(game);return dashboard(game);}
   function dashboard(game){
     const p=initialize(game),goals=objectives(game),complete=goals.filter(o=>o.complete).length;
     const performance=game.round>0?clamp(((Number(game.wins)||0)*3+(Number(game.draws)||0))/game.round/3,0,1):.5;
-    const confidence=Math.round(clamp(45+performance*30+goals.reduce((s,o)=>s+Math.min(1,o.current/o.target),0)/3*25,25,100));
-    return {objectives:goals,confidence,complete,sessionsLeft:Math.max(0,SESSIONS-p.training.used),trained:p.training.players.slice(),report:p.report,canScout:p.lastScoutRound!==game.round&&!finished(game),signings:p.signings,finished:finished(game)};
+    const confidence=Math.round(clamp(45+performance*30+goals.reduce((s,o)=>s+Math.min(1,o.current/o.target),0)/3*25+(p.pressBoost||0),25,100));
+    return {objectives:goals,confidence,complete,pressAvailable:game.round>0&&p.pressRound!==game.round,pressHistory:(p.pressHistory||[]).slice(),pressBoost:p.pressBoost||0,sessionsLeft:Math.max(0,SESSIONS-p.training.used),trained:p.training.players.slice(),report:p.report,canScout:p.lastScoutRound!==game.round&&!finished(game),signings:p.signings,finished:finished(game)};
   }
-  return {initialize,train,objectives,claim,scout,signYouth,afterMatch,dashboard,focuses,regions,SESSIONS,MAX_SQUAD};
+  return {initialize,train,objectives,claim,scout,signYouth,pressConference,pressChoices,afterMatch,dashboard,focuses,regions,SESSIONS,MAX_SQUAD};
 })();
 if(typeof module==="object"&&module.exports)module.exports=AuraProgression;
