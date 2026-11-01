@@ -250,7 +250,7 @@
       p.cooldown=type==="slide"?1.2:.9;
       animate(p,"tackle",.4);
       if(game.rng()<clamp(.62+(p.overall-carrier.overall)*.009+(type==="slide"?.09:0),.35,.9)){
-        ownBall(game,index);carrier.cooldown=.8;game.stats[0].tackles++;event(game,"tackle",p.name+" recupera");return true;
+        ownBall(game,index);carrier.cooldown=.8;game.stats[p.team].tackles++;event(game,"tackle",p.name+" recupera");return true;
       }
       if(type==="slide"||game.rng()<.24)return whistleFoul(game,p,carrier,type==="slide");
       return false;
