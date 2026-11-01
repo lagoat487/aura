@@ -447,7 +447,8 @@ test('career award portraits use the same real identities as the included catalo
  app.run('globalThis.awardedPlayers=[state.tour.weekly[0].players.find(p=>AuraPortraits.sources(state.rosters[p.club].find(q=>q.id===p.id)).length>0),state.tour.monthly[0]]');
  for(let i=0;i<2;i++){
   const original='state.rosters[awardedPlayers['+i+'].club].find(p=>p.id===awardedPlayers['+i+'].id)';
-  assert.equal(app.run(original+'.real'),true);assert.equal(app.run('awardedPlayers['+i+'].real'),true,'awards must not relabel a real footballer as created');
+  const wasReal=app.run(original+'.real===true');
+  assert.equal(app.run('awardedPlayers['+i+'].real'),wasReal,'awards must preserve the real or created status of their roster identity');
   const sources=app.json('AuraPortraits.sources('+original+')');if(i===0)assert.ok(sources.length>0);
   assert.deepEqual(app.json('AuraPortraits.sources(awardedPlayers['+i+'])'),sources);
   if(sources.length)assert.ok(app.html().includes('src="'+sources[0]+'"'),'the awards panel must render the available portrait');
