@@ -75,6 +75,22 @@
     return selected;
   }
   function price(p){const special=p?.event===sigma.id&&sigma.cards.find(x=>x.id===p.id);if(special)return special.price;return Math.round((p.overall<65?300:p.overall<75?700+(p.overall-65)*80:p.overall<84?1200+Math.pow(p.overall-74,2)*160:18000*Math.pow(1.6,p.overall-84))/50)*50;}
+  function evolutionCost(p){
+    if(!p||!Number.isInteger(p.overall)||p.event===sigma.id||(p.evolutionLevel||0)>=2||p.overall>90)return null;
+    return Math.max(1500,Math.round((p.overall-60)*400/50)*50);
+  }
+  function evolve(u,id){
+    const p=u?.owned?.find(q=>q.id===id);
+    if(!p)return {error:"Esta carta no pertenece a tu club."};
+    const cost=evolutionCost(p);
+    if(cost===null)return {error:"Esta carta no cumple los requisitos de evolución."};
+    if(u.coins<cost)return {error:"No tienes monedas suficientes para evolucionar esta carta."};
+    // Upgrade only the owned edition; preserve its identity, XI, collection and
+    // original market catalogue. No new duplicate card is generated.
+    p.overall=Math.min(92,p.overall+2);p.evolutionLevel=(p.evolutionLevel||0)+1;
+    p.evolved=true;u.coins-=cost;u.evolutions=(u.evolutions||0)+1;
+    return {ok:true,player:p,cost,overall:p.overall,level:p.evolutionLevel};
+  }
   function buy(u,player){if(!player?.real||!player.id)return {error:"Jugador no disponible."};if(player.event===sigma.id&&!sigma.cards.some(p=>p.id===player.id&&p.overall===player.overall))return {error:"Carta Ultimate Sigma no disponible."};if(u.owned.some(p=>p.id===player.id))return {error:"Este jugador ya está en tu club."};const cost=price(player);if(u.coins<cost)return {error:"No tienes monedas suficientes."};u.coins-=cost;u.owned.push({...player,tradeable:true});u.purchases++;return {ok:true,cost};}
   function quickSell(u,id,duplicate=false){
     const list=duplicate?u.duplicates:u.owned,index=list.findIndex(p=>(duplicate?p.uid:p.id)===id),p=list[index];if(!p)return {error:"Esta carta ya no está disponible."};if(!duplicate&&u.xi.includes(id))return {error:"Quita esta carta del once antes de venderla."};if(!p.tradeable)return {error:"Esta carta es intransferible; puedes usarla en DCP."};
@@ -104,5 +120,5 @@
     return coins;
   }
   function claimBattles(u){if(u.battlesClaimed.includes(u.battleCycle)||u.battlePoints<1000)return {error:"Consigue al menos 1.000 puntos en esta serie."};const reward=u.battlePoints>=5000?4000:u.battlePoints>=2500?2500:1000;u.battlesClaimed.push(u.battleCycle);u.coins+=reward;u.battleCycle++;u.battlePoints=0;return {ok:true,coins:reward};}
-  return {create,chemistry,rating,league,packs,challenges,sigma,eventCards,claimSigmaGift,draw,setPlayer,setFormation,auto,bench,price,buy,quickSell,itemScore,sbcPool,sbcPreview,submitSBC,objectives,claim,reward,claimBattles};
+  return {create,chemistry,rating,league,packs,challenges,sigma,eventCards,claimSigmaGift,draw,setPlayer,setFormation,auto,bench,price,evolutionCost,evolve,buy,quickSell,itemScore,sbcPool,sbcPreview,submitSBC,objectives,claim,reward,claimBattles};
 });
