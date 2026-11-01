@@ -148,6 +148,7 @@
   function objectives(u){return [{id:"first",name:"El viaje empieza",current:u.played,target:1,coins:1500},{id:"store",name:"Tu primer sobre",current:u.packsOpened,target:1,coins:750},{id:"market",name:"Un nuevo fichaje",current:u.purchases,target:1,coins:1000},{id:"chem",name:"Conexiones",current:chemistry(u).total,target:18,coins:1500},{id:"wins",name:"Mentalidad ganadora",current:u.wins,target:3,coins:2500},{id:"sbc",name:"Ingeniero de plantilla",current:u.sbcs,target:1,coins:1500}].map(o=>({...o,complete:o.current>=o.target,claimed:u.objectives.includes(o.id)}));}
   function claim(u,id){const o=objectives(u).find(o=>o.id===id);if(!o||!o.complete||o.claimed)return {error:"Objetivo incompleto o ya cobrado."};u.objectives.push(id);u.coins+=o.coins;return {ok:true,coins:o.coins};}
   function reward(u,token,result,mode='battles',difficulty=1){
+    if(mode===argentina.id&&!(typeof token==="string"&&/^ut:argentina:\d+$/.test(token)))return false;
     if(u.claimed.includes(token)||!Number.isInteger(result?.home)||!Number.isInteger(result?.away)||result.home<0||result.away<0)return false;
     u.claimed.push(token);u.played++;const won=result.home>result.away,drew=result.home===result.away;u[won?'wins':drew?'draws':'losses']++;
     const argentinaMatch=mode===argentina.id&&typeof token==="string"&&/^ut:argentina:\d+$/.test(token);
