@@ -55,3 +55,22 @@ test("elite SBC is a separate tier and no active XI is eligible to sacrifice",()
  assert.ok(UT.sbcPool(u,"elite").every(p=>!u.xi.includes(p.id)));
  assert.match(UT.submitSBC(u,"elite",u.xi.slice(0,4),pool()).error,/disponible|Completa/);
 });
+
+test("offline market prices vary by matchday and purchases debit the exact shown price",()=>{
+  const u=UT.create(pool());const p=pool().find(p=>!u.owned.some(q=>q.id===p.id));
+  assert.equal(UT.marketPrice(u,p),UT.price(p));
+  u.played=7;
+  const current=UT.marketPrice(u,p);
+  assert.ok(Math.abs(current-UT.price(p))<=UT.price(p)*.13+50);
+  assert.equal(UT.marketPrice(u,p),current);
+  u.coins=current+1000;
+  const before=u.coins;
+  const outcome=UT.buy(u,p);
+  assert.equal(outcome.ok,true);
+  assert.equal(outcome.cost,current);
+  assert.equal(u.coins,before-current);
+  assert.equal(u.owned.filter(q=>q.id===p.id).length,1);
+  const copy=JSON.stringify(u);
+  assert.ok(UT.buy(u,p).error);
+  assert.equal(JSON.stringify(u),copy);
+});
