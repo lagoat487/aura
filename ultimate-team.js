@@ -3,7 +3,7 @@
   "use strict";
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
   const packs={silver:{name:"Sobre de plata",cost:750,count:3,min:65,max:74},gold:{name:"Sobre de oro",cost:2500,count:3,min:75,max:92},premium:{name:"Oro premium 82+",cost:7500,count:3,min:75,max:92,guaranteed:82}};
-  const challenges={silver:{name:"De plata a oro",count:3,min:65,max:74,score:900,reward:"gold"},gold:{name:"Mejora 82+",count:3,min:75,max:83,score:1900,reward:"premium"}};
+  const challenges={silver:{name:"De plata a oro",count:3,min:65,max:74,score:900,reward:"gold"},gold:{name:"Mejora 82+",count:3,min:75,max:83,score:1900,reward:"premium"},elite:{name:"Desafío élite 82+",count:4,min:82,max:90,score:4400,reward:"premium"}};
 
   // AURA 4.2: limited-edition fantasy boosts. These cards exist only in Ultimate Team.
   const sigma=Object.freeze({id:"ultimate-sigma",name:"ULTIMATE SIGMA",version:"4.2",cards:Object.freeze([
@@ -75,7 +75,32 @@
     return selected;
   }
   function price(p){const special=p?.event===sigma.id&&sigma.cards.find(x=>x.id===p.id);if(special)return special.price;return Math.round((p.overall<65?300:p.overall<75?700+(p.overall-65)*80:p.overall<84?1200+Math.pow(p.overall-74,2)*160:18000*Math.pow(1.6,p.overall-84))/50)*50;}
-  function buy(u,player){if(!player?.real||!player.id)return {error:"Jugador no disponible."};if(player.event===sigma.id&&!sigma.cards.some(p=>p.id===player.id&&p.overall===player.overall))return {error:"Carta Ultimate Sigma no disponible."};if(u.owned.some(p=>p.id===player.id))return {error:"Este jugador ya está en tu club."};const cost=price(player);if(u.coins<cost)return {error:"No tienes monedas suficientes."};u.coins-=cost;u.owned.push({...player,tradeable:true});u.purchases++;return {ok:true,cost};}
+  function marketPrice(u,p){
+    const base=price(p);
+    if(!u||p?.event===sigma.id||!Number.isSafeInteger(u.played)||u.played<=0)return base;
+    let hash=0;for(const ch of String(p.id))hash=(Math.imul(hash,31)+ch.charCodeAt(0))>>>0;
+    // Offline market trend is predictable for a given matchday and card;
+    // no networking or arbitrary real-money prices are involved.
+    const cycle=(hash%7+u.played*3)%9-4;
+    return Math.max(100,Math.round(base*(1+cycle*.025)/50)*50);
+  }
+  function evolutionCost(p){
+    if(!p||!Number.isInteger(p.overall)||p.event===sigma.id||(p.evolutionLevel||0)>=2||p.overall>90)return null;
+    return Math.max(1500,Math.round((p.overall-60)*400/50)*50);
+  }
+  function evolve(u,id){
+    const p=u?.owned?.find(q=>q.id===id);
+    if(!p)return {error:"Esta carta no pertenece a tu club."};
+    const cost=evolutionCost(p);
+    if(cost===null)return {error:"Esta carta no cumple los requisitos de evolución."};
+    if(u.coins<cost)return {error:"No tienes monedas suficientes para evolucionar esta carta."};
+    // Upgrade only the owned edition; preserve its identity, XI, collection and
+    // original market catalogue. No new duplicate card is generated.
+    p.overall=Math.min(92,p.overall+2);p.evolutionLevel=(p.evolutionLevel||0)+1;
+    p.evolved=true;u.coins-=cost;u.evolutions=(u.evolutions||0)+1;
+    return {ok:true,player:p,cost,overall:p.overall,level:p.evolutionLevel};
+  }
+  function buy(u,player){if(!player?.real||!player.id)return {error:"Jugador no disponible."};if(player.event===sigma.id&&!sigma.cards.some(p=>p.id===player.id&&p.overall===player.overall))return {error:"Carta Ultimate Sigma no disponible."};if(u.owned.some(p=>p.id===player.id))return {error:"Este jugador ya está en tu club."};const cost=marketPrice(u,player);if(u.coins<cost)return {error:"No tienes monedas suficientes."};u.coins-=cost;u.owned.push({...player,tradeable:true});u.purchases++;return {ok:true,cost};}
   function quickSell(u,id,duplicate=false){
     const list=duplicate?u.duplicates:u.owned,index=list.findIndex(p=>(duplicate?p.uid:p.id)===id),p=list[index];if(!p)return {error:"Esta carta ya no está disponible."};if(!duplicate&&u.xi.includes(id))return {error:"Quita esta carta del once antes de venderla."};if(!p.tradeable)return {error:"Esta carta es intransferible; puedes usarla en DCP."};
     const coins=Math.max(100,Math.round(price(p)*.2));list.splice(index,1);u.coins+=coins;return {ok:true,coins};
@@ -104,5 +129,5 @@
     return coins;
   }
   function claimBattles(u){if(u.battlesClaimed.includes(u.battleCycle)||u.battlePoints<1000)return {error:"Consigue al menos 1.000 puntos en esta serie."};const reward=u.battlePoints>=5000?4000:u.battlePoints>=2500?2500:1000;u.battlesClaimed.push(u.battleCycle);u.coins+=reward;u.battleCycle++;u.battlePoints=0;return {ok:true,coins:reward};}
-  return {create,chemistry,rating,league,packs,challenges,sigma,eventCards,claimSigmaGift,draw,setPlayer,setFormation,auto,bench,price,buy,quickSell,itemScore,sbcPool,sbcPreview,submitSBC,objectives,claim,reward,claimBattles};
+  return {create,chemistry,rating,league,packs,challenges,sigma,eventCards,claimSigmaGift,draw,setPlayer,setFormation,auto,bench,price,marketPrice,evolutionCost,evolve,buy,quickSell,itemScore,sbcPool,sbcPreview,submitSBC,objectives,claim,reward,claimBattles};
 });
