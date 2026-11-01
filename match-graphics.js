@@ -24,7 +24,7 @@ const AuraGraphics=(()=>{
   }
   function create(container,options={}){
     if(!globalThis.THREE||webglUnavailable)throw Error("WebGL no está disponible.");
-    const T=THREE,P=AuraPresentation,quality=options.quality||"medium",preview=!!options.preview;
+    const T=THREE,P=AuraPresentation,quality=options.quality||"medium",preview=!!options.preview,raining=options.weather==="rain";
     let renderer;
     try{renderer=new T.WebGLRenderer({antialias:quality!=="low",alpha:false,powerPreference:"high-performance"});}
     catch(error){webglUnavailable=true;throw error;}
@@ -33,7 +33,7 @@ const AuraGraphics=(()=>{
     renderer.shadowMap.enabled=quality==="high";renderer.shadowMap.type=T.PCFSoftShadowMap;
     renderer.domElement.setAttribute("aria-label","Estadio y partido de fútbol en tres dimensiones");container.appendChild(renderer.domElement);
     const scene=new T.Scene(),day=options.stadium==="day",sunset=options.stadium==="sunset";
-    scene.background=new T.Color(day?0x9aafb4:sunset?0x403f50:0x121c2b);scene.fog=new T.Fog(scene.background,130,285);
+    scene.background=new T.Color(raining?(day?0x6c7c85:0x242f3b):day?0x9aafb4:sunset?0x403f50:0x121c2b);scene.fog=new T.Fog(scene.background,raining?75:130,raining?180:285);
     const camera=new T.PerspectiveCamera(44,1,.1,400),objects=[],textures=new Set(),dynamic=[],geometryCache=new Map(),materialCache=new Map();
     function material(color,extra={}){if(Object.keys(extra).length)return new T.MeshStandardMaterial({color,roughness:.86,...extra});const key=String(color);if(!materialCache.has(key))materialCache.set(key,new T.MeshStandardMaterial({color,roughness:.86}));return materialCache.get(key);}
     function geometry(key,make){if(!geometryCache.has(key))geometryCache.set(key,make());return geometryCache.get(key);}
@@ -42,7 +42,7 @@ const AuraGraphics=(()=>{
     const cylinder=(r,h,mat,x,y,z,parent)=>mesh(geometry('cyl:'+r+':'+h,()=>new T.CylinderGeometry(r,r,h,quality==='low'?8:12)),mat,x,y,z,parent);
     const concrete=material(0x26323c),rail=material(0x758088,{metalness:.4}),black=material(0x101a23),lightMat=material(0xf4f1dc,{emissive:0xf4f1dc,emissiveIntensity:2});
     scene.add(new T.HemisphereLight(day?0xe0efff:0xc4dbed,0x35472d,day?1.7:1.5));
-    const sun=new T.DirectionalLight(sunset?0xffd2a1:0xf4f7ed,day?2.6:2.4);sun.position.set(-28,60,32);scene.add(sun);
+    const sun=new T.DirectionalLight(raining?0xd6e0e8:sunset?0xffd2a1:0xf4f7ed,raining?1.65:day?2.6:2.4);sun.position.set(-28,60,32);scene.add(sun);
     if(quality==="high"){sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-65,right:65,top:48,bottom:-48,near:1,far:160});sun.shadow.bias=-.001;}
     const fill=new T.DirectionalLight(0xacc9e7,.9);fill.position.set(45,30,-55);scene.add(fill);
     box(260,2,200,material(0x11242a),0,-1.3,0);
@@ -54,7 +54,7 @@ const AuraGraphics=(()=>{
     for(let i=0;i<90000;i++){ctx.fillStyle=rnd()>.5?"#aecb6424":"#112d1929";ctx.fillRect(rnd()*2048,rnd()*1024,.8,1+rnd()*3);}
     for(let i=0;i<800;i++){const end=rnd()>.5?1:-1;ctx.fillStyle='#a8a46c0b';ctx.fillRect(1024+end*(820+rnd()*180),330+rnd()*360,1+rnd()*8,1+rnd()*4);}
     const grassTexture=new T.CanvasTexture(grassCanvas);textures.add(grassTexture);grassTexture.colorSpace=T.SRGBColorSpace;grassTexture.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
-    const pitch=mesh(new T.PlaneGeometry(105,68),material(0xffffff,{map:grassTexture,bumpMap:quality==='low'?null:grassTexture,bumpScale:.035,roughness:.98}),0,.015,0);pitch.rotation.x=-Math.PI/2;pitch.receiveShadow=true;
+    const pitch=mesh(new T.PlaneGeometry(105,68),material(raining?0xa9c3ad:0xffffff,{map:grassTexture,bumpMap:quality==='low'?null:grassTexture,bumpScale:raining?.02:.035,roughness:raining?.62:.98}),0,.015,0);pitch.rotation.x=-Math.PI/2;pitch.receiveShadow=true;
     const lines=[];
     function line(x1,z1,x2,z2,y=.055){lines.push(x1,y,z1,x2,y,z2);}
     function rect(x1,z1,x2,z2){line(x1,z1,x2,z1);line(x2,z1,x2,z2);line(x2,z2,x1,z2);line(x1,z2,x1,z1);}
@@ -138,6 +138,28 @@ const AuraGraphics=(()=>{
     const ballShadow=mesh(new T.CircleGeometry(.32,12),new T.MeshBasicMaterial({color:0x08160f,transparent:true,opacity:.35}),0,.06,0);ballShadow.rotation.x=-Math.PI/2;
     const ring=mesh(new T.RingGeometry(.68,.83,32),new T.MeshBasicMaterial({color:0xc8ff69,side:T.DoubleSide,transparent:true,opacity:.95}),0,.085,0);ring.rotation.x=-Math.PI/2;
     const marker=mesh(new T.ConeGeometry(.24,.36,3),new T.MeshBasicMaterial({color:0xc8ff69}),0,2.5,0);marker.rotation.z=Math.PI;
+    // Lightweight mesh-based rain with one draw call and a fixed particle budget.
+    const rainCount=!preview&&raining?(quality==="low"?105:quality==="high"?390:220):0;
+    const rainCoords=new Float32Array(rainCount*6);
+    let rainGeometry=null;
+    if(rainCount){
+      rainGeometry=new T.BufferGeometry();
+      rainGeometry.setAttribute("position",new T.BufferAttribute(rainCoords,3));
+      const rainfall=new T.LineSegments(rainGeometry,new T.LineBasicMaterial({color:0xcadce9,transparent:true,opacity:.32,depthWrite:false,fog:false}));
+      rainfall.frustumCulled=false;scene.add(rainfall);
+    }
+    function updateRain(now){
+      if(!rainGeometry)return;
+      const t=Math.max(0,now)*.001;
+      for(let i=0;i<rainCount;i++){
+        const u=(i*97.73)%109-54.5,v=(i*43.37)%68-34;
+        const y=((i*1.37-t*(12+(i%6)))%25+25)%25;
+        const at=i*6;
+        rainCoords[at]=u;rainCoords[at+1]=y;rainCoords[at+2]=v;
+        rainCoords[at+3]=u-.24;rainCoords[at+4]=y+.75;rainCoords[at+5]=v-.12;
+      }
+      rainGeometry.attributes.position.needsUpdate=true;
+    }
     let disposed=false,lastTime=null,lastCamera=options.camera||"broadcast",cameraState=null;
     function resize(){if(disposed)return;const w=Math.max(1,container.clientWidth),h=Math.max(1,container.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
     const observer=typeof ResizeObserver!=="undefined"?new ResizeObserver(resize):null;observer?.observe(container);resize();
@@ -160,7 +182,7 @@ const AuraGraphics=(()=>{
       }else {ring.visible=false;marker.visible=false;}
       const desired=P.cameraFrame(game,cam,camera.aspect,preview);cameraState=P.smoothCamera(cameraState,desired,dt);camera.position.fromArray(cameraState.position);camera.lookAt(new T.Vector3().fromArray(cameraState.target));
       if(Math.abs(camera.fov-cameraState.fov)>.01){camera.fov=cameraState.fov;camera.updateProjectionMatrix();}lastTime=now;
-      renderer.render(scene,camera);
+      updateRain(now);renderer.render(scene,camera);
     }
     function project(player){const v=new T.Vector3(player.x,2.2,player.z).project(camera);return {x:(v.x*.5+.5)*container.clientWidth,y:(-.5*v.y+.5)*container.clientHeight,visible:v.z>-1&&v.z<1&&Math.abs(v.x)<1&&Math.abs(v.y)<1};}
     function dispose(){
