@@ -45,7 +45,7 @@ test("solo mode keeps its existing AI opponent and keyboard input semantics",()=
  const before=p.x;
  for(let i=0;i<10;i++)M.step(solo,.05,{x:0,away:{x:-1}});
  assert.notEqual(solo.awayControlled,null);
- assert.equal(M.action(solo,"shoot",{team:1}),false);
+ M.action(solo,"shoot",{team:1});assert.equal(solo.stats[1].shots,0,"solo mode must never grant manual control of the AI team");
  assert.ok(Number.isFinite(p.x));
  assert.equal(solo.localTwoPlayer,false);
 });
