@@ -38,7 +38,7 @@ test("a direct free kick rebounds off the defending wall and records a blocked s
   assert.equal(g.setPiece,null);
   assert.ok(g.wallFlight?.positions.length===3);
   for(let i=0;i<18&&!g.events.some(e=>e.type==="block");i++)Match.step(g,.05);
-  assert.ok(g.events.some(e=>e.type==="block"),"the moving shot must hit the wall");
+  assert.ok(g.events.some(e=>e.type==="block"),"the moving shot must hit the wall: "+JSON.stringify({ball:g.ball,wall:g.wallFlight,piece:g.setPiece,events:g.events,players:[g.players[12],g.players[13],g.players[14]]}));
   assert.equal(g.stats[0].blockedShots,1);
   assert.equal(g.ball.lastTouch,1);
   assert.equal(g.wallFlight,null);
