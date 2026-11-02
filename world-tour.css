@@ -41,3 +41,30 @@
  .volta-tour-stats{gap:6px}.volta-tour-stats span{min-width:57px;padding:10px}
  .volta-tour-fixtures article{padding:14px}
  .volta-tour>.btn{width:100%;margin:7px 0}}
+
+/* Cup mode — live fixture preview, records, reroll and full simulation. */
+.tour-cup-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:16px}
+.tour-cup-actions .btn{background:#1e3441;border-color:#d1ecff56}
+.tour-upcoming-fixtures{margin:19px 0 25px;padding:clamp(16px,3vw,25px);border-radius:12px;
+  background:linear-gradient(130deg,#132e41,#101f2d);border:1px solid #96c8fa45}
+.tour-upcoming-fixtures .eyebrow{color:#a1d6ff}
+.tour-upcoming-fixtures h3{font:italic 900 clamp(25px,3vw,36px)/.95 var(--display,Impact,Arial);
+  color:#f5fbff;margin:9px 0 4px}
+.tour-upcoming-fixtures p{font-size:11px;line-height:1.6;color:#a7c7de;margin:7px 0 16px}
+.tour-upcoming-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.tour-upcoming-grid article{display:flex;flex-direction:column;gap:8px;background:#09192aaf;
+  border:1px solid #b4d8ff2e;border-radius:7px;padding:14px}
+.tour-upcoming-grid article.yours{background:#b9e3ff12;border-color:#8cccf7}
+.tour-upcoming-grid span{font:900 9px Arial;letter-spacing:1.1px;color:#b9d9ee}
+.tour-upcoming-grid strong{font:900 13px/1.45 Arial;color:#f6f9ff;overflow-wrap:anywhere}
+.tour-upcoming-grid strong em{font-style:normal;color:#9bd1e9}
+.tour-upcoming-grid small{font:800 9px Arial;letter-spacing:.8px;color:#a4e2c6}
+.tour-cup-counters{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
+.tour-cup-counters>span{min-width:90px;flex:1;display:flex;flex-direction:column;gap:5px;
+  background:#13212f;border:1px solid #8ec7ef42;border-radius:8px;padding:12px;
+  color:#a5c3d6;font:800 9px Arial}
+.tour-cup-counters strong{font:900 26px var(--display,Impact,Arial);color:#f4faff}
+@media(max-width:650px){.tour-upcoming-grid{grid-template-columns:1fr}
+ .tour-cup-actions{flex-direction:column}.tour-cup-actions .btn{width:100%}
+ .tour-upcoming-fixtures{padding:14px}
+ .tour-cup-counters>span{min-width:60px;padding:9px}}
