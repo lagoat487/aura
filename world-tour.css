@@ -68,3 +68,38 @@
  .tour-cup-actions{flex-direction:column}.tour-cup-actions .btn{width:100%}
  .tour-upcoming-fixtures{padding:14px}
  .tour-cup-counters>span{min-width:60px;padding:9px}}
+
+/* Independent Pro player-career weekly development center. */
+.tour-pro-training{box-sizing:border-box;padding:clamp(15px,3vw,28px);margin:24px 0;border:1px solid #88c4ff73;
+  border-radius:14px;color:#ecf5ff;
+  background:radial-gradient(ellipse at 86% 5%,#4a7da95c,transparent 46%),linear-gradient(135deg,#11243d,#0d1930)}
+.pro-training-heading{display:flex;flex-wrap:wrap;justify-content:space-between;gap:15px;align-items:center}
+.pro-training-heading h2{font:italic 900 clamp(26px,4vw,44px)/.95 var(--display,Impact,Arial);margin:10px 0;color:#f6fbff}
+.pro-training-heading p{font:12px/1.7 Arial;color:#c2d7ea;max-width:670px}
+.pro-training-heading .eyebrow{color:#a7d5ff}
+.pro-training-ready{font:800 10px Arial;letter-spacing:.6px;color:#e0f5ff;
+ border:1px solid #b1d5ee73;border-radius:6px;padding:10px;background:#0a2745}
+.pro-training-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin:21px 0}
+.pro-training-drill{display:flex;flex-direction:column;align-items:flex-start;gap:9px;padding:17px 13px 14px;border-radius:9px;
+  border:1px solid #99cafa52;background:linear-gradient(145deg,#1e4265,#0d203c)}
+.pro-training-icon{font-size:30px}
+.pro-training-drill h3{font:900 16px Arial;margin:0;color:white}
+.pro-training-drill p{font:11px/1.55 Arial;color:#bfdae8;min-height:35px;margin:0}
+.pro-training-effect{display:flex;flex-wrap:wrap;gap:5px;margin:5px 0 4px}
+.pro-training-effect span{font:900 9px Arial;border-radius:4px;padding:5px 7px;
+ background:#e4efff17;color:#c6e5ff}
+.pro-training-drill .btn{margin-top:auto;width:100%;font-size:10px;white-space:normal;min-height:40px}
+.pro-training-drill .btn:disabled{opacity:.6;cursor:default}
+.pro-training-log{margin-top:20px;padding:15px;border-top:1px solid #e5ffff25}
+.pro-training-log h3{font:900 11px Arial;letter-spacing:1.3px;color:#d2edff}
+.pro-training-log p{color:#aebfc9;font-size:12px}
+.pro-training-row{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;
+ padding:9px 0;border-bottom:1px solid #ffffff18;color:#cbd7e1;font:12px Arial}
+.pro-training-row strong{color:white}.pro-training-row b{color:#b1e3ff}
+@media(max-width:1080px){.pro-training-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.tour-pro-training{padding:16px 11px}
+ .pro-training-grid{grid-template-columns:1fr}
+ .pro-training-drill{padding:15px}
+ .pro-training-drill p{min-height:0}
+ .pro-training-heading h2{font-size:28px}
+}
