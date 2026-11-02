@@ -577,14 +577,17 @@
     }
     ballStep(game,dt,keeperStarts);return game;
   }
+  function report(game){
+    const players=Object.values(game.playerStats).map(s=>({...s,minutes:Math.min(90,Math.round(s.minutes)),rating:calculateRating(s)}))
+      .sort((a,b)=>b.rating-a.rating||b.goals-a.goals||b.assists-a.assists||b.completed-a.completed||a.team-b.team||a.name.localeCompare(b.name));
+    return {players,manOfTheMatch:players[0]||null};
+  }
   function result(game){
     if(game.phase!=="finished")return null;
     const total=game.stats.reduce((n,s)=>n+s.possession,0)||1;
-    const players=Object.values(game.playerStats).map(s=>({...s,minutes:Math.min(90,Math.round(s.minutes)),rating:calculateRating(s)}))
-      .sort((a,b)=>b.rating-a.rating||b.goals-a.goals||b.assists-a.assists||b.completed-a.completed||a.team-b.team||a.name.localeCompare(b.name));
-    const manOfTheMatch=players[0]||null;
+    const {players,manOfTheMatch}=report(game);
     return {players,manOfTheMatch,home:game.score[0],away:game.score[1],stats:game.stats.map(s=>({...s,xg:Math.round(s.xg*100)/100,possession:Math.round(s.possession/total*100)})),goals:game.goals.map(e=>({...e})),seconds:game.seconds,
       participants:game.participants.map(ids=>ids.slice()),substitutions:game.substitutions.map(s=>({...s}))};
   }
-  return {FIELD,SHAPE,create,step,action,result,direction,nearest,random,substitute,setTactic};
+  return {FIELD,SHAPE,create,step,action,result,report,direction,nearest,random,substitute,setTactic};
 });
