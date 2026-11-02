@@ -746,7 +746,7 @@ test("VOLTA circuit completes four unique fixtures with live 3v3 results and avo
  const rivals=app.json("AuraTourUI.getStreetCircuit().fixtures");
  for(let i=0;i<4;i++){
    app.click({tour:"street-circuit-play"});
-   assert.equal(app.run("voltaFixture.away.id"),rivals[i]);
+   assert.equal(app.run("voltaFixture.away.name"),app.run("getClub("+JSON.stringify(rivals[i])+").name"));
    assert.equal(app.run("voltaFixture.opts.seconds"),60);
    assert.equal(app.run("voltaFixture.opts.goalLimit"),3);
    const finished=app.run("voltaFixture.opts.onFinish");
@@ -769,8 +769,8 @@ test("VOLTA free play remains available and independent of the circuit",()=>{
  app.change("street-home","boca");app.change("street-away","madrid");
  app.change("street-goals","7");app.change("street-duration","180");
  app.click({tour:"street-play"});
- assert.equal(app.run("voltaFriendly.home.id"),"boca");
- assert.equal(app.run("voltaFriendly.away.id"),"madrid");
+ assert.equal(app.run("voltaFriendly.home.name"),app.run('getClub("boca").name'));
+ assert.equal(app.run("voltaFriendly.away.name"),app.run('getClub("madrid").name'));
  assert.equal(app.run("voltaFriendly.opts.goalLimit"),7);
  assert.equal(app.run("voltaFriendly.opts.seconds"),180);
  assert.equal(app.run("voltaFriendly.opts.onFinish"),undefined);
