@@ -65,6 +65,31 @@ const AuraTourUI=(()=>{
   }
   function storage(){return state?T.initialize(state).cups:friendlyCups;}
   function currentCup(){return storage().find(c=>c.id===cupType);}
+  function cupPreview(cup){
+    if(!cup||cup.champion)return '';
+    const pairings=[];
+    for(let i=0;i<cup.current.length;i+=2){
+      const home=cup.entrants.find(t=>t.id===cup.current[i]),away=cup.entrants.find(t=>t.id===cup.current[i+1]);
+      if(!home||!away)continue;
+      const selected=cup.user===home.id||cup.user===away.id;
+      pairings.push('<article class="'+(selected?'yours':'')+'"><span>CRUCE '+(pairings.length+1)+'</span>'+
+        '<strong>'+esc(home.name)+' <em>VS</em> '+esc(away.name)+'</strong>'+
+        (selected?'<small>★ TU ELIMINATORIA</small>':'')+'</article>');
+    }
+    const phase=({16:'OCTAVOS',8:'CUARTOS',4:'SEMIFINALES',2:'FINAL'})[cup.current.length]||'SIGUIENTE RONDA';
+    return '<section class="tour-upcoming-fixtures"><div><span class="eyebrow">CUADRO DE PRÓXIMOS PARTIDOS</span>'+
+      '<h3>'+phase+' · '+pairings.length+' CRUCES</h3><p>Los rivales de la ronda actual ya están sorteados.</p></div>'+
+      '<div class="tour-upcoming-grid">'+pairings.join('')+'</div></section>';
+  }
+  function cupRecord(cup){
+    const games=cup.rounds.flat(),goals=games.reduce((n,m)=>n+m.score.home+m.score.away,0);
+    const penalties=games.filter(m=>m.penalties).length;
+    return '<div class="tour-cup-counters" aria-label="Estadísticas de esta copa">'+
+      '<span><strong>'+cup.rounds.length+'</strong> RONDAS</span>'+
+      '<span><strong>'+games.length+'</strong> PARTIDOS</span>'+
+      '<span><strong>'+goals+'</strong> GOLES</span>'+
+      '<span><strong>'+penalties+'</strong> TANDAS DE PENALES</span></div>';
+  }
   function cupView(){
     const def=T.cupTypes.find(d=>d.id===cupType),candidates=cupCandidates(),cup=currentCup();
     if(!candidates.some(c=>c.id===cupTeam))cupTeam=candidates.some(c=>c.id===state?.club)?state.club:candidates[0]?.id||"";
@@ -73,7 +98,10 @@ const AuraTourUI=(()=>{
     if(!cup)return headline('CLUBES Y SELECCIONES','EL MUNDO TE ESPERA.','Juega o simula cada ronda; todos los cruces quedan registrados en el cuadro.')+controls+note+'<div class="tour-empty">Elige un torneo y un equipo para empezar.</div>';
     const team=id=>cup.entrants.find(t=>t.id===id),f=T.cupFixture(cup),champ=team(cup.champion);
     return headline('CAMINO A LA COPA',esc(cup.name),cup.champion?'Campeón: '+esc(champ.name):'Tu equipo: '+esc(team(cup.user).name)+' · '+cup.current.length+' equipos siguen en carrera.')+controls+note+
-      '<section class="tour-cup-live">'+(cup.champion?'<div class="tour-trophy" aria-hidden="true">♜</div><h3>¡'+esc(champ.name)+' LEVANTA LA COPA!</h3>':f?'<span class="eyebrow">TU PRÓXIMO CRUCE</span><h3>'+esc(team(f.home).name)+' <em>vs</em> '+esc(team(f.away).name)+'</h3><button class="btn primary" data-tour="cup-play">Jugar eliminatoria →</button><button class="btn" data-tour="cup-sim">Simular ronda →</button>':'<h3>Tu equipo fue eliminado.</h3><button class="btn" data-tour="cup-sim">Avanzar los demás cruces →</button>')+'</section>'+
+      '<section class="tour-cup-live">'+(cup.champion?'<div class="tour-trophy" aria-hidden="true">♜</div><h3>¡'+esc(champ.name)+' LEVANTA LA COPA!</h3>':f?'<span class="eyebrow">TU PRÓXIMO CRUCE</span><h3>'+esc(team(f.home).name)+' <em>vs</em> '+esc(team(f.away).name)+'</h3><button class="btn primary" data-tour="cup-play">Jugar eliminatoria →</button><button class="btn" data-tour="cup-sim">Simular ronda →</button>':'<h3>Tu equipo fue eliminado.</h3><button class="btn" data-tour="cup-sim">Avanzar los demás cruces →</button>')+
+        (cup.champion?'':'<div class="tour-cup-actions"><button class="btn" data-tour="cup-finish">Simular hasta la final →</button>'+
+          (!cup.rounds.length?'<button class="btn" data-tour="cup-reroll">Volver a sortear cruces ↻</button>':'')+'</div>')+'</section>'+
+      cupPreview(cup)+cupRecord(cup)+
       '<div class="tour-bracket">'+cup.rounds.map((round,i)=>'<section><h3>'+({16:'OCTAVOS',8:'CUARTOS',4:'SEMIFINALES',2:'FINAL'}[round.length*2]||'RONDA '+(i+1))+'</h3>'+round.map(m=>'<article><div class="'+(m.winner===m.home?'winner':'')+'"><span>'+esc(team(m.home).name)+'</span><b>'+m.score.home+'</b></div><div class="'+(m.winner===m.away?'winner':'')+'"><span>'+esc(team(m.away).name)+'</span><b>'+m.score.away+'</b></div>'+(m.penalties?'<small>Penaltis '+m.penalties.home+' — '+m.penalties.away+'</small>':'')+'</article>').join("")+'</section>').join("")+'</div>';
   }
   function createCup(){
@@ -183,6 +211,19 @@ const AuraTourUI=(()=>{
       if(action==='enable-pro')enablePro();
       if(action==='cup-create'){createCup();render();}
       if(action==='cup-sim'){const cup=currentCup();if(cup){T.advanceCup(cup);render();}}
+      if(action==='cup-finish'){
+        const cup=currentCup();if(cup&&!cup.champion){
+          for(let n=0;n<6&&!cup.champion;n++)T.advanceCup(cup);
+          render();notify('Copa completada: revisa el campeón y los marcadores.');
+        }
+      }
+      if(action==='cup-reroll'){
+        const cup=currentCup();if(cup&&!cup.rounds.length&&!cup.champion){
+          const retry=T.createCup(cup.id,cup.entrants,cup.user,cup.seed+1);
+          const entries=storage(),i=entries.findIndex(c=>c===cup);
+          if(i>=0){entries[i]=retry;render();notify('Nuevo sorteo completado.');}
+        }
+      }
       if(action==='cup-play')playCup();
       if(action==='street-mode'){
         if(['friendly','circuit'].includes(button.dataset.streetMode)){streetMode=button.dataset.streetMode;render();}
