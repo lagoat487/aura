@@ -5,6 +5,8 @@ const AuraTourUI=(()=>{
   const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
   let streetHome="barcelona",streetAway="madrid",streetDifficulty=1,streetGoalLimit=5,streetSeconds=120,streetCircuit=null,streetMode="friendly";
   let cupType="champions",cupTeam="",friendlyCups=[];
+  try{if(typeof AuraCupSave!=="undefined"&&typeof localStorage!=="undefined")
+    friendlyCups=AuraCupSave.load(localStorage,T.cupTypes);}catch{}
   const audio=(()=>{
     let ctx=null,bus=null,timer=null,enabled=false,step=0,visibilityBound=false;
     const melody=[0,7,12,10,7,3,5,7,0,7,15,12,10,7,5,3,5,12,17,15,12,8,7,5,3,10,15,12,10,7,5,7];
@@ -64,6 +66,11 @@ const AuraTourUI=(()=>{
     const seen=new Set();return clubs.filter(c=>T.eligibleForCup(def,c,regionOf)).filter(c=>{const k=World.matchingClub(c)?.id||norm(c.name);if(seen.has(k))return false;seen.add(k);return true;}).sort((a,b)=>b.rating-a.rating);
   }
   function storage(){return state?T.initialize(state).cups:friendlyCups;}
+  function saveFriendlyCups(){
+    if(state)return;
+    try{if(typeof AuraCupSave!=="undefined"&&typeof localStorage!=="undefined")
+      AuraCupSave.save(localStorage,friendlyCups,T.cupTypes);}catch{}
+  }
   function currentCup(){return storage().find(c=>c.id===cupType);}
   function cupPreview(cup){
     if(!cup||cup.champion)return '';
@@ -94,7 +101,7 @@ const AuraTourUI=(()=>{
     const def=T.cupTypes.find(d=>d.id===cupType),candidates=cupCandidates(),cup=currentCup();
     if(!candidates.some(c=>c.id===cupTeam))cupTeam=candidates.some(c=>c.id===state?.club)?state.club:candidates[0]?.id||"";
     const controls='<div class="tour-form"><label>Competición<select id="tour-cup-type">'+T.cupTypes.map(c=>'<option value="'+c.id+'" '+(c.id===cupType?'selected':'')+'>'+c.name+'</option>').join("")+'</select></label><label>Tu equipo<select id="tour-cup-team">'+candidates.map(c=>'<option value="'+esc(c.id)+'" '+(c.id===cupTeam?'selected':'')+'>'+esc(c.name)+'</option>').join("")+'</select></label><button class="btn primary" data-tour="cup-create" '+(candidates.length<def.size?'disabled':'')+'>'+(cup?'Nueva edición':'Crear torneo')+' →</button></div>';
-    const note='<p class="save-info">Formato AURA: '+def.size+' equipos, eliminación directa a un partido y penaltis automáticos si hay empate. Participantes elegidos del catálogo; '+(def.id==="clubworld"?'8 clubes de Sudamérica y 8 de Europa, incluido el tuyo. Competición ficticia, no oficial. ':["copadelrey","facup","copaecuador"].includes(def.id)?'Copa nacional en formato reducido adaptado a la selección de clubes AURA, no refleja el cuadro oficial. ':def.id==="america"?'10 selecciones sudamericanas y 6 invitadas. ':def.youth?'Plantillas Sub-21, completadas con canteranos identificados. ':'')+'No reproduce clasificación, grupos ni calendarios oficiales. Las copas avanzan desde este panel.</p>';
+    const note='<p class="save-info">Formato AURA: '+def.size+' equipos, eliminación directa a un partido y penaltis automáticos si hay empate. Participantes elegidos del catálogo; '+(def.id==="clubworld"?'8 clubes de Sudamérica y 8 de Europa, incluido el tuyo. Competición ficticia, no oficial. ':["copadelrey","facup","copaecuador"].includes(def.id)?'Copa nacional en formato reducido adaptado a la selección de clubes AURA, no refleja el cuadro oficial. ':def.id==="america"?'10 selecciones sudamericanas y 6 invitadas. ':def.youth?'Plantillas Sub-21, completadas con canteranos identificados. ':'')+'No reproduce clasificación, grupos ni calendarios oficiales. Las copas avanzan desde este panel. Las copas independientes se guardan en este navegador; Carrera Mánager sigue sin autoguardado.</p>';
     if(!cup)return headline('CLUBES Y SELECCIONES','EL MUNDO TE ESPERA.','Juega o simula cada ronda; todos los cruces quedan registrados en el cuadro.')+controls+note+'<div class="tour-empty">Elige un torneo y un equipo para empezar.</div>';
     const team=id=>cup.entrants.find(t=>t.id===id),f=T.cupFixture(cup),champ=team(cup.champion);
     return headline('CAMINO A LA COPA',esc(cup.name),cup.champion?'Campeón: '+esc(champ.name):'Tu equipo: '+esc(team(cup.user).name)+' · '+cup.current.length+' equipos siguen en carrera.')+controls+note+
@@ -110,7 +117,7 @@ const AuraTourUI=(()=>{
     if(def.id==="europa")options=options.slice(8);if(def.id==="conference")options=options.slice(20);
     if(def.id==="clubworld")options=T.clubWorldEntrants(candidates,chosen,regionOf).slice(1);
     const entrants=[chosen,...options.slice(0,def.size-1)].map(c=>({id:c.id,name:c.name,rating:c.rating,region:c.region,national:c.national}));
-    const cup=T.createCup(cupType,entrants,chosen.id),list=storage(),old=list.findIndex(c=>c.id===cupType);if(old>=0)list.splice(old,1,cup);else list.push(cup);return cup;
+    const cup=T.createCup(cupType,entrants,chosen.id),list=storage(),old=list.findIndex(c=>c.id===cupType);if(old>=0)list.splice(old,1,cup);else list.push(cup);saveFriendlyCups();return cup;
   }
   function cupArenaTeam(cup,id){
     const def=T.cupTypes.find(c=>c.id===cup.id),entry=cup.entrants.find(c=>c.id===id),c=entry.national?nations().find(c=>c.id===id):getClub(id);
@@ -131,7 +138,7 @@ const AuraTourUI=(()=>{
         orientation.penalties=homeFirst?{home:kicks.home,away:kicks.away}:{home:kicks.away,away:kicks.home};
         notify("Empate: tanda de penaltis "+kicks.home+" — "+kicks.away+".");
       }
-      T.advanceCup(cup,orientation);render();
+      T.advanceCup(cup,orientation);saveFriendlyCups();render();
     }});
   }
   function awardsView(){
@@ -240,18 +247,18 @@ const AuraTourUI=(()=>{
         else notify(result.error);
       }
       if(action==='cup-create'){createCup();render();}
-      if(action==='cup-sim'){const cup=currentCup();if(cup){T.advanceCup(cup);render();}}
+      if(action==='cup-sim'){const cup=currentCup();if(cup){T.advanceCup(cup);saveFriendlyCups();render();}}
       if(action==='cup-finish'){
         const cup=currentCup();if(cup&&!cup.champion){
           for(let n=0;n<6&&!cup.champion;n++)T.advanceCup(cup);
-          render();notify('Copa completada: revisa el campeón y los marcadores.');
+          saveFriendlyCups();render();notify('Copa completada: revisa el campeón y los marcadores.');
         }
       }
       if(action==='cup-reroll'){
         const cup=currentCup();if(cup&&!cup.rounds.length&&!cup.champion){
           const retry=T.createCup(cup.id,cup.entrants,cup.user,cup.seed+1);
           const entries=storage(),i=entries.findIndex(c=>c===cup);
-          if(i>=0){entries[i]=retry;render();notify('Nuevo sorteo completado.');}
+          if(i>=0){entries[i]=retry;saveFriendlyCups();render();notify('Nuevo sorteo completado.');}
         }
       }
       if(action==='cup-play')playCup();
