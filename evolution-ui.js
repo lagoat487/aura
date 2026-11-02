@@ -215,8 +215,7 @@ const AuraEvolution=(()=>{
       if(!modeCards.some(row=>row[0]===d.evoPin))return true;
       pinnedMode=pinnedMode===d.evoPin?null:d.evoPin;
       try{
-        if(pinnedMode)localStorage.setItem("aura-pinned-mode-v1",pinnedMode);
-        else localStorage.removeItem("aura-pinned-mode-v1");
+        localStorage.setItem("aura-pinned-mode-v1",pinnedMode||"");
       }catch{}
       render();return true;
     }
