@@ -61,7 +61,7 @@ const AuraTourUI=(()=>{
     const def=T.cupTypes.find(d=>d.id===cupType);
     if(def.national)return nations().filter(n=>def.region==="world"||def.region==="americas"?["world"].includes(def.region)||["south","north"].includes(n.region):n.region===def.region).sort((a,b)=>b.rating-a.rating);
     if(def.region==="europe")return AuraChampions.candidates(clubs,Competitions.definitions,c=>World.matchingClub(c));
-    const seen=new Set();return clubs.filter(c=>c.gender!=="women"&&(def.youth||regionOf(c)===def.region)).filter(c=>{const k=World.matchingClub(c)?.id||norm(c.name);if(seen.has(k))return false;seen.add(k);return true;}).sort((a,b)=>b.rating-a.rating);
+    const seen=new Set();return clubs.filter(c=>c.gender!=="women"&&(def.youth||(def.region==="worldclubs"?["south","europe"].includes(regionOf(c)):regionOf(c)===def.region))).filter(c=>{const k=World.matchingClub(c)?.id||norm(c.name);if(seen.has(k))return false;seen.add(k);return true;}).sort((a,b)=>b.rating-a.rating);
   }
   function storage(){return state?T.initialize(state).cups:friendlyCups;}
   function currentCup(){return storage().find(c=>c.id===cupType);}
@@ -94,7 +94,7 @@ const AuraTourUI=(()=>{
     const def=T.cupTypes.find(d=>d.id===cupType),candidates=cupCandidates(),cup=currentCup();
     if(!candidates.some(c=>c.id===cupTeam))cupTeam=candidates.some(c=>c.id===state?.club)?state.club:candidates[0]?.id||"";
     const controls='<div class="tour-form"><label>Competición<select id="tour-cup-type">'+T.cupTypes.map(c=>'<option value="'+c.id+'" '+(c.id===cupType?'selected':'')+'>'+c.name+'</option>').join("")+'</select></label><label>Tu equipo<select id="tour-cup-team">'+candidates.map(c=>'<option value="'+esc(c.id)+'" '+(c.id===cupTeam?'selected':'')+'>'+esc(c.name)+'</option>').join("")+'</select></label><button class="btn primary" data-tour="cup-create" '+(candidates.length<def.size?'disabled':'')+'>'+(cup?'Nueva edición':'Crear torneo')+' →</button></div>';
-    const note='<p class="save-info">Formato AURA: '+def.size+' equipos, eliminación directa a un partido y penaltis automáticos si hay empate. Participantes elegidos del catálogo; '+(def.id==="america"?'10 selecciones sudamericanas y 6 invitadas. ':def.youth?'Plantillas Sub-21, completadas con canteranos identificados. ':'')+'No reproduce clasificación, grupos ni calendarios oficiales. Las copas avanzan desde este panel.</p>';
+    const note='<p class="save-info">Formato AURA: '+def.size+' equipos, eliminación directa a un partido y penaltis automáticos si hay empate. Participantes elegidos del catálogo; '+(def.id==="clubworld"?'8 clubes de Sudamérica y 8 de Europa, incluido el tuyo. Competición ficticia, no oficial. ':def.id==="america"?'10 selecciones sudamericanas y 6 invitadas. ':def.youth?'Plantillas Sub-21, completadas con canteranos identificados. ':'')+'No reproduce clasificación, grupos ni calendarios oficiales. Las copas avanzan desde este panel.</p>';
     if(!cup)return headline('CLUBES Y SELECCIONES','EL MUNDO TE ESPERA.','Juega o simula cada ronda; todos los cruces quedan registrados en el cuadro.')+controls+note+'<div class="tour-empty">Elige un torneo y un equipo para empezar.</div>';
     const team=id=>cup.entrants.find(t=>t.id===id),f=T.cupFixture(cup),champ=team(cup.champion);
     return headline('CAMINO A LA COPA',esc(cup.name),cup.champion?'Campeón: '+esc(champ.name):'Tu equipo: '+esc(team(cup.user).name)+' · '+cup.current.length+' equipos siguen en carrera.')+controls+note+
@@ -108,6 +108,15 @@ const AuraTourUI=(()=>{
     const def=T.cupTypes.find(c=>c.id===cupType),candidates=cupCandidates(),chosen=candidates.find(c=>c.id===cupTeam);if(!chosen)throw Error("Elige un equipo.");
     let options=candidates.filter(c=>c.id!==chosen.id);
     if(def.id==="europa")options=options.slice(8);if(def.id==="conference")options=options.slice(20);
+    if(def.id==="clubworld"){
+      // Fictional 16-club world cup: eight European and eight South American places.
+      // Preserve the player's chosen club; never modify the underlying team roster.
+      const zone=regionOf(chosen),quota={south:8,europe:8};
+      quota[zone]--;
+      options=["south","europe"].flatMap(region=>
+        options.filter(club=>regionOf(club)===region).slice(0,quota[region]));
+      if(options.length!==15)throw Error("No hay suficientes clubes de ambas regiones.");
+    }
     const entrants=[chosen,...options.slice(0,def.size-1)].map(c=>({id:c.id,name:c.name,rating:c.rating,region:c.region,national:c.national}));
     const cup=T.createCup(cupType,entrants,chosen.id),list=storage(),old=list.findIndex(c=>c.id===cupType);if(old>=0)list.splice(old,1,cup);else list.push(cup);return cup;
   }
