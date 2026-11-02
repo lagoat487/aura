@@ -117,3 +117,32 @@
 @media(max-width:620px){
  #arena .arena-setpiece:not([hidden]){top:118px;max-width:65%;font-size:8px;padding:7px}
 }
+
+/* Player-by-player broadcast report. Table scrolls inside the overlay on phones. */
+#arena .match-mvp{display:flex;flex-direction:column;align-items:center;gap:3px;margin:9px auto 11px;
+  padding:10px 20px;border:1px solid #ddfa9669;border-radius:8px;
+  background:linear-gradient(125deg,#263e2d,#101e25);max-width:450px;text-align:center}
+#arena .match-mvp span{font:800 9px Arial;letter-spacing:1.3px;color:#dbf7ad}
+#arena .match-mvp strong{font:900 19px Arial;color:#fff}
+#arena .match-mvp small{font:600 11px Arial;color:#aee4c8}
+#arena .match-player-report{box-sizing:border-box;width:min(980px,calc(100vw - 24px));
+  max-height:min(88dvh,740px);overflow-y:auto;overscroll-behavior:contain;
+  padding:20px 22px;color:#f8fff5;background:#0c1d20f7;border-radius:13px;
+  border:1px solid #b9efaa4d;box-shadow:0 20px 60px #0009}
+#arena .match-player-report h2{font:italic 32px var(--display,Impact,Arial);
+  margin:10px 0 15px;color:#f6fce9}
+#arena .match-player-table-wrap{max-width:100%;overflow:auto;-webkit-overflow-scrolling:touch}
+#arena .match-player-table{width:100%;min-width:750px;border-collapse:collapse;font:11px Arial}
+#arena .match-player-table th{font-size:9px;color:#c4e6a4;letter-spacing:.3px}
+#arena .match-player-table th,#arena .match-player-table td{
+  padding:9px 6px;border-bottom:1px solid #ffffff20;text-align:center;white-space:nowrap}
+#arena .match-player-table th:first-child,#arena .match-player-table td:first-child{text-align:left}
+#arena .match-player-table .match-best-player{background:#aeef7b1d}
+#arena .match-player-report>.btn{margin-top:15px}
+#arena .match-player-report .save-info{font-size:11px;line-height:1.5}
+@media(max-width:620px){
+ #arena .match-player-report{padding:14px 11px;max-height:78dvh}
+ #arena .match-player-report h2{font-size:25px}
+ #arena .match-mvp{padding:9px 13px}
+ #arena .match-mvp strong{font-size:15px}
+}

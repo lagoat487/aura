@@ -125,3 +125,39 @@ test('visitor shooting shortcut works only for the away-controlled player in loc
  assert.equal(g.stats[0].shots,0);
  a.key('keyup','0');a.click('pause');a.click('exit');a.click('confirm-exit');
 });
+
+test('pause report lists both teams, leader, ratings and allows returning without unpausing',()=>{
+ const a=boot(),g=a.session.game;g.phase='playing';
+ const scorer=g.players[g.controlled];g.playerStats["0:"+scorer.id].goals=2;
+ a.click('pause');assert.equal(g.paused,true);
+ assert.match(a.node('arena-layer').innerHTML,/data-arena="report"/);
+ a.click('report');
+ const html=a.node('arena-layer').innerHTML;
+ assert.match(html,/INFORME DE PARTIDO/);
+ assert.match(html,/JUGADOR DEL PARTIDO/);
+ assert.match(html,/home|Home FC|Local/);
+ assert.match(html,/away|Away FC|Rival/);
+ assert.match(html,/data-arena="report-back"/);
+ assert.equal(g.paused,true);
+ a.click('report-back');
+ assert.match(a.node('arena-layer').innerHTML,/data-arena="resume"/);
+ a.click('resume');assert.equal(g.paused,false);
+ a.click('pause');a.click('exit');a.click('confirm-exit');assert.equal(a.commits(),0);
+});
+test('final score shows the individual MVP and assists, and full player report remains read-only',()=>{
+ const a=boot(),g=a.session.game;g.playerStats["0:home9"].assists=1;
+ g.playerStats["0:home8"].goals=1;
+ g.goals=[{minute:21,name:"Local 8",team:0,assist:"Local 9",assistId:"home9"}];
+ g.score=[1,0];g.phase='finished';a.frame();
+ let html=a.node('arena-layer').innerHTML;
+ assert.match(html,/JUGADOR DEL PARTIDO/);
+ assert.match(html,/Asistencia: Local 9/);
+ assert.match(html,/data-arena="report"/);
+ const snapshot=JSON.stringify(g);
+ a.click('report');html=a.node('arena-layer').innerHTML;
+ assert.match(html,/match-player-table/);
+ assert.match(html,/Local 8/);
+ assert.equal(JSON.stringify(g),snapshot);
+ a.click('report-back');assert.match(a.node('arena-layer').innerHTML,/data-arena="complete"/);
+ a.click('complete');a.click('complete');assert.equal(a.commits(),1);
+});
