@@ -23,9 +23,13 @@
   function finish(c){
     const n=c.kicks.length,h=Math.ceil(n/2),a=Math.floor(n/2);
     const leftH=Math.max(0,5-h),leftA=Math.max(0,5-a);
-    if((c.score[0]>c.score[1]+leftA)||(c.score[1]>c.score[0]+leftH)||
-      (n>=10&&n%2===0&&c.score[0]!==c.score[1])){
+    const early=n<10&&((c.score[0]>c.score[1]+leftA)||(c.score[1]>c.score[0]+leftH));
+    const pairedDecision=n>=10&&n%2===0&&c.score[0]!==c.score[1];
+    if(early||pairedDecision){
       c.status="finished";c.winner=c.score[0]>c.score[1]?c.home:c.away;
+    }else if(n===60){
+      // Extremely unlikely 30-pair tie: deterministic final technical decision.
+      c.status="finished";c.winner=c.homeRating>=c.awayRating?c.home:c.away;
     }
   }
   function kick(c,direction){
