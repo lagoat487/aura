@@ -1,7 +1,7 @@
 /* AURA Club Update 4.2 — console lobby, career hub and playable modes. */
 const AuraEvolution=(()=>{
   "use strict";
-  let mode="career",modeOpen=false,recentMode=null,pinnedMode=null,leagueQuery="",clubQuery="",quickHome="barcelona",quickAway="madrid",quickQuery="",draft=null,preview=null,previewFrame=0;
+  let mode="career",modeOpen=false,recentMode=null,pinnedMode=null,leagueQuery="",clubQuery="",quickHome="barcelona",quickAway="madrid",quickQuery="",quickRivalry=null,draft=null,preview=null,previewFrame=0;
   const compact=n=>n>=1000000?"€"+(n/1e6).toLocaleString("es-ES",{maximumFractionDigits:1})+" M":money(n);
   const text=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const normal=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
@@ -104,10 +104,44 @@ const AuraEvolution=(()=>{
   function quickChoices(id){
     return quickClubs().filter(c=>c.id===id||!quickQuery||normal(c.name+" "+c.city).includes(normal(quickQuery))).map(c=>'<option value="'+c.id+'" '+(c.id===id?'selected':'')+'>'+text(c.name)+'</option>').join("");
   }
+  function rivalryPanel(){
+    const rivalry=quickRivalry;
+    if(!rivalry)return '<section class="quick-rivalry"><span class="eyebrow">NUEVO MODO · RIVALIDAD</span>'+
+      '<h2>AL MEJOR DE TRES.</h2><p>Enfrenta a tu rival en una serie. El primero en ganar dos partidos se lleva el trofeo. Si hay empate, se decide por penaltis.</p>'+
+      '<button class="btn primary" data-evo="quick-rivalry-new">Empezar serie →</button></section>';
+    const round=AuraRivalry.next(rivalry),finished=!round;
+    return '<section class="quick-rivalry"><div class="quick-rivalry-top"><div><span class="eyebrow">RIVALIDAD · MEJOR DE TRES</span>'+
+      '<h2>'+(finished?'🏆 SERIE TERMINADA':'ENCUENTRO '+round+' / 3')+'</h2>'+
+      '<p>'+(finished?'Ganador: '+text(getClub(rivalry.champion).name):
+        'Gana dos partidos. Los empates se resuelven por penaltis.')+'</p></div>'+
+      '<div class="quick-rivalry-score"><span>'+text(getClub(rivalry.home).name)+'</span><strong>'+
+        rivalry.wins[0]+' — '+rivalry.wins[1]+'</strong><span>'+text(getClub(rivalry.away).name)+'</span></div></div>'+
+      '<div class="quick-rivalry-results">'+rivalry.results.map(match=>
+        '<article><span>PARTIDO '+match.round+'</span><strong>'+match.score.home+' — '+match.score.away+'</strong>'+
+        '<small>'+(match.penalties?'Penaltis '+match.penalties.home+' — '+match.penalties.away+' · ':'')+
+        'Ganó '+text(getClub(match.winner===0?rivalry.home:rivalry.away).name)+'</small></article>').join('')+'</div>'+
+      (round?'<button class="btn primary" data-evo="quick-rivalry-play">Jugar partido '+round+' →</button>':'')+
+      '<button class="btn" data-evo="quick-rivalry-reset">'+(finished?'Otra rivalidad':'Cancelar rivalidad')+'</button></section>';
+  }
+  function playRivalry(){
+    const series=quickRivalry,round=AuraRivalry.next(series);
+    if(!round)return false;
+    const opponent=getClub(series.away),mine=getClub(series.home);
+    AuraArena.preMatch(AuraArena.team(mine),AuraArena.team(opponent),{
+      label:'AURA RIVALIDAD · PARTIDO '+round+' · '+mine.name+' vs '+opponent.name,
+      onFinish:result=>{
+        if(quickRivalry!==series||AuraRivalry.next(series)!==round)return;
+        const match=AuraRivalry.record(series,result);
+        if(match){render();notify('Rivalidad · '+(series.status==='finished'?'¡Serie terminada!':'Partido registrado.')+
+          ' '+series.wins[0]+' — '+series.wins[1]);}
+      }
+    });
+    return true;
+  }
   function quickPicker(){
     const h=getClub(quickHome),a=getClub(quickAway);
-    const team=(club,id,label)=>'<div class="quick-team"><span class="quick-team-label">'+label+'</span>'+badge(club,105)+'<label class="sr-only" for="'+id+'">'+label+'</label><select id="'+id+'">'+quickChoices(club.id)+'</select><button class="quick-roster-link" data-evo="view-roster" data-club="'+text(club.id)+'">Ver plantilla →</button><div class="quick-strength"><strong>'+club.rating+'</strong><span>FORTALEZA<br>DEL CLUB</span></div><div class="quick-strength-track" aria-hidden="true"><i style="width:'+club.rating+'%"></i></div></div>';
-    return '<section class="quick-match-panel"><div class="selection-heading"><div><span class="eyebrow">02 / DIRECTO AL PARTIDO</span><h2>EL CÉSPED TE ESPERA.</h2></div><span class="pill">11 contra 11 · Tú contra la IA</span></div><div class="quick-search-bar"><label for="quick-club-search">Encuentra un equipo<input id="quick-club-search" type="search" placeholder="Busca club o ciudad…" value="'+text(quickQuery)+'" autocomplete="off"></label><span id="quick-search-status" role="status">'+quickClubs().filter(c=>!quickQuery||normal(c.name+" "+c.city).includes(normal(quickQuery))).length+' equipos en la búsqueda</span></div><div class="quick-teams">'+team(h,"quick-home","TU EQUIPO")+'<div class="quick-versus"><b aria-hidden="true">VS</b><button class="quick-swap" data-evo="quick-swap" aria-label="Intercambiar tu equipo y el rival" title="Intercambiar equipos">⇄</button></div>'+team(a,"quick-away","EL RIVAL")+'</div><div class="quick-cta"><button class="btn primary" data-evo="quick-start">Preparar partido <span>→</span></button><p>Duración, dificultad, ambiente y gráficos. El siguiente paso lo eliges tú.</p></div></section>';
+    const team=(club,id,label)=>'<div class="quick-team"><span class="quick-team-label">'+label+'</span>'+badge(club,105)+'<label class="sr-only" for="'+id+'">'+label+'</label><select id="'+id+'" '+(quickRivalry?.status==='playing'?'disabled':'')+'>'+quickChoices(club.id)+'</select><button class="quick-roster-link" data-evo="view-roster" data-club="'+text(club.id)+'">Ver plantilla →</button><div class="quick-strength"><strong>'+club.rating+'</strong><span>FORTALEZA<br>DEL CLUB</span></div><div class="quick-strength-track" aria-hidden="true"><i style="width:'+club.rating+'%"></i></div></div>';
+    return '<section class="quick-match-panel"><div class="selection-heading"><div><span class="eyebrow">02 / DIRECTO AL PARTIDO</span><h2>EL CÉSPED TE ESPERA.</h2></div><span class="pill">11 contra 11 · Tú contra la IA</span></div><div class="quick-search-bar"><label for="quick-club-search">Encuentra un equipo<input id="quick-club-search" type="search" placeholder="Busca club o ciudad…" value="'+text(quickQuery)+'" autocomplete="off"></label><span id="quick-search-status" role="status">'+quickClubs().filter(c=>!quickQuery||normal(c.name+" "+c.city).includes(normal(quickQuery))).length+' equipos en la búsqueda</span></div><div class="quick-teams">'+team(h,"quick-home","TU EQUIPO")+'<div class="quick-versus"><b aria-hidden="true">VS</b><button class="quick-swap" data-evo="quick-swap" aria-label="Intercambiar tu equipo y el rival" title="Intercambiar equipos">⇄</button></div>'+team(a,"quick-away","EL RIVAL")+'</div><div class="quick-cta"><button class="btn primary" data-evo="quick-start">Preparar partido <span>→</span></button><p>Duración, dificultad, ambiente y gráficos. El siguiente paso lo eliges tú.</p></div></section>'+rivalryPanel();
   }
   function pool(){
     if(typeof AuraRosterSync!=="undefined")return AuraRosterSync.pool();
@@ -241,7 +275,17 @@ const AuraEvolution=(()=>{
       if(mode==="draft"&&!draft){startDraft();render();}
       document.getElementById("mode-content")?.scrollIntoView({behavior:"smooth",block:"start"});
     }
-    if(d.evo==="quick-swap"){[quickHome,quickAway]=[quickAway,quickHome];render();document.getElementById("quick-home")?.focus();}
+    if(d.evo==="quick-swap"){
+      if(quickRivalry?.status==="playing"){notify("Termina o cancela la rivalidad para cambiar equipos.");return true;}
+      [quickHome,quickAway]=[quickAway,quickHome];render();document.getElementById("quick-home")?.focus();
+    }
+    if(d.evo==="quick-rivalry-new"){
+      try{quickRivalry=AuraRivalry.create(quickHome,quickAway,getClub(quickHome).rating,getClub(quickAway).rating);render();}
+      catch(error){notify(error.message);}
+      return true;
+    }
+    if(d.evo==="quick-rivalry-reset"){quickRivalry=null;render();return true;}
+    if(d.evo==="quick-rivalry-play"){playRivalry();return true;}
     if(d.evo==="quick-start")try{if(quickHome===quickAway){notify("Elige dos clubes distintos para este partido.");return true;}AuraArena.preMatch(AuraArena.team(getClub(quickHome)),AuraArena.team(getClub(quickAway)),{});}catch(err){notify(err.message);}
     if(d.evo==="draft-new"){startDraft();render();}
     if(d.evo==="draft-retry"&&draft?.players.length===11){
@@ -261,12 +305,12 @@ const AuraEvolution=(()=>{
   }
   function change(e){
     if(e.target.id==="evo-league"){const def=Competitions.getDefinition(e.target.value);selectedCompetition=def.id;if(!def.clubIds.includes(selected))selected=def.clubIds[0];clubQuery="";render();}
-    if(e.target.id==="quick-home"){quickHome=e.target.value;render();}
-    if(e.target.id==="quick-away"){quickAway=e.target.value;render();}
+    if(e.target.id==="quick-home"&&quickRivalry?.status!=="playing"){quickHome=e.target.value;render();}
+    if(e.target.id==="quick-away"&&quickRivalry?.status!=="playing"){quickAway=e.target.value;render();}
     if(e.target.id==="evo-tactic"&&state){state.tactic=e.target.value;notify("Identidad de juego actualizada");}
   }
   return {welcome,dashboard,badge,handleClick,input,change,afterRender,stopPreview,playCareer,pool,setMode:name=>{
     if(name==="hub"){modeOpen=false;return;}
     if(modeCards.some(row=>row[0]===name)){mode=name;modeOpen=true;recentMode=name;}
-  },getMode:()=>({mode:modeOpen?mode:"hub",recentMode,pinnedMode})};
+  },getMode:()=>({mode:modeOpen?mode:"hub",recentMode,pinnedMode}),getRivalry:()=>quickRivalry};
 })();
