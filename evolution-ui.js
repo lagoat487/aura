@@ -12,7 +12,15 @@ const AuraEvolution=(()=>{
   }
   function stopPreview(){globalThis.cancelAnimationFrame?.(previewFrame);preview?.dispose();preview=null;}
   function afterRender(){
-    stopPreview();if(typeof THREE==="undefined")return;const canvas=document.getElementById("lobby-stadium");
+    stopPreview();
+    // Preserve touch/keyboard selection across the rerender after a penalty kick.
+    if(penaltyFocus){
+      const button=document.querySelector('[data-evo="quick-penalty-kick"][data-penalty-dir="'+penaltyFocus+'"]')||
+        document.querySelector('[data-evo="quick-penalty-new"]');
+      try{button?.focus({preventScroll:true});}catch{button?.focus();}
+      penaltyFocus=null;
+    }
+    if(typeof THREE==="undefined")return;const canvas=document.getElementById("lobby-stadium");
     if(canvas&&!AuraArena.isRunning()){
       try {preview=AuraGraphics.create(canvas,{preview:true,quality:"low",stadium:"night",home:getClub("barcelona"),away:getClub("madrid")});preview.render(null,"wide",0);}
       catch{try{preview=AuraGraphics.fallback(canvas,{preview:true,quality:"low",stadium:"night",home:getClub("barcelona"),away:getClub("madrid")});preview.render(null,"wide",0);}catch{canvas.classList.add("stadium-unavailable");}}
@@ -38,9 +46,17 @@ const AuraEvolution=(()=>{
       AuraModeProgress.save(localStorage,draft,quickRivalry);}catch{}
   }
   // Penalty Challenge save lives outside Career, UT, Draft and Rivalry.
-  let penaltyChallenge=null;
-  try{if(typeof AuraPenaltyChallenge!=="undefined"&&typeof localStorage!=="undefined")
-    penaltyChallenge=AuraPenaltyChallenge.load(localStorage);}catch{}
+  let penaltyChallenge=null,penaltyFocus=null,penaltyHistory=[];
+  try{
+    if(typeof AuraPenaltyChallenge!=="undefined"&&typeof localStorage!=="undefined")
+      penaltyChallenge=AuraPenaltyChallenge.load(localStorage);
+    if(typeof AuraPenaltyHistory!=="undefined"&&typeof localStorage!=="undefined"){
+      penaltyHistory=AuraPenaltyHistory.load(localStorage);
+      // Migrate a completed shootout from before the history update, once only.
+      if(penaltyChallenge?.status==="finished")
+        penaltyHistory=AuraPenaltyHistory.record(localStorage,penaltyChallenge).rows;
+    }
+  }catch{}
   function persistPenalty(){
     try{if(typeof AuraPenaltyChallenge!=="undefined"&&typeof localStorage!=="undefined")
       AuraPenaltyChallenge.save(localStorage,penaltyChallenge);}catch{}
@@ -158,15 +174,37 @@ const AuraEvolution=(()=>{
     });
     return true;
   }
+  function penaltyHistoryPanel(){
+    if(typeof AuraPenaltyHistory==="undefined")return "";
+    const stats=AuraPenaltyHistory.stats(penaltyHistory);
+    const label=id=>text(clubs.find(c=>c.id===id)?.name||id);
+    return '<section class="quick-penalty-history" aria-label="Estadísticas e historial de penaltis">'+
+      '<div class="quick-penalty-history-title"><span class="penalty-eyebrow">TU HISTORIAL</span>'+
+      '<h3>LAS ÚLTIMAS '+AuraPenaltyHistory.MAX_ROWS+' TANDAS.</h3>'+
+      '<p>Se conserva en este navegador, independientemente de tus otros modos.</p></div>'+
+      '<div class="quick-penalty-metrics">'+[
+        ["TANDAS",stats.played],["VICTORIAS",stats.wins],["DERROTAS",stats.losses],
+        ["GOLES",stats.goals],["ATAJADAS",stats.saves],["PRECISIÓN",stats.accuracy+"%"],
+        ["MEJOR RACHA",stats.bestStreak]
+      ].map(([name,value])=>'<div><strong>'+value+'</strong><small>'+name+'</small></div>').join("")+'</div>'+
+      (penaltyHistory.length?'<div class="quick-penalty-records">'+penaltyHistory.slice(0,6).map(item=>
+        '<article><b class="'+(item.winner===item.home?"win":"loss")+'">'+
+        (item.winner===item.home?"VICTORIA":"DERROTA")+'</b>'+
+        '<span>'+label(item.home)+' '+item.score[0]+' — '+item.score[1]+' '+label(item.away)+'</span>'+
+        '<small>'+item.saves+' atajadas · '+item.goals+'/'+item.kicksTaken+' goles</small></article>'
+      ).join("")+'</div>':'<p class="quick-penalty-empty">Todavía no has terminado una tanda.</p>')+
+      '<p class="save-info">Estadísticas de hasta 24 tandas recientes, no totales históricos de por vida.</p></section>';
+  }
   function penaltyPanel(){
     const c=penaltyChallenge,dirNames={left:"IZQUIERDA",center:"CENTRO",right:"DERECHA"};
     if(!c)return '<section class="quick-penalties"><span class="penalty-eyebrow">NUEVO DESAFÍO · PARTIDO RÁPIDO</span>'+
       '<h3>EL MOMENTO DE LOS PENALTIS.</h3><p>Elige tus equipos y juega una tanda contra la IA. Tú decides dónde disparar y hacia dónde lanzarte. El progreso se guarda en este navegador.</p>'+
-      '<button class="btn primary penalty-new" data-evo="quick-penalty-new">⚽ Comenzar tanda →</button></section>';
+      '<button class="btn primary penalty-new" data-evo="quick-penalty-new">⚽ Comenzar tanda →</button></section>'+penaltyHistoryPanel();
     const finished=c.status==="finished",attack=AuraPenaltyChallenge.side(c)===0;
     const last=c.kicks[c.kicks.length-1],names={left:"izquierda",center:"centro",right:"derecha"};
     const lastResult=last?(last.scored?"¡GOL!":"¡ATAJADA O FALLO!")+
       " · Balón: "+names[last.aim]+" · Portero: "+names[last.dive]:"";
+    const current=AuraPenaltyHistory.details(c);
     const kicks=c.kicks.map((shot,i)=>'<span class="quick-penalty-shot '+(shot.scored?"scored":"missed")+
       '" title="'+(shot.side===0?"Tu tiro":"Tiro rival")+' '+(i+1)+': '+(shot.scored?"gol":"fallo")+'">'+
       (shot.scored?"✓":"✕")+'</span>').join("");
@@ -176,15 +214,18 @@ const AuraEvolution=(()=>{
       '<div class="quick-penalty-score" role="status"><span>'+text(getClub(c.home).name)+'</span>'+
       '<strong>'+c.score[0]+' — '+c.score[1]+'</strong><span>'+text(getClub(c.away).name)+'</span></div>'+
       '<div class="quick-penalty-shots" aria-label="Historial de tiros">'+kicks+'</div>'+
-      (last?'<p class="penalty-last">'+lastResult+'</p>':"")+
+      (last?'<p class="penalty-last" role="status">'+lastResult+'</p>':"")+
+      '<div class="quick-penalty-current"><span>⚽ '+current.goals+'/'+current.kicksTaken+' GOLES</span>'+
+      '<span>🧤 '+current.saves+' ATAJADAS</span><span>🎯 '+current.divesCorrect+' LECTURAS</span></div>'+
       (finished?'<p class="penalty-finished">Ganador: '+text(getClub(c.winner).name)+'</p>':
         '<p>'+(attack?"Elige dónde tirar. El portero rival intentará adivinar.":"Elige hacia dónde lanzarte. La IA disparará.")+
         ' Cinco tiros por equipo y muerte súbita si empatan.</p>'+
+        '<div class="quick-penalty-goal" aria-hidden="true"><span>↖</span><span>↑</span><span>↗</span></div>'+
         '<div class="quick-penalty-choices">'+AuraPenaltyChallenge.directions.map(d=>
           '<button type="button" data-evo="quick-penalty-kick" data-penalty-dir="'+d+'">'+dirNames[d]+'</button>'
         ).join("")+'</div>')+
       '<button class="btn penalty-new" data-evo="quick-penalty-new">'+(finished?"↻ Jugar otra tanda":"↻ Reiniciar con los equipos seleccionados")+'</button>'+
-      '<p class="save-info">Desafío independiente de Rivalidad, Draft, Carrera y Ultimate Team.</p></section>';
+      '<p class="save-info">Desafío independiente de Rivalidad, Draft, Carrera y Ultimate Team.</p></section>'+penaltyHistoryPanel();
   }
   function quickPicker(){
     const h=getClub(quickHome),a=getClub(quickAway);
@@ -363,7 +404,16 @@ const AuraEvolution=(()=>{
     if(d.evo==="quick-penalty-kick"){
       if(AuraArena.isRunning()||!penaltyChallenge)return true;
       const shot=AuraPenaltyChallenge.kick(penaltyChallenge,d.penaltyDir);
-      if(shot){persistPenalty();render();if(penaltyChallenge.status==="finished")notify("¡Tanda de penaltis terminada!");}
+      if(shot){
+        persistPenalty();
+        if(penaltyChallenge.status==="finished"){
+          try{if(typeof localStorage!=="undefined"){
+            penaltyHistory=AuraPenaltyHistory.record(localStorage,penaltyChallenge).rows;
+          }}catch{}
+        }
+        penaltyFocus=d.penaltyDir;
+        render();if(penaltyChallenge.status==="finished")notify("¡Tanda de penaltis terminada!");
+      }
       return true;
     }
     if(d.evo==="quick-start")try{if(quickHome===quickAway){notify("Elige dos clubes distintos para este partido.");return true;}AuraArena.preMatch(AuraArena.team(getClub(quickHome)),AuraArena.team(getClub(quickAway)),{});}catch(err){notify(err.message);}
