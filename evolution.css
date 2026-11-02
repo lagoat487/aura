@@ -474,3 +474,27 @@ input,select{background:#121813;border:1px solid #ffffff22;border-radius:5px;col
 .draft-run-match small{font-size:10px;color:#b8dbcf}
 .draft-run-history>p{color:#b7cdbf;font-size:12px}
 @media(max-width:650px){.draft-run{padding:12px}.draft-run-progress{grid-template-columns:repeat(2,minmax(0,1fr))}.draft-run-header h3{font-size:24px}}
+
+/* Quick Match — a separate best-of-three rivalry that does not affect Career/UT. */
+.quick-rivalry{margin:21px 0 34px;padding:clamp(16px,3vw,28px);border-radius:13px;
+  border:1px solid #ffcd7c63;background:radial-gradient(ellipse at 85% 10%,#ffa74732,transparent 55%),
+  linear-gradient(130deg,#302617,#102b36);box-shadow:0 12px 35px #0004}
+.quick-rivalry>.eyebrow,.quick-rivalry .eyebrow{color:#ffda91}
+.quick-rivalry h2{font:italic 900 clamp(30px,5vw,52px)/.95 var(--display,Impact,Arial);
+  color:#fff9ee;margin:12px 0}
+.quick-rivalry p{font:400 12px/1.75 Arial;color:#d7dfe1;max-width:650px;margin-bottom:20px}
+.quick-rivalry-top{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.quick-rivalry-score{display:flex;flex-direction:column;align-items:center;min-width:200px;padding:12px 17px;
+  border-radius:10px;background:#110f0cb0;border:1px solid #ffd58b63}
+.quick-rivalry-score span{font:900 10px/1.4 Arial;color:#f7deb9;text-align:center}
+.quick-rivalry-score strong{font:italic 900 52px/1 var(--display,Impact,Arial);color:#fff}
+.quick-rivalry-results{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:20px 0 19px}
+.quick-rivalry-results article{display:flex;flex-direction:column;gap:7px;padding:15px;border-radius:8px;
+  background:#051c27ae;border:1px solid #ffe5b028}
+.quick-rivalry-results article span{font:800 9px Arial;color:#ecc991;letter-spacing:1px}
+.quick-rivalry-results article strong{font:900 24px Arial;color:#f9fff7}
+.quick-rivalry-results article small{font-size:10px;color:#d3dddb;line-height:1.5}
+.quick-rivalry>.btn{margin:6px 10px 5px 0;white-space:normal}
+@media(max-width:650px){.quick-rivalry-results{grid-template-columns:1fr}
+  .quick-rivalry{padding:18px 13px}.quick-rivalry>.btn{width:100%;margin:7px 0}
+  .quick-rivalry-score{width:100%;box-sizing:border-box}.quick-rivalry-top{gap:10px}}
