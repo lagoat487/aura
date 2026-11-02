@@ -5,6 +5,12 @@ const AuraTourUI=(()=>{
   const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
   let streetHome="barcelona",streetAway="madrid",streetDifficulty=1,streetGoalLimit=5,streetSeconds=120,streetCircuit=null,streetMode="friendly";
   let cupType="champions",cupTeam="",friendlyCups=[];
+  try{if(typeof AuraStreetSave!=="undefined"&&typeof localStorage!=="undefined")
+    streetCircuit=AuraStreetSave.load(localStorage);}catch{}
+  function saveStreetCircuit(){
+    try{if(typeof AuraStreetSave!=="undefined"&&typeof localStorage!=="undefined")
+      AuraStreetSave.save(localStorage,streetCircuit);}catch{}
+  }
   try{if(typeof AuraCupSave!=="undefined"&&typeof localStorage!=="undefined")
     friendlyCups=AuraCupSave.load(localStorage,T.cupTypes);}catch{}
   const audio=(()=>{
@@ -199,7 +205,7 @@ const AuraTourUI=(()=>{
       current?
         '<section class="volta-tour"><div class="volta-tour-head"><div><span class="eyebrow">AURA CALLE / CIRCUITO URBANO</span>'+
         '<h2>'+(rank?rank.icon+' '+rank.name+' · CIRCUITO TERMINADO':'🏆 CAMINO A LA CIMA')+'</h2>'+
-        '<p>Cuatro partidos, puntos por ganar y medalla de campeón. Los resultados se guardan en esta sesión de AURA.</p></div>'+
+        '<p>Cuatro partidos, puntos por ganar y medalla de campeón. El progreso se conserva en este navegador.</p></div>'+
         '<div class="volta-tour-points"><strong>'+current.points+'</strong><span>PUNTOS</span></div></div>'+
         '<div class="volta-tour-stats"><span><b>'+current.wins+'</b> GANADOS</span><span><b>'+current.draws+'</b> EMPATES</span>'+
         '<span><b>'+current.losses+'</b> PERDIDOS</span><span><b>'+current.goals+'</b> GOLES</span>'+
@@ -265,11 +271,11 @@ const AuraTourUI=(()=>{
       if(action==='street-mode'){
         if(['friendly','circuit'].includes(button.dataset.streetMode)){streetMode=button.dataset.streetMode;render();}
       }
-      if(action==='street-circuit-reset'){streetCircuit=null;render();}
+      if(action==='street-circuit-reset'){streetCircuit=null;saveStreetCircuit();render();}
       if(action==='street-circuit-new'){
         streetCircuit=AuraStreetCircuit.create(streetHome,{difficulty:streetDifficulty,
           seconds:streetSeconds,goalLimit:streetGoalLimit});
-        streetMode="circuit";render();
+        streetMode="circuit";saveStreetCircuit();render();
       }
       if(action==='street-play'||action==='street-circuit-play'){
         const circuit=action==='street-circuit-play'?streetCircuit:null;
@@ -284,7 +290,7 @@ const AuraTourUI=(()=>{
           onFinish:circuit?(result=>{
             if(streetCircuit!==circuit||AuraStreetCircuit.next(circuit)!==rival)return;
             const done=AuraStreetCircuit.complete(circuit,result);
-            if(done){render();notify('Calle: '+(done.points===3?'¡Ganaste!':done.points===1?'Empate':'Derrota')+
+            if(done){saveStreetCircuit();render();notify('Calle: '+(done.points===3?'¡Ganaste!':done.points===1?'Empate':'Derrota')+
               ' · +'+done.points+' puntos de circuito.');}
           }):undefined
         });
