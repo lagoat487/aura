@@ -1,0 +1,11 @@
+/* Draft XI 5.8: touch-friendly limited-choice refresh controls. */
+.draft-offer-tools{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;
+  gap:12px;margin:18px 0 12px;padding:14px 18px;border-radius:14px;
+  border:1px solid rgba(173,234,141,.24);background:linear-gradient(110deg,#142622,#22372c)}
+.draft-offer-tools span{font-size:11px;font-weight:800;letter-spacing:.08em;color:#def0d6}
+.draft-offer-tools .btn{min-height:42px;white-space:normal}
+.draft-offer-tools .btn:disabled{opacity:.5;cursor:not-allowed}
+@media(max-width:650px){
+  .draft-offer-tools{display:flex;flex-direction:column;align-items:stretch;padding:14px}
+  .draft-offer-tools .btn{min-height:48px;width:100%;font-size:12px}
+}
