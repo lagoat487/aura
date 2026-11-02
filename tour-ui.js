@@ -7,6 +7,7 @@ const AuraTourUI=(()=>{
   let cupType="champions",cupTeam="",friendlyCups=[];
   try{if(typeof AuraStreetSave!=="undefined"&&typeof localStorage!=="undefined")
     streetCircuit=AuraStreetSave.load(localStorage);}catch{}
+  if(streetCircuit)streetMode="circuit";
   function saveStreetCircuit(){
     try{if(typeof AuraStreetSave!=="undefined"&&typeof localStorage!=="undefined")
       AuraStreetSave.save(localStorage,streetCircuit);}catch{}
@@ -217,7 +218,9 @@ const AuraTourUI=(()=>{
             '<small>'+(finished?'AURA '+finished.home+' — '+finished.away+' · '+finished.points+' pts':
               isNext?'SIGUIENTE PARTIDO':'BLOQUEADO')+'</small></article>';
         }).join('')+'</div>'+
-        (opponent?'<button class="btn primary" data-tour="street-circuit-play">Jugar contra '+esc(getClub(opponent).name)+' →</button>':
+        (opponent?'<button class="btn primary" data-tour="street-circuit-play">Jugar contra '+esc(getClub(opponent).name)+' →</button>'+
+          '<button class="btn" data-tour="street-circuit-sim">Simular siguiente partido</button>'+
+          '<button class="btn" data-tour="street-circuit-sim-all">Simular el resto del circuito</button>':
           '<button class="btn primary" data-tour="street-circuit-new">Nuevo circuito →</button>')+
         '<button class="btn" data-tour="street-circuit-reset">Cambiar de club y comenzar otro circuito</button></section>'
       :'<section class="volta-tour volta-tour-welcome"><span class="eyebrow">4 PARTIDOS · UNA MEDALLA</span>'+
@@ -276,6 +279,16 @@ const AuraTourUI=(()=>{
         streetCircuit=AuraStreetCircuit.create(streetHome,{difficulty:streetDifficulty,
           seconds:streetSeconds,goalLimit:streetGoalLimit});
         streetMode="circuit";saveStreetCircuit();render();
+      }
+      if(action==='street-circuit-sim'||action==='street-circuit-sim-all'){
+        if(AuraStreet.isRunning()||AuraArena.isRunning()){notify("Termina el partido actual antes de simular.");return true;}
+        if(!streetCircuit||!AuraStreetCircuit.next(streetCircuit))return true;
+        const results=action==='street-circuit-sim-all'?
+          AuraStreetSim.rest(streetCircuit,id=>getClub(id).rating):
+          [AuraStreetSim.next(streetCircuit,getClub(streetCircuit.home).rating,
+             getClub(AuraStreetCircuit.next(streetCircuit)).rating)].filter(Boolean);
+        if(results.length){saveStreetCircuit();render();notify("Circuito VOLTA: "+results.length+" partido(s) simulados.");}
+        return true;
       }
       if(action==='street-play'||action==='street-circuit-play'){
         const circuit=action==='street-circuit-play'?streetCircuit:null;
