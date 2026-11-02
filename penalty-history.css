@@ -1,0 +1,42 @@
+/* AURA 27 · Penalty match insights and saved shootout history */
+.quick-penalty-current{display:flex;flex-wrap:wrap;gap:9px;margin:12px 0;color:#d9ffb2}
+.quick-penalty-current span{flex:1;min-width:105px;text-align:center;border:1px solid #d4ffad47;border-radius:10px;
+  padding:10px 7px;background:#102a20;font:bold 11px Arial,sans-serif}
+.quick-penalty-goal{display:grid;grid-template-columns:repeat(3,1fr);align-items:center;
+  margin:15px 7px 0;height:88px;border:5px solid #d8f0e2;border-bottom-width:2px;
+  border-radius:5px 5px 0 0;box-shadow:inset 0 0 12px #bde9dd4a,0 0 14px #0004;
+  background:repeating-linear-gradient(90deg,transparent 0 19px,#e7ffed18 20px 21px),
+   repeating-linear-gradient(0deg,#234936 0 19px,#dff9df14 20px 21px)}
+.quick-penalty-goal span{font-size:26px;text-align:center;font-weight:900;color:#e7f6db;
+  text-shadow:0 2px 5px #0009}
+.quick-penalty-choices{margin:10px 0}
+.quick-penalty-history{margin:15px 0 26px;padding:clamp(16px,3vw,28px);
+  border:1px solid #b4e6a547;background:linear-gradient(150deg,#142c26,#10201e);
+  border-radius:18px;color:#f4fff0}
+.quick-penalty-history-title h3{font:900 clamp(23px,4vw,32px)/1.1 Impact,Arial,sans-serif;margin:8px 0}
+.quick-penalty-history-title p,.quick-penalty-empty{font-size:12px;color:#d5e0ce}
+.quick-penalty-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin:16px 0}
+.quick-penalty-metrics>div{display:flex;flex-direction:column;gap:5px;padding:14px 10px;
+  background:#071b15b8;border:1px solid #bbeba932;border-radius:12px}
+.quick-penalty-metrics strong{font:900 27px Impact,Arial,sans-serif;color:#c6f69f}
+.quick-penalty-metrics small{font:800 9px Arial,sans-serif;letter-spacing:.6px}
+.quick-penalty-records{display:grid;gap:8px}
+.quick-penalty-records article{display:flex;flex-wrap:wrap;align-items:center;gap:9px;
+ padding:12px;border-radius:10px;border:1px solid #ffffff24;background:#ffffff0b}
+.quick-penalty-records article b{font:bold 10px Arial,sans-serif;padding:6px;border-radius:6px}
+.quick-penalty-records article b.win{background:#b2ed8c;color:#112719}
+.quick-penalty-records article b.loss{background:#d96e66;color:#fff}
+.quick-penalty-records article span{font-size:12px;font-weight:700;flex:1;min-width:150px}
+.quick-penalty-records article small{font-size:10px;color:#d8e3d5}
+.quick-penalty-history .save-info{font-size:10px;margin:12px 0 0}
+@media(max-width:540px){
+ .quick-penalty-goal{height:72px;margin:12px 2px 0}
+ .quick-penalty-metrics{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+ .quick-penalty-metrics>div{padding:11px 7px}
+ .quick-penalty-metrics strong{font-size:23px}
+ .quick-penalty-metrics small{font-size:8px}
+ .quick-penalty-current span{min-width:85px;padding:9px 5px;font-size:10px}
+}
+@media(prefers-reduced-motion:reduce){
+ .quick-penalty-goal,.quick-penalty-metrics>div{transition:none}
+}
