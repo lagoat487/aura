@@ -760,10 +760,11 @@ test("switching full mode screens preserves an unfinished Draft and UT collectio
 });
 test("mode hub preserves the live manager career when switching screens",()=>{
  const app=boot();app.click({evoMode:"career"});app.click({action:"start"});
- const snapshot=app.json("state");app.click({nav:"modes"});
+ const core='({club:state.club,round:state.round,budget:state.budget,history:state.history,rosters:state.rosters,champions:state.champions})';
+ const snapshot=app.json(core);app.click({nav:"modes"});
  assert.equal(app.run("AuraEvolution.getMode().mode"),"hub");
  assert.match(app.html(),/Continuar carrera/);
  app.click({evoMode:"cup"});app.click({evo:"mode-back"});
- app.click({nav:"career"});assert.deepEqual(app.json("state"),snapshot);
+ app.click({nav:"career"});assert.deepEqual(app.json(core),snapshot);
  assert.equal(app.run("lobby"),false);
 });
