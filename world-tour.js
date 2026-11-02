@@ -109,6 +109,7 @@
     {id:"conference",name:"Conference League",region:"europe",size:16},
     {id:"libertadores",name:"Copa Libertadores",region:"south",size:16},
     {id:"sudamericana",name:"Copa Sudamericana",region:"south",size:16},
+    {id:"clubworld",name:"Mundial de Clubes AURA",region:"worldclubs",size:16},
     {id:"world",name:"Mundial",region:"world",national:true,size:16},
     {id:"euro",name:"Eurocopa",region:"europe",national:true,size:16},
     {id:"america",name:"Copa América",region:"americas",national:true,size:16},
