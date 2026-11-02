@@ -33,6 +33,7 @@ function boot(options={}){
   report:()=>root.querySelector(".street-finish"),
   finishAction:key=>root.querySelector(".street-finish").querySelector('[data-street="'+key+'"]').onclick(),
   running:()=>context.AuraStreet.isRunning(),
+  closeActive:()=>context.AuraStreet.getSession()?.close(),
  };
 }
 
@@ -98,7 +99,7 @@ test("VOLTA friendlies offer a working rematch and replace the old game without 
  assert.match(a.report().innerHTML,/Revancha/);
  a.finishAction("again");assert.equal(a.running(),true);
  assert.equal(a.game.done,true);
- a.close();assert.equal(a.running(),false);
+ a.closeActive();assert.equal(a.running(),false);
 });
 test("Completed match markup renders safely escaped club names",()=>{
  const g={done:true,score:[1,0],seconds:60,elapsed:60,goalLimit:3,stats:[
