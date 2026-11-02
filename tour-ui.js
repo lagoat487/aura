@@ -204,7 +204,7 @@ const AuraTourUI=(()=>{
           difficulty:circuit?.difficulty||streetDifficulty,seconds:circuit?.seconds||streetSeconds,
           goalLimit:circuit?.goalLimit||streetGoalLimit,
           onFinish:circuit?(result=>{
-            if(streetCircuit!==circuit)return;
+            if(streetCircuit!==circuit||AuraStreetCircuit.next(circuit)!==rival)return;
             const done=AuraStreetCircuit.complete(circuit,result);
             if(done){render();notify('Calle: '+(done.points===3?'¡Ganaste!':done.points===1?'Empate':'Derrota')+
               ' · +'+done.points+' puntos de circuito.');}
