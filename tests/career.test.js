@@ -707,3 +707,63 @@ test("existing career and Ultimate Team club remain intact after changing separa
  app.click({nav:"career"});
  assert.deepEqual(app.json('state'),snapshot);
 });
+
+test("seven modes have independent screens, not shared tabs",()=>{
+ const app=boot();
+ assert.match(app.html(),/SIETE MODOS/);
+ assert.equal((app.html().match(/data-evo-mode=/g)||[]).length,7);
+ assert.equal((app.html().match(/class="aura-mode-tile aura-mode-tile--/g)||[]).length,7);
+ assert.doesNotMatch(app.html(),/id="mode-content"/);
+ const modes=[["career","ELIGE TU COMPETICIÓN"],["quick","DIRECTO AL PARTIDO"],["draft","DRAFT XI"],["pro","CARRERA DE JUGADOR"],["cup","COPAS Y SELECCIONES"],["ultimate","TU CLUB. TUS CARTAS."],["street","LA CALLE ES TU ESTADIO"]];
+ for(const [mode,content] of modes){
+   app.click({evoMode:mode});const html=app.html();
+   assert.equal(app.run("AuraEvolution.getMode().mode"),mode);
+   assert.match(html,/data-evo="mode-back"/);
+   assert.match(html,/class="aura-mode-detail-header aura-mode-detail-header--/);
+   assert.ok(html.includes(content),"Missing mode content "+mode);
+   assert.equal((html.match(/data-evo-mode=/g)||[]).length,0,"mode detail should not render shared tab strip");
+   app.click({evo:"mode-back"});
+   assert.equal(app.run("AuraEvolution.getMode().mode"),"hub");
+   assert.equal((app.html().match(/data-evo-mode=/g)||[]).length,7);
+ }
+ assert.equal(app.run("AuraEvolution.getMode().recentMode"),"street");
+ assert.match(app.html(),/VOLVER A CALLE \/ VOLTA/);
+ app.click({evo:"mode-resume"});
+ assert.equal(app.run("AuraEvolution.getMode().mode"),"street");
+});
+test("favorite mode moves to the front without losing any available mode",()=>{
+ const app=boot();app.click({evoPin:"cup"});
+ assert.equal(app.run("AuraEvolution.getMode().pinnedMode"),"cup");
+ assert.match(app.html(),/★ DESTACADO/);
+ const ids=[...app.html().matchAll(/data-mode-card="([^"]+)"/g)].map(m=>m[1]);
+ assert.equal(ids[0],"cup");assert.equal(new Set(ids).size,7);
+ app.click({evoMode:"cup"});assert.match(app.html(),/COPAS Y SELECCIONES/);
+ app.click({evo:"mode-back"});
+ assert.equal(app.run("AuraEvolution.getMode().pinnedMode"),"cup");
+ app.click({evoPin:"cup"});
+ assert.equal(app.run("AuraEvolution.getMode().pinnedMode"),null);
+ assert.equal((app.html().match(/data-evo-mode=/g)||[]).length,7);
+});
+test("switching full mode screens preserves an unfinished Draft and UT collection",()=>{
+ const app=boot();app.click({evoMode:"draft"});app.click({evo:"draft-new"});
+ app.click({draftPick:"0"});assert.match(app.html(),/1 \/ 11 JUGADORES ELEGIDOS/);
+ app.click({evo:"mode-back"});app.click({evoMode:"quick"});
+ app.change("quick-home","boca");app.click({evo:"mode-back"});
+ app.click({evoMode:"draft"});assert.match(app.html(),/1 \/ 11 JUGADORES ELEGIDOS/);
+ app.click({evo:"mode-back"});app.click({evoMode:"quick"});
+ assert.match(app.html(),/value="boca" selected/);
+ app.click({evo:"mode-back"});app.click({evoMode:"ultimate"});app.click({ut:"create"});
+ const cards=app.json("AuraUTUI.getClub().owned.map(p=>p.id)");
+ app.click({ut:"lobby"});assert.equal(app.run("AuraEvolution.getMode().mode"),"hub");
+ app.click({evoMode:"ultimate"});
+ assert.deepEqual(app.json("AuraUTUI.getClub().owned.map(p=>p.id)"),cards);
+});
+test("mode hub preserves the live manager career when switching screens",()=>{
+ const app=boot();app.click({evoMode:"career"});app.click({action:"start"});
+ const snapshot=app.json("state");app.click({nav:"modes"});
+ assert.equal(app.run("AuraEvolution.getMode().mode"),"hub");
+ assert.match(app.html(),/Continuar carrera/);
+ app.click({evoMode:"cup"});app.click({evo:"mode-back"});
+ app.click({nav:"career"});assert.deepEqual(app.json("state"),snapshot);
+ assert.equal(app.run("lobby"),false);
+});
