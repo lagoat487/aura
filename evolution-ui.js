@@ -27,6 +27,16 @@ const AuraEvolution=(()=>{
     ["ultimate","06","ULTIMATE TEAM","TU CLUB. TUS CARTAS.","Colecciona, mejora tu once y juega los eventos especiales.","Mercado · Sobres · Liga Argentina","💎"],
     ["street","07","CALLE / VOLTA","LA CALLE ES TU ESTADIO","Partidos rápidos de tres contra tres: ritmo, técnica y espectáculo.","3 contra 3 · Fútbol urbano","🔥"]
   ];
+  // Independent mode saves never read or modify Career or Ultimate Team.
+  const savedModes=typeof AuraModeProgress!=="undefined"&&typeof localStorage!=="undefined"
+    ?AuraModeProgress.load(localStorage):{draft:null,rivalry:null};
+  quickRivalry=savedModes.rivalry||null;
+  if(quickRivalry){quickHome=quickRivalry.home;quickAway=quickRivalry.away;}
+  draft=savedModes.draft?{...savedModes.draft,pool:[]}:null;
+  function persistModes(){
+    try{if(typeof AuraModeProgress!=="undefined"&&typeof localStorage!=="undefined")
+      AuraModeProgress.save(localStorage,draft,quickRivalry);}catch{}
+  }
   // Mode-navigation preferences are separate from career and Ultimate Team saves.
   try{
     const last=localStorage.getItem("aura-recent-mode-v1"),fav=localStorage.getItem("aura-pinned-mode-v1");
@@ -132,7 +142,7 @@ const AuraEvolution=(()=>{
       onFinish:result=>{
         if(quickRivalry!==series||AuraRivalry.next(series)!==round)return;
         const match=AuraRivalry.record(series,result);
-        if(match){render();notify('Rivalidad · '+(series.status==='finished'?'¡Serie terminada!':'Partido registrado.')+
+        if(match){persistModes();render();notify('Rivalidad · '+(series.status==='finished'?'¡Serie terminada!':'Partido registrado.')+
           ' '+series.wins[0]+' — '+series.wins[1]);}
       }
     });
@@ -150,14 +160,24 @@ const AuraEvolution=(()=>{
     return [...map.values()];
   }
   function startDraft(){
-    draft={players:[],pool:pool(),offers:[],finished:false,tournament:null};offerDraft();
+    draft={players:[],pool:pool(),offers:[],finished:false,tournament:null,rerollsLeft:3};
+    offerDraft();persistModes();
   }
-  function offerDraft(){
+  function offerDraft(previous=[]){
     const index=draft.players.length;if(index===11){draft.offers=[];return;}
+    if(!draft.pool?.length)draft.pool=pool();
     const position=AuraSquad.formations["4-3-3"][index][0],owned=new Set(draft.players.map(p=>normal(p.name)));
-    const choices=draft.pool.filter(p=>!owned.has(normal(p.name))).sort((a,b)=>(b.overall-AuraSquad.positionPenalty(b,position)*2)-(a.overall-AuraSquad.positionPenalty(a,position)*2)).slice(0,60);
-    for(let i=choices.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[choices[i],choices[j]]=[choices[j],choices[i]];}
-    draft.offers=choices.slice(0,5);
+    const choices=draft.pool.filter(p=>!owned.has(normal(p.name))).sort((a,b)=>(b.overall-AuraSquad.positionPenalty(b,position)*2)-(a.overall-AuraSquad.positionPenalty(a,position)*2)).slice(0,80);
+    const oldIds=new Set(previous.map(p=>p.id)),fresh=choices.filter(p=>!oldIds.has(p.id));
+    const group=fresh.length>=5?fresh:choices;
+    for(let i=group.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[group[i],group[j]]=[group[j],group[i]];}
+    draft.offers=group.slice(0,5);
+  }
+  function rerollDraft(){
+    if(!draft||draft.players.length>=11||draft.rerollsLeft<=0)return false;
+    const previous=draft.offers.slice();offerDraft(previous);
+    if(draft.offers.length<1)return false;
+    draft.rerollsLeft--;persistModes();return true;
   }
   const draftRounds=["OCTAVOS","CUARTOS","SEMIFINALES","FINAL"];
   function draftTournamentView(){
@@ -193,7 +213,7 @@ const AuraEvolution=(()=>{
       onFinish:result=>{
         if(draft?.tournament!==tournament||tournament.status!=="playing"||tournament.round!==round)return;
         const outcome=AuraKnockout.recordDraft(tournament,result,getClub(opponent).rating);
-        if(outcome){render();notify(outcome.won?"¡Eliminatoria superada!": "Fin de tu torneo Draft XI.");}
+        if(outcome){persistModes();render();notify(outcome.won?"¡Eliminatoria superada!": "Fin de tu torneo Draft XI.");}
       }
     });
     return true;
@@ -203,7 +223,7 @@ const AuraEvolution=(()=>{
     const done=draft.players.length===11,rating=Math.round(draft.players.reduce((n,p)=>n+p.overall,0)/Math.max(1,draft.players.length));
     return '<div class="draft-progress"><span>CONSTRUYE TU XI</span><progress max="11" value="'+draft.players.length+'" aria-label="Jugadores elegidos"></progress><b>'+draft.players.length+' / 11</b></div><div class="selection-heading"><div><span class="eyebrow">'+draft.players.length+' / 11 JUGADORES ELEGIDOS</span><h2>'+(done?'TU ONCE ESTÁ LISTO.':'ELIGE TU '+AuraSquad.formations["4-3-3"][draft.players.length][0])+ '</h2></div><span class="draft-rating">'+rating+' <small>GRL</small></span></div>'+
       (done?'<div class="draft-ready"><h3>EL TORNEO TE ESPERA.</h3>'+
-          draftTournamentView()+'<button class="btn" data-evo="draft-new">Crear otro once</button></div>':'<div class="draft-offers">'+draft.offers.map((p,i)=>'<button class="draft-player-card" data-draft-pick="'+i+'"><div class="draft-card-top"><strong>'+p.overall+'</strong><span>'+text(p.pos)+'</span></div>'+AuraPortraits.html(p,true)+'<h3>'+text(p.name)+'</h3><p>'+text(p.sourceClub||clubs.find(c=>c.id===p.club)?.name||p.nationality||"Futbolista real")+'</p><span class="draft-card-choice">Elegir jugador →</span></button>').join("")+'</div>')+
+          draftTournamentView()+'<button class="btn" data-evo="draft-new">Crear otro once</button></div>':'<div class="draft-offer-tools"><span>3 CAMBIOS DE OFERTAS POR DRAFT · '+draft.rerollsLeft+' RESTANTES</span><button class="btn" data-evo="draft-reroll" '+(!draft.rerollsLeft?'disabled':'')+'>↻ Nuevas cinco cartas</button></div><div class="draft-offers">'+draft.offers.map((p,i)=>'<button class="draft-player-card" data-draft-pick="'+i+'"><div class="draft-card-top"><strong>'+p.overall+'</strong><span>'+text(p.pos)+'</span></div>'+AuraPortraits.html(p,true)+'<h3>'+text(p.name)+'</h3><p>'+text(p.sourceClub||clubs.find(c=>c.id===p.club)?.name||p.nationality||"Futbolista real")+'</p><span class="draft-card-choice">Elegir jugador →</span></button>').join("")+'</div>')+
       '<div class="draft-selected"><h3>TU EQUIPO · 4-3-3</h3><div>'+AuraSquad.formations["4-3-3"].map(([pos],i)=>'<span class="draft-slot '+(draft.players[i]?'filled':'')+'"><small>'+pos+'</small><strong>'+text(draft.players[i]?.name||"Por elegir")+'</strong>'+(draft.players[i]?'<b>'+draft.players[i].overall+'</b>':'')+'</span>').join("")+'</div></div>';
   }
   function welcome(){
@@ -253,7 +273,7 @@ const AuraEvolution=(()=>{
       }catch{}
       render();return true;
     }
-    if(d.draftPick!==undefined){const p=draft?.offers[Number(d.draftPick)];if(p&&draft.players.length<11){draft.players.push({...p});offerDraft();render();}return true;}
+    if(d.draftPick!==undefined){const p=draft?.offers[Number(d.draftPick)];if(p&&draft.players.length<11){draft.players.push({...p});offerDraft();persistModes();render();}return true;}
     if(!d.evo)return false;
     if(d.evo==="mode-back"){modeOpen=false;render();window.scrollTo(0,0);return true;}
     if(d.evo==="mode-resume"&&recentMode)return chooseMode(recentMode);
@@ -280,16 +300,17 @@ const AuraEvolution=(()=>{
       [quickHome,quickAway]=[quickAway,quickHome];render();document.getElementById("quick-home")?.focus();
     }
     if(d.evo==="quick-rivalry-new"){
-      try{quickRivalry=AuraRivalry.create(quickHome,quickAway,getClub(quickHome).rating,getClub(quickAway).rating);render();}
+      try{quickRivalry=AuraRivalry.create(quickHome,quickAway,getClub(quickHome).rating,getClub(quickAway).rating);persistModes();render();}
       catch(error){notify(error.message);}
       return true;
     }
-    if(d.evo==="quick-rivalry-reset"){quickRivalry=null;render();return true;}
+    if(d.evo==="quick-rivalry-reset"){quickRivalry=null;persistModes();render();return true;}
     if(d.evo==="quick-rivalry-play"){playRivalry();return true;}
     if(d.evo==="quick-start")try{if(quickHome===quickAway){notify("Elige dos clubes distintos para este partido.");return true;}AuraArena.preMatch(AuraArena.team(getClub(quickHome)),AuraArena.team(getClub(quickAway)),{});}catch(err){notify(err.message);}
     if(d.evo==="draft-new"){startDraft();render();}
+    if(d.evo==="draft-reroll"){if(rerollDraft())render();else notify("No hay más cambios disponibles.");return true;}
     if(d.evo==="draft-retry"&&draft?.players.length===11){
-      draft.tournament=AuraKnockout.createDraft(draft.players);render();
+      draft.tournament=AuraKnockout.createDraft(draft.players);persistModes();render();
     }
     if(d.evo==="draft-play"&&draft?.players.length===11)playDraftTournament();
     if(d.evo==="career-play")playCareer();return true;
