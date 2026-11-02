@@ -2,7 +2,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 
 // Run the production Calle controller and frame loop with a minimal DOM/canvas.
-function boot(){
+function boot(options={}){
  const events=new Map(),frames=new Map(),buttons=new Map();let now=0,nextFrame=0;
  const drawing=new Proxy({},{get:()=>()=>{}}),classList={add(){},remove(){}};
  function node(){
@@ -22,7 +22,7 @@ function boot(){
  });
  vm.runInContext(fs.readFileSync(path.join(__dirname,'..','street.js'),'utf8'),context,{filename:'street.js'});
  const players=prefix=>Array.from({length:3},(_,i)=>({id:prefix+i,name:prefix+' '+i,pos:'MC',overall:75,real:false}));
- context.AuraStreet.open(players('Home'),players('Away'));
+ context.AuraStreet.open(players('Home'),players('Away'),options);
  const game=context.AuraStreet.getSession().game;game.wait=0;
  return {game,
   frame(ms=25){now+=ms;const callbacks=[...frames.values()];frames.clear();callbacks.forEach(fn=>fn(now));},
@@ -52,4 +52,20 @@ test('Calle touch movement cannot survive pause or be queued while paused',()=>{
   a.key('p');assert.equal(a.game.paused,false);a.frame();assert.equal(p.x,stopped.x,interrupt+' must discard old movement');assert.equal(p.z,stopped.z,'paused touches must not queue movement');
   a.pointer('right','pointerdown',3);a.frame();assert.ok(p.x>stopped.x,'a fresh touch still works after resuming');a.pointer('right','pointerup',3);a.close();
  }
+});
+
+test('Calle reports one finished 3v3 match to the circuit and not twice on additional frames',()=>{
+ let calls=0,last=null;const a=boot({goalLimit:3,seconds:60,onFinish:score=>{calls++;last=score;}});
+ assert.equal(a.game.goalLimit,3);assert.equal(a.game.seconds,60);
+ a.frame();a.game.elapsed=59.99;a.frame();
+ assert.equal(calls,1);assert.equal(a.game.done,true);
+ assert.equal(last.goalLimit,3);
+ assert.ok(Array.isArray(last.stats));
+ a.frame();a.frame();a.frame();assert.equal(calls,1);
+ a.close();assert.equal(a.running(),false);
+});
+test('Abandoning the street match before the end never triggers a circuit result',()=>{
+ let calls=0;const a=boot({onFinish:()=>{calls++;}});
+ a.frame();a.close();assert.equal(calls,0);
+ assert.equal(a.running(),false);
 });

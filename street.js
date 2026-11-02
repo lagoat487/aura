@@ -8,28 +8,36 @@
   }
   function create(home,away,options={}){
     if(home.length!==3||away.length!==3)throw Error("La calle necesita tres jugadores por equipo.");
-    const g={players:[home,away].flatMap((ps,team)=>ps.map((p,i)=>({...p,team,index:team*3+i,x:0,z:0,cooldown:0}))),score:[0,0],seconds:120,elapsed:0,controlled:1,done:false,paused:false,difficulty:clamp(Number(options.difficulty)||1,.65,1.4)};reset(g);return g;
+    const g={players:[home,away].flatMap((ps,team)=>ps.map((p,i)=>({...p,team,index:team*3+i,x:0,z:0,cooldown:0}))),score:[0,0],seconds:[60,120,180].includes(options.seconds)?options.seconds:120,
+      goalLimit:[3,5,7].includes(options.goalLimit)?options.goalLimit:5,
+      elapsed:0,controlled:1,done:false,paused:false,
+      stats:[{shots:0,passes:0,tackles:0,goals:0,possession:0},{shots:0,passes:0,tackles:0,goals:0,possession:0}],
+      goalLog:[],difficulty:clamp(Number(options.difficulty)||1,.65,1.4)};reset(g);return g;
   }
   function nearest(g,team){return g.players.filter(p=>p.team===team).sort((a,b)=>distance(a,g.ball)-distance(b,g.ball))[0];}
   function action(g,type,input={}){
     if(g.done||g.paused||g.wait>0)return false;
     if(type==="switch"){g.controlled=nearest(g,0).index;return true;}
     const p=g.players[g.controlled],b=g.ball;
-    if(type==="tackle"&&b.owner!==null&&g.players[b.owner].team!==0&&distance(p,g.players[b.owner])<4){b.owner=p.index;g.controlled=p.index;return true;}
+    if(type==="tackle"&&b.owner!==null&&g.players[b.owner].team!==0&&distance(p,g.players[b.owner])<4){
+      b.owner=p.index;g.controlled=p.index;g.stats[0].tackles++;return true;
+    }
     if(b.owner!==p.index||p.cooldown>0)return false;
     if(type==="shoot"){
-      const dx=46-p.x,dz=clamp(Number(input.z)||0,-1,1)*4.4-p.z,len=Math.hypot(dx,dz);b.vx=dx/len*42;b.vz=dz/len*42;b.owner=null;p.cooldown=.55;return true;
+      const dx=46-p.x,dz=clamp(Number(input.z)||0,-1,1)*4.4-p.z,len=Math.hypot(dx,dz);
+      b.vx=dx/len*42;b.vz=dz/len*42;b.owner=null;p.cooldown=.55;g.stats[0].shots++;return true;
     }
     if(type==="pass"||type==="through"){
       const target=g.players.filter(q=>q.team===0&&q!==p).sort((a,c)=>(c.x-p.x)-(a.x-p.x))[0];
-      const dx=target.x-p.x,dz=target.z-p.z,len=Math.hypot(dx,dz)||1;b.vx=dx/len*28;b.vz=dz/len*28;b.owner=null;p.cooldown=.5;g.controlled=target.index;return true;
+      const dx=target.x-p.x,dz=target.z-p.z,len=Math.hypot(dx,dz)||1;b.vx=dx/len*28;b.vz=dz/len*28;b.owner=null;p.cooldown=.5;g.controlled=target.index;g.stats[0].passes++;return true;
     }return false;
   }
   function step(g,delta,input={}){
     if(g.done||g.paused)return g;
     const dt=clamp(delta||0,0,.05);g.wait-=dt;if(g.wait>0)return g;
-    g.elapsed+=dt;if(g.elapsed>=g.seconds){g.done=true;return g;}
+    g.elapsed+=dt;if(g.elapsed>=g.seconds){g.elapsed=g.seconds;g.done=true;return g;}
     const b=g.ball,owner=b.owner===null?null:g.players[b.owner];
+    if(owner)g.stats[owner.team].possession+=dt;
     for(const p of g.players){
       p.cooldown=Math.max(0,p.cooldown-dt);let dx=0,dz=0;
       if(p.index===g.controlled){dx=Number(input.x)||0;dz=Number(input.z)||0;}
@@ -37,7 +45,7 @@
         const own=owner?.team===p.team,d=p.team===0?1:-1,chas=nearest(g,p.team);
         let tx=own?(p.index%3===0?-d*30:d*clamp(b.x*d+10,0,38)):-d*clamp(12+b.x*-d*.3,5,35),tz=(p.index%3-1)*14;
         if(p===owner){tx=45*d;tz=clamp(p.z*.6,-3,3);
-          if(p.cooldown<=0&&p.team===1&&p.x<-20){const x=-46-p.x,z=-p.z,len=Math.hypot(x,z);b.vx=x/len*36;b.vz=z/len*36;b.owner=null;p.cooldown=.7;}
+          if(p.cooldown<=0&&p.team===1&&p.x<-20){const x=-46-p.x,z=-p.z,len=Math.hypot(x,z);b.vx=x/len*36;b.vz=z/len*36;b.owner=null;p.cooldown=.7;g.stats[1].shots++;}
         }else if(p===chas&&!own){tx=b.x;tz=b.z;}
         dx=tx-p.x;dz=tz-p.z;const len=Math.hypot(dx,dz);if(len>.1){dx/=len;dz/=len;}else dx=dz=0;
       }
@@ -50,7 +58,9 @@
     }else {
       b.x+=b.vx*dt;b.z+=b.vz*dt;b.vx*=Math.exp(-.35*dt);b.vz*=Math.exp(-.35*dt);
       if(Math.abs(b.x)>45){
-        if(Math.abs(b.z)<5.5){const team=b.x>0?0:1;g.score[team]++;if(g.score[team]>=5)g.done=true;else reset(g,1-team);return g;}
+        if(Math.abs(b.z)<5.5){const team=b.x>0?0:1;g.score[team]++;g.stats[team].goals++;
+          g.goalLog.push({team,second:Math.round(g.elapsed)});
+          if(g.score[team]>=g.goalLimit)g.done=true;else reset(g,1-team);return g;}
         b.x=Math.sign(b.x)*44.8;b.vx*=-.8;
       }
       if(Math.abs(b.z)>26){b.z=Math.sign(b.z)*25.8;b.vz*=-.85;}
@@ -58,13 +68,20 @@
       if(q){b.owner=q.index;q.cooldown=.12;if(q.team===0)g.controlled=q.index;}
     }return g;
   }
+  function result(g){
+    if(!g.done)return null;
+    return {home:g.score[0],away:g.score[1],seconds:Math.min(g.seconds,Math.round(g.elapsed)),
+      goalLimit:g.goalLimit,stats:g.stats.map(v=>({...v,possession:Math.round(v.possession*10)/10})),
+      goals:g.goalLog.map(v=>({...v}))};
+  }
   let live=null;
   function open(home,away,options={}){
     if(live)return;const g=create(home,away,options),node=document.createElement("section");node.className="street-overlay";node.setAttribute("role","dialog");node.setAttribute("aria-modal","true");node.setAttribute("aria-label","AURA Calle, fútbol 3 contra 3");node.tabIndex=-1;
-    node.innerHTML='<header><div><span class="eyebrow">AURA CALLE / 3 CONTRA 3</span><h2>DOMINA LA CALLE.</h2></div><div class="street-score" role="status"></div><button class="btn" data-street="pause">Pausa</button><button class="btn" data-street="close" aria-label="Volver al menú">Salir ✕</button></header><div class="street-stage"><canvas aria-label="Cancha de fútbol callejero"></canvas><div class="street-status"></div></div><div class="street-guide"><span>WASD / Flechas · mover</span><span>J · tirar</span><span>K · pasar</span><span>E · cambiar</span><span>Espacio · entrada</span><span>Shift · correr</span><span>P · pausa</span><span>Primero a 5 goles o 2 minutos</span></div><div class="street-touch"><div class="street-dpad"><button data-move="up" aria-label="Mover arriba">↑</button><button data-move="left" aria-label="Mover izquierda">←</button><button data-move="down" aria-label="Mover abajo">↓</button><button data-move="right" aria-label="Mover derecha">→</button></div><div><button data-action-street="switch">CAMBIO</button><button data-action-street="pass">PASE</button><button data-action-street="tackle">ENTRADA</button><button data-action-street="shoot">TIRO</button></div></div>';
+    node.innerHTML='<header><div><span class="eyebrow">AURA CALLE / 3 CONTRA 3</span><h2>DOMINA LA CALLE.</h2></div><div class="street-score" role="status"></div><button class="btn" data-street="pause">Pausa</button><button class="btn" data-street="close" aria-label="Volver al menú">Salir ✕</button></header><div class="street-stage"><canvas aria-label="Cancha de fútbol callejero"></canvas><div class="street-status"></div></div><div class="street-guide"><span>WASD / Flechas · mover</span><span>J · tirar</span><span>K · pasar</span><span>E · cambiar</span><span>Espacio · entrada</span><span>Shift · correr</span><span>P · pausa</span><span>Primero a '+g.goalLimit+' goles o '+Math.round(g.seconds/60)+' minuto(s)</span></div><div class="street-touch"><div class="street-dpad"><button data-move="up" aria-label="Mover arriba">↑</button><button data-move="left" aria-label="Mover izquierda">←</button><button data-move="down" aria-label="Mover abajo">↓</button><button data-move="right" aria-label="Mover derecha">→</button></div><div><button data-action-street="switch">CAMBIO</button><button data-action-street="pass">PASE</button><button data-action-street="tackle">ENTRADA</button><button data-action-street="shoot">TIRO</button></div></div>';
     if(options.homeName&&options.awayName)node.querySelector('h2').textContent=options.homeName+' vs '+options.awayName;
     document.body.appendChild(node);document.body.classList.add("in-match");AuraEvolution.stopPreview();AuraTourUI.audio.suspend();
-    const canvas=node.querySelector("canvas"),ctx=canvas.getContext("2d"),keys=new Set(),touch=new Set(),previous=document.activeElement;let raf=0,last=0;
+    const canvas=node.querySelector("canvas"),ctx=canvas.getContext("2d"),keys=new Set(),touch=new Set(),previous=document.activeElement;
+    let raf=0,last=0,reported=false;
     const axes=()=>({x:Number(keys.has("d")||keys.has("arrowright")||touch.has("right"))-Number(keys.has("a")||keys.has("arrowleft")||touch.has("left")),z:Number(keys.has("s")||keys.has("arrowdown")||touch.has("down"))-Number(keys.has("w")||keys.has("arrowup")||touch.has("up")),sprint:keys.has("shift")});
     function close(){cancelAnimationFrame(raf);window.removeEventListener("keydown",down,true);window.removeEventListener("keyup",up,true);window.removeEventListener("blur",blur);node.remove();document.body.classList.remove("in-match");live=null;AuraTourUI.audio.resume();previous?.focus?.();}
     function pause(){g.paused=!g.paused;keys.clear();touch.clear();}
@@ -83,8 +100,19 @@
       ctx.fillStyle="#fff";ctx.shadowColor="#fff";ctx.shadowBlur=7;ctx.beginPath();ctx.arc(g.ball.x,g.ball.z,.8,0,Math.PI*2);ctx.fill();ctx.restore();
       const time=Math.max(0,Math.ceil(g.seconds-g.elapsed));node.querySelector(".street-score").textContent=g.score[0]+" — "+g.score[1]+" · "+Math.floor(time/60)+":"+String(time%60).padStart(2,"0");node.querySelector(".street-status").textContent=g.done?(g.score[0]>g.score[1]?"¡GANASTE LA CALLE!":g.score[0]===g.score[1]?"EMPATE":"EL RIVAL GANA") :g.paused?"PAUSA · P PARA VOLVER":g.wait>0?"A JUGAR. →":"";
     }
-    function frame(now){const dt=last?Math.min((now-last)/1000,.15):0;last=now;let remaining=dt;while(remaining>0){const tick=Math.min(remaining,.025);step(g,tick,axes());remaining-=tick;}paint();raf=requestAnimationFrame(frame);}
+    function frame(now){
+      const dt=last?Math.min((now-last)/1000,.15):0;last=now;
+      let remaining=dt;
+      while(remaining>0){const tick=Math.min(remaining,.025);step(g,tick,axes());remaining-=tick;}
+      if(g.done&&!reported){
+        reported=true;
+        const final=result(g);
+        try{options.onFinish?.(final);}catch(error){console.warn("VOLTA callback",error);}
+      }
+      paint();
+      raf=requestAnimationFrame(frame);
+    }
     live={game:g,close};node.focus();raf=requestAnimationFrame(frame);
   }
-  return {create,step,action,open,isRunning:()=>!!live,getSession:()=>live};
+  return {create,step,action,result,open,isRunning:()=>!!live,getSession:()=>live};
 });
