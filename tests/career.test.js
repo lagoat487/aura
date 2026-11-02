@@ -120,7 +120,8 @@ test("new career selects a real league and advances all ten fixtures with one ac
   assert.equal(app.saved(), undefined);
   const reopened=boot();
   assert.equal(reopened.run("state"),null);
-  assert.match(reopened.html(),/Iniciar nueva carrera/);
+  assert.equal(reopened.run('AuraEvolution.getMode().mode'),"hub");
+   reopened.click({evoMode:"career"});assert.match(reopened.html(),/Iniciar nueva carrera/);
 });
 
 test("exhibition keeps the original 24 clubs and rejects cross-league careers", () => {
@@ -168,7 +169,8 @@ test("no automatic progress saves, and always opens new career",()=>{
  assert.equal(app.saved(),undefined);
  const reopened=boot();
  assert.equal(reopened.run("state"),null);
- assert.match(reopened.html(),/Iniciar nueva carrera/);
+ assert.equal(reopened.run('AuraEvolution.getMode().mode'),"hub");
+   reopened.click({evoMode:"career"});assert.match(reopened.html(),/Iniciar nueva carrera/);
 });
 test("Barcelona starts with actual real names, including Yamal and Pedri",()=>{
  const app=boot();app.click({action:"start"});
