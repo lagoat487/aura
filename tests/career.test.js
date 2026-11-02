@@ -95,7 +95,7 @@ test("a full interleaved season completes Champions before rollover and records 
 });
 
 test("new career selects a real league and advances all ten fixtures with one action", () => {
-  const app = boot();
+  const app = boot();app.click({evoMode:"career"});
   assert.match(app.html(), /ELIGE TU COMPETICIÓN/);
   assert.equal((app.html().match(/data-pick=/g) || []).length, 20);
   app.click({ action: "start" });
@@ -124,7 +124,7 @@ test("new career selects a real league and advances all ten fixtures with one ac
 });
 
 test("exhibition keeps the original 24 clubs and rejects cross-league careers", () => {
-  const app = boot();
+  const app = boot();app.click({evoMode:"career"});
   assert.throws(() => app.run('createGame("boca","laliga")'), /no pertenece/);
   app.click({ competition: "exhibition" });
   assert.equal((app.html().match(/data-pick=/g) || []).length, 24);
