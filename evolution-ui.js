@@ -66,7 +66,7 @@ const AuraEvolution=(()=>{
       '<section class="aura-mode-home-hero"><div class="aura-mode-home-mesh" aria-hidden="true"></div>'+
       '<span class="eyebrow">UN JUEGO · SIETE EXPERIENCIAS</span>'+
       '<h1>ELIGE CÓMO<br><em>HACER HISTORIA.</em></h1>'+
-      '<p>Carrera, partidos, Draft, copas, fútbol callejero y Ultimate Team. Entra en cada uno desde su propia pantalla.</p>'+
+      '<p>Carrera, partidos, Draft, copas, fútbol callejero y Ultimate Team. Entra en cada uno desde su propia pantalla. Puedes iniciar nueva carrera entrando en Carrera Mánager.</p>'+
       '<div class="aura-mode-home-actions"><button class="btn primary" data-evo="hero-start">EXPLORAR MODOS ↓</button>'+
       (recent?'<button class="btn" data-evo="mode-resume">↗ VOLVER A '+recent[2]+'</button>':'')+
       '<button class="btn" data-evo="argentina-open">🇦🇷 LIGA ARGENTINA</button></div>'+
