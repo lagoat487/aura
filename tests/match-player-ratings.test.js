@@ -60,7 +60,7 @@ test("an unassisted direct shot scores without inventing a teammate or a previou
 });
 test("an offside or counterattack restart clears stale assist identities",()=>{
  const g=game();passToReceiver(g);
- g.ball.owner=null;g.ball.lastTouch=1;g.passTarget=8;g.ball.lastKicker=20;g.ball.lastKickerIdentity={id:"away9",name:"away 9",team:1};
+ g.ball.owner=null;g.ball.lastTouch=1;g.ball.freeTime=1;g.passTarget=8;g.ball.lastKicker=20;g.ball.lastKickerIdentity={id:"away9",name:"away 9",team:1};
  g.players[20].x=g.ball.x;g.players[20].z=g.ball.z;
  g.players[20].cooldown=0;M.step(g,.01);
  assert.equal(g.assistWindow,null);
