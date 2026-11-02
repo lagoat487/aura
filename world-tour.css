@@ -4,3 +4,40 @@
 .street-overlay{position:fixed;inset:0;z-index:100;background:#09121e;display:flex;flex-direction:column;overflow:auto;color:#f1f2ee;padding:15px 25px}.street-overlay>header{display:flex;align-items:center;gap:15px;flex-wrap:wrap}.street-overlay h2{font:italic 32px var(--display);margin:7px 0}.street-overlay header>div:first-child{margin-right:auto}.street-score{font:32px var(--display);color:var(--accent)}.street-stage{position:relative;flex:1;min-height:260px}.street-stage canvas{display:block;width:100%;height:100%;min-height:260px}.street-status{position:absolute;top:42%;width:100%;text-align:center;font:italic 42px var(--display);color:#f2b7ea;text-shadow:0 3px 10px #000;pointer-events:none}.street-guide{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:10px;color:#92a6b8;padding:12px}.street-touch{display:flex;justify-content:space-between;gap:20px;align-items:center;padding:5px 0 10px}.street-touch button{touch-action:none;background:#263446;border:1px solid #90b4c344;border-radius:10px;color:#e5f6ff;min-width:55px;min-height:45px;font-size:10px;margin:3px}.street-touch button[data-action-street=shoot]{color:#caff76;border-color:#caff7680}.street-dpad{display:grid;grid-template-columns:repeat(3,45px);grid-template-rows:repeat(2,38px)}.street-dpad button{min-width:35px;min-height:32px;font-size:20px}.street-dpad [data-move=up]{grid-column:2}.street-dpad [data-move=left]{grid-column:1}.street-dpad [data-move=down]{grid-column:2}.street-dpad [data-move=right]{grid-column:3}
 @media(min-width:1000px){.tour-player-cards{grid-template-columns:repeat(auto-fit,minmax(145px,200px))}.topbar .brand{min-width:90px}.header-profile{min-width:110px}}@media(max-width:1000px){.topbar{gap:12px}.topbar>.nav{order:4;width:100%;justify-content:flex-start}.tour-pro-hub{gap:22px}.tour-ut-lineup{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:650px){.mode-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}.mode-tab{padding:12px 9px}.mode-tab>span{display:none}.mode-tab strong{font-size:12px}.mode-tab small{font-size:9px}.topbar .header-profile{display:none}.topbar .tour-music{margin-left:auto}.tour-heading{margin-top:24px}.tour-form{padding:16px;gap:14px}.tour-form label{min-width:100%}.tour-form .btn{width:100%}.tour-cup-live{padding:24px 18px}.tour-cup-live h3{font-size:25px}.tour-bracket>section{min-width:220px}.tour-player-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.tour-award{padding:17px 12px}.tour-pro-hub{flex-direction:column;align-items:flex-start;padding:22px}.tour-pro-hub>.tour-face{align-self:center}.tour-pro-hub .btn{width:100%;margin-right:0}.tour-ut-lineup{padding:10px;gap:7px}.tour-ut-lineup label{padding:10px 7px}.tour-street-card{padding:28px 20px}.street-overlay{padding:10px}.street-overlay h2{font-size:24px}.street-overlay .eyebrow{font-size:8px}.street-overlay header .btn{padding:9px 10px}.street-score{font-size:26px}.street-touch>div:last-child{display:grid;grid-template-columns:repeat(2,1fr)}.street-status{font-size:28px}.street-guide{font-size:9px;gap:8px}.nav button{font-size:10px;padding:10px 7px}.tour-metrics{gap:19px}}
 @media(prefers-reduced-motion:reduce){.tour-gala *{animation:none!important}.tour-street-card *{transition:none!important}}
+
+/* AURA Calle / VOLTA circuit — independent from Carrera and Ultimate Team. */
+.volta-mode-choices{display:flex;flex-wrap:wrap;gap:11px;margin:18px 0}
+.volta-mode-choices .btn{min-width:200px;flex:1}
+.volta-tour{padding:clamp(16px,3vw,30px);margin:22px 0 30px;border-radius:14px;
+  border:1px solid #ffa5d66b;background:radial-gradient(ellipse at 89% 5%,#e077a438,transparent 45%),
+  linear-gradient(140deg,#321b32,#142137 70%);box-shadow:0 12px 28px #0004}
+.volta-tour-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:13px}
+.volta-tour-head h2,.volta-tour-welcome h2{font:italic 900 clamp(29px,5vw,54px)/.93 var(--display,Impact,Arial);
+  margin:12px 0;color:#fff7fd}
+.volta-tour-head p,.volta-tour-welcome p{font:400 12px/1.7 Arial;color:#e6ccdf;max-width:660px}
+.volta-tour .eyebrow{color:#ffbfe3}
+.volta-tour-points{display:flex;align-items:center;flex-direction:column;
+  min-width:94px;padding:12px 18px;border-radius:7px;background:#e6b2d71c;border:1px solid #ffc5ea66}
+.volta-tour-points strong{font:italic 900 51px/.95 var(--display,Impact,Arial);color:#ffe4f5}
+.volta-tour-points span{font:900 9px Arial;letter-spacing:1.2px;color:#e9c5e4}
+.volta-tour-stats{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0}
+.volta-tour-stats span{display:flex;flex-direction:column;gap:5px;min-width:76px;padding:12px;
+  background:#0e1a30b0;border-radius:7px;font:900 9px Arial;color:#b2c7d3}
+.volta-tour-stats b{font:900 24px var(--display,Impact,Arial);color:#fff}
+.volta-tour-fixtures{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:16px 0 24px}
+.volta-tour-fixtures article{display:flex;flex-direction:column;gap:7px;padding:18px;border:1px solid #ffffff26;
+  background:#0c1725a8;border-radius:9px;min-width:0}
+.volta-tour-fixtures article.next{border-color:#ffb3db;background:#f7c3de18}
+.volta-tour-fixtures article.completed{border-color:#b7ffb374}
+.volta-tour-fixtures span{font:800 9px Arial;letter-spacing:1.1px;color:#f0bed9}
+.volta-tour-fixtures strong{font:900 16px Arial;color:#fff;overflow-wrap:anywhere}
+.volta-tour-fixtures small{color:#cfdfd5;font:700 10px Arial}
+.volta-tour>.btn{margin:5px 9px 6px 0;white-space:normal}
+.volta-tour-welcome{min-height:210px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center}
+.volta-tour-welcome .btn{margin-top:13px}
+@media(max-width:650px){.volta-mode-choices .btn{min-width:0;flex:1 1 150px}
+ .volta-tour-fixtures{grid-template-columns:1fr}
+ .volta-tour{padding:17px 13px}
+ .volta-tour-stats{gap:6px}.volta-tour-stats span{min-width:57px;padding:10px}
+ .volta-tour-fixtures article{padding:14px}
+ .volta-tour>.btn{width:100%;margin:7px 0}}
