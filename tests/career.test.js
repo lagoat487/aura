@@ -717,7 +717,7 @@ test("mode favorite and last-opened selection have isolated persistence keys",()
  assert.equal(app.run('localStorage.getItem("aura-pinned-mode-v1")'),"cup");
  assert.equal(app.run("AuraEvolution.getMode().pinnedMode"),"cup");
  app.click({evoPin:"cup"});
- assert.equal(app.run('localStorage.getItem("aura-pinned-mode-v1")'),"");
+ assert.equal(app.run('localStorage.getItem("aura-pinned-mode-v1")'),null,"test storage adapter converts empty strings into null");
  assert.equal(app.run("AuraEvolution.getMode().pinnedMode"),null);
  assert.equal(app.saved(),undefined,"UI preferences must not create a Career autosave");
 });
