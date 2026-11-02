@@ -628,3 +628,80 @@ test("real Cup matches finishing level use score-dependent penalty winners recor
  assert.ok(played.penalties&&played.penalties.home!==played.penalties.away);
  assert.equal(played.winner,played.penalties.home>played.penalties.away?played.home:played.away);
 });
+
+test("main menu presents seven large independent mode cards instead of shared tabs",()=>{
+ const app=boot(),html=app.html();
+ assert.equal(app.run('AuraEvolution.getMode().mode'),"hub");
+ assert.equal((html.match(/class="aura-mode-tile aura-mode-tile--/g)||[]).length,7);
+ assert.equal((html.match(/data-evo-mode="/g)||[]).length,7);
+ assert.match(html,/SIETE MODOS/);
+ assert.doesNotMatch(html,/id="mode-content"/,"no mode can take over the hub until selected");
+ assert.match(html,/data-evo="argentina-open"/,"existing special event stays reachable");
+});
+test("every game mode gets its own full-width page, unique theme and a working back control",()=>{
+ const app=boot();
+ const cases=[
+   ["career","MÁNAGER","CARRERA"],
+   ["quick","PARTIDO RÁPIDO","PARTIDO RÁPIDO"],
+   ["draft","DRAFT XI","DRAFT"],
+   ["pro","CARRERA DE JUGADOR","JUGADOR"],
+   ["cup","COPAS Y SELECCIONES","COPAS"],
+   ["ultimate","ULTIMATE TEAM","ULTIMATE"],
+   ["street","CALLE / VOLTA","CALLE"]
+ ];
+ for(const [id,title,content] of cases){
+   app.click({evoMode:id});
+   const html=app.html();
+   assert.equal(app.run('AuraEvolution.getMode().mode'),id);
+   assert.match(html,new RegExp('class="aura-mode-page aura-mode-page--'+id+'"'));
+   assert.match(html,new RegExp('aura-mode-detail-header--'+id));
+   assert.match(html,new RegExp(title));
+   assert.match(html,new RegExp(content));
+   assert.match(html,/data-evo="mode-back"/);
+   assert.equal((html.match(/data-evo-mode=/g)||[]).length,0,"no shared tabs inside a mode");
+   app.click({evo:"mode-back"});
+   assert.equal(app.run('AuraEvolution.getMode().mode'),"hub");
+   assert.equal((app.html().match(/data-evo-mode=/g)||[]).length,7);
+ }
+});
+test("favorite mode is separately selectable and its priority persists across menu visits",()=>{
+ const app=boot();
+ const original=app.run('AuraEvolution.getMode().pinnedMode');
+ assert.equal(original,null);
+ app.click({evoPin:"cup"});
+ assert.equal(app.run('AuraEvolution.getMode().pinnedMode'),"cup");
+ assert.match(app.html(),/aria-pressed="true"/);
+ assert.match(app.html().split('class="aura-mode-tile aura-mode-tile--')[1],/^cup/);
+ app.click({evoMode:"draft"});app.click({evo:"mode-back"});
+ assert.equal(app.run('AuraEvolution.getMode().pinnedMode'),"cup");
+ app.click({evoPin:"cup"});
+ assert.equal(app.run('AuraEvolution.getMode().pinnedMode'),null);
+});
+test("return to the last mode preserves Draft XI selections and never restarts the draft",()=>{
+ const app=boot();app.click({evoMode:"draft"});app.click({evo:"draft-new"});
+ for(let i=0;i<4;i++)app.click({draftPick:"0"});
+ const drafted=app.html();assert.match(drafted,/4 \/ 11/);
+ app.click({evo:"mode-back"});
+ assert.match(app.html(),/VOLVER A DRAFT XI/);
+ app.click({evo:"mode-resume"});
+ assert.equal(app.run('AuraEvolution.getMode().mode'),"draft");
+ assert.match(app.html(),/4 \/ 11/);
+ app.click({evo:"mode-back"});
+ assert.equal((app.html().match(/data-evo-mode=/g)||[]).length,7);
+});
+test("existing career and Ultimate Team club remain intact after changing separate modes",()=>{
+ const app=boot();app.click({evoMode:"career"});app.click({action:"start"});
+ const snapshot=app.json("state");
+ app.click({nav:"modes"});
+ assert.equal(app.run('AuraEvolution.getMode().mode'),"hub");
+ app.click({evoMode:"ultimate"});app.click({ut:"create"});
+ const initial=app.json('AuraUTUI.getClub()');
+ app.click({ut:"lobby"});
+ assert.equal((app.html().match(/data-evo-mode=/g)||[]).length,7);
+ app.click({evoMode:"street"});app.click({evo:"mode-back"});
+ app.click({evoMode:"ultimate"});
+ assert.deepEqual(app.json('AuraUTUI.getClub()'),initial);
+ app.click({evo:"mode-back"});
+ app.click({nav:"career"});
+ assert.deepEqual(app.json('state'),snapshot);
+});
