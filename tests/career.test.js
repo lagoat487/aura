@@ -576,3 +576,55 @@ test("Liga Argentina is discoverable from the first screen and preserves the UT 
  assert.equal(app.run("AuraUTUI.getClub().coins"),10000);
  assert.equal(app.run('AuraUTSave.load(localStorage,new Set(Object.keys(AuraSquad.formations))).snapshot.tab'),"argentina");
 });
+
+test("Draft XI plays through four distinct knockout rounds and becomes champion without changing a club save",()=>{
+ const app=boot();app.click({evoMode:"draft"});app.click({evo:"draft-new"});
+ for(let i=0;i<11;i++)app.click({draftPick:"0"});
+ assert.match(app.html(),/OCTAVOS/);
+ assert.match(app.html(),/Jugar contra Real Betis/);
+ app.run('AuraArena.preMatch=(home,away,options)=>{globalThis.pendingDraft={home,away,options}}');
+ const opponents=["betis","atletico","madrid","city"];
+ for(let i=0;i<4;i++){
+   app.click({evo:"draft-play"});
+   assert.equal(app.run('pendingDraft.away.id'),opponents[i]);
+   assert.match(app.run('pendingDraft.options.label'),/AURA DRAFT/);
+   const onFinish=app.run('pendingDraft.options.onFinish');
+   onFinish({home:2,away:0});
+   onFinish({home:2,away:0});
+   assert.equal((app.html().match(/class="draft-run-match"/g)||[]).length,i+1);
+ }
+ assert.match(app.html(),/CAMPEONES DEL DRAFT/);
+ const count=app.run('document.getElementById("app").innerHTML.includes("data-evo=\"draft-play\"")');
+ assert.equal(count,false);
+ const previously=app.json('AuraEvolution.pool().length');
+ app.click({evo:"draft-retry"});
+ assert.match(app.html(),/OCTAVOS/);assert.equal(app.run('AuraEvolution.pool().length'),previously);
+ assert.equal(app.saved(),undefined);
+});
+test("Draft XI losses eliminate the team, while replaying the same roster requires an explicit reset",()=>{
+ const app=boot();app.click({evoMode:"draft"});app.click({evo:"draft-new"});
+ for(let i=0;i<11;i++)app.click({draftPick:"0"});
+ app.run('AuraArena.preMatch=(home,away,options)=>{globalThis.pendingDraft=options}');
+ app.click({evo:"draft-play"});
+ app.run('pendingDraft.onFinish({home:0,away:2})');
+ assert.match(app.html(),/ELIMINADOS EN OCTAVOS/);
+ assert.doesNotMatch(app.html(),/data-evo="draft-play"/);
+ app.run('pendingDraft.onFinish({home:9,away:0})');
+ assert.match(app.html(),/ELIMINADOS EN OCTAVOS/);
+ app.click({evo:"draft-retry"});
+ assert.match(app.html(),/data-evo="draft-play"/);
+ assert.equal((app.html().match(/class="draft-slot filled"/g)||[]).length,11);
+});
+test("real Cup matches finishing level use score-dependent penalty winners recorded in the bracket",()=>{
+ const app=boot();app.click({evoMode:"cup"});app.click({tour:"cup-create"});
+ const prior=app.json('({rounds:AuraTourUI.getCup().rounds.length,user:AuraTourUI.getCup().user})');
+ app.run('AuraArena.preMatch=(home,away,options)=>{globalThis.pendingCup=options}');
+ app.click({tour:"cup-play"});
+ app.run('pendingCup.onFinish({home:2,away:2})');
+ const cup=app.json("AuraTourUI.getCup()");
+ assert.equal(cup.rounds.length,prior.rounds+1);
+ const played=cup.rounds[0].find(m=>m.home===prior.user||m.away===prior.user);
+ assert.deepEqual([played.score.home,played.score.away],[2,2]);
+ assert.ok(played.penalties&&played.penalties.home!==played.penalties.away);
+ assert.equal(played.winner,played.penalties.home>played.penalties.away?played.home:played.away);
+});
