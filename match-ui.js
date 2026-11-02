@@ -96,9 +96,25 @@ const AuraArena=(()=>{
       }else s.awayPadButtons=[];
       return {...axes,away};
     }
+    function playerReportView(){
+      const data=s.result||AuraMatch.report(game),mvp=data.manOfTheMatch;
+      const headings=[["MIN","minutes"],["G","goals"],["A","assists"],["TIR","shots"],["A PUERTA","onTarget"],
+        ["PAS","completed"],["REC","tackles"],["INT","interceptions"],["PAR","saves"],["NOTA","rating"]];
+      return '<div class="match-player-report"><span class="eyebrow">AURA 27 · ESTADÍSTICAS INDIVIDUALES</span>'+
+        '<h2>INFORME DE PARTIDO</h2>'+
+        (mvp?'<div class="match-mvp"><span>⭐ JUGADOR DEL PARTIDO</span><strong>'+escape(mvp.name)+'</strong>'+
+          '<small>'+escape((mvp.team===0?home:away).name)+' · '+mvp.rating.toFixed(1)+'/10</small></div>':'')+
+        '<div class="match-player-table-wrap"><table class="match-player-table"><thead><tr><th>Jugador</th><th>Equipo</th>'+
+          headings.map(([label])=>'<th>'+label+'</th>').join('')+'</tr></thead><tbody>'+
+          data.players.map((p,i)=>'<tr class="'+(i===0?'match-best-player':'')+'"><td>'+escape(p.name)+'</td>'+
+            '<td>'+escape(short((p.team===0?home:away).name))+'</td>'+
+            headings.map(([,key])=>'<td>'+p[key]+'</td>').join('')+'</tr>').join('')+
+          '</tbody></table></div><p class="save-info">Notas orientativas de 4,5 a 10 según acciones registradas. Incluye a los jugadores sustituidos.</p>'+
+        '<button class="btn primary" data-arena="report-back">← Volver '+(s.done?'al resultado':'a la pausa')+'</button></div>';
+    }
     function pause(){
       if(s.done)return;game.paused=!game.paused;s.keys.clear();releaseStick();s.touchSprint=false;s.charging=null;find("arena-power").hidden=true;layer.hidden=!game.paused;
-      if(game.paused)layer.innerHTML='<div class="pause-card"><span class="eyebrow">RESPIRA. REPLANTEA. VUELVE.</span><h2>EL PARTIDO<br>ES TUYO.</h2><p>'+escape(home.name)+' <b>'+game.score[0]+' — '+game.score[1]+'</b> '+escape(away.name)+'</p><button class="btn primary" data-arena="resume">Seguir jugando →</button><button class="btn" data-arena="plan">Tácticas y sustituciones →</button><button class="btn" data-arena="camera">Cambiar cámara</button><button class="btn subtle" data-arena="exit">Salir sin resultado</button></div>';
+      if(game.paused)layer.innerHTML='<div class="pause-card"><span class="eyebrow">RESPIRA. REPLANTEA. VUELVE.</span><h2>EL PARTIDO<br>ES TUYO.</h2><p>'+escape(home.name)+' <b>'+game.score[0]+' — '+game.score[1]+'</b> '+escape(away.name)+'</p><button class="btn primary" data-arena="resume">Seguir jugando →</button><button class="btn" data-arena="plan">Tácticas y sustituciones →</button><button class="btn" data-arena="report">⭐ Estadísticas de jugadores →</button><button class="btn" data-arena="camera">Cambiar cámara</button><button class="btn subtle" data-arena="exit">Salir sin resultado</button></div>';
       if(!game.paused)ensureAudio();node.focus();
     }
     function matchPlan(message=""){
@@ -111,7 +127,9 @@ const AuraArena=(()=>{
     function finish(){
       if(s.done)return;s.done=true;const result=AuraMatch.result(game);s.result=result;
       find("arena-banner").classList.remove("visible");layer.hidden=false;
-      layer.innerHTML='<div class="match-result"><span class="eyebrow">FINAL DEL PARTIDO · AURA CLUB EDITION</span><div class="result-teams"><div>'+AuraEvolution.badge(home,80)+'<h3>'+escape(home.name)+'</h3></div><strong>'+result.home+' <i>—</i> '+result.away+'</strong><div>'+AuraEvolution.badge(away,80)+'<h3>'+escape(away.name)+'</h3></div></div><p class="result-outcome">'+(result.home===result.away?"Hasta el último minuto.":result.home>result.away?"Una victoria para recordar.":"El próximo capítulo empieza ahora.")+'</p><div class="result-stats">'+[["Posesión","possession","%"],["Tiros","shots",""],["A puerta","onTarget",""],["Faltas","fouls",""],["Amarillas","yellows",""],["Rojas","reds",""],["Paradas","saves",""],["Desvíos del portero","parries",""],["Pases completados","completed",""],["Pases clave","keyPasses",""],["Remates bloqueados","blockedShots",""],["Goles esperados","xg",""]].map(([label,key,suffix])=>'<div><b>'+result.stats[0][key]+suffix+'</b><span>'+label+'</span><b>'+result.stats[1][key]+suffix+'</b></div>').join("")+'</div><div class="result-goals">'+result.goals.map(g=>'<span>'+g.minute+'′ '+escape(g.name)+'</span>').join("")+'</div><button class="btn primary" data-arena="complete">'+(options.career?"Registrar resultado y volver a carrera":"Volver al menú")+' →</button></div>';
+      layer.innerHTML='<div class="match-result"><span class="eyebrow">FINAL DEL PARTIDO · AURA CLUB EDITION</span><div class="result-teams"><div>'+AuraEvolution.badge(home,80)+'<h3>'+escape(home.name)+'</h3></div><strong>'+result.home+' <i>—</i> '+result.away+'</strong><div>'+AuraEvolution.badge(away,80)+'<h3>'+escape(away.name)+'</h3></div></div><p class="result-outcome">'+(result.home===result.away?"Hasta el último minuto.":result.home>result.away?"Una victoria para recordar.":"El próximo capítulo empieza ahora.")+'</p><div class="result-stats">'+[["Posesión","possession","%"],["Tiros","shots",""],["A puerta","onTarget",""],["Faltas","fouls",""],["Amarillas","yellows",""],["Rojas","reds",""],["Paradas","saves",""],["Desvíos del portero","parries",""],["Pases completados","completed",""],["Pases clave","keyPasses",""],["Remates bloqueados","blockedShots",""],["Goles esperados","xg",""]].map(([label,key,suffix])=>'<div><b>'+result.stats[0][key]+suffix+'</b><span>'+label+'</span><b>'+result.stats[1][key]+suffix+'</b></div>').join("")+'</div><div class="result-goals">'+result.goals.map(g=>'<span>'+g.minute+'′ '+escape(g.name)+(g.assist?' · Asistencia: '+escape(g.assist):'')+'</span>').join("")+'</div>'+
+        (result.manOfTheMatch?'<div class="match-mvp"><span>⭐ JUGADOR DEL PARTIDO</span><strong>'+escape(result.manOfTheMatch.name)+'</strong><small>'+escape((result.manOfTheMatch.team===0?home:away).name)+' · '+result.manOfTheMatch.rating.toFixed(1)+'/10</small></div>':'')+
+        '<button class="btn" data-arena="report">Ver calificaciones de todos →</button><button class="btn primary" data-arena="complete">'+(options.career?"Registrar resultado y volver a carrera":"Volver al menú")+' →</button></div>';
       sound("whistle");node.querySelector('[data-arena="complete"]').focus();
     }
     function dispose(commit=false){
@@ -145,6 +163,8 @@ const AuraArena=(()=>{
       const a=e.target.closest("[data-arena]")?.dataset.arena;
       const tactic=e.target.closest("[data-match-tactic]")?.dataset.matchTactic;
       if(tactic){const changed=AuraMatch.setTactic(game,tactic);matchPlan(changed?"Nueva táctica aplicada.":"No se pudo cambiar la táctica.");return;}
+      if(a==="report"&&(game.paused||s.done)){s.reportBackHTML=layer.innerHTML;layer.innerHTML=playerReportView();layer.querySelector('button')?.focus();}
+      if(a==="report-back"&&s.reportBackHTML){layer.innerHTML=s.reportBackHTML;layer.querySelector('button')?.focus();s.reportBackHTML=null;}
       if(a==="plan")matchPlan();
       if(a==="substitute"){
         const outgoing=Number(find("plan-out")?.value),incoming=game.benches[0].find(p=>p.id===find("plan-in")?.value);
