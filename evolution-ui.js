@@ -27,10 +27,18 @@ const AuraEvolution=(()=>{
     ["ultimate","06","ULTIMATE TEAM","TU CLUB. TUS CARTAS.","Colecciona, mejora tu once y juega los eventos especiales.","Mercado · Sobres · Liga Argentina","💎"],
     ["street","07","CALLE / VOLTA","LA CALLE ES TU ESTADIO","Partidos rápidos de tres contra tres: ritmo, técnica y espectáculo.","3 contra 3 · Fútbol urbano","🔥"]
   ];
+  // Mode-navigation preferences are separate from career and Ultimate Team saves.
+  try{
+    const last=localStorage.getItem("aura-recent-mode-v1"),fav=localStorage.getItem("aura-pinned-mode-v1");
+    if(modeCards.some(row=>row[0]===last))recentMode=last;
+    if(modeCards.some(row=>row[0]===fav))pinnedMode=fav;
+  }catch{}
   function modeMeta(id){return modeCards.find(row=>row[0]===id)||modeCards[0];}
   function chooseMode(id){
     if(!modeCards.some(row=>row[0]===id))return false;
-    mode=id;modeOpen=true;recentMode=id;lobby=true;render();
+    mode=id;modeOpen=true;recentMode=id;lobby=true;
+    try{localStorage.setItem("aura-recent-mode-v1",id);}catch{}
+    render();
     window.scrollTo(0,0);return true;
   }
   function modeTabs(){
@@ -199,13 +207,17 @@ const AuraEvolution=(()=>{
       }});
     }catch(error){notify(error.message);}
   }
-  function controlsModal(){openModal("CÓMO JUGAR",'<div class="controls-explainer"><span class="eyebrow">TÚ LLEVAS EL BALÓN</span><h3>Del menú al césped.</h3><p>En <b>Partido rápido</b> eliges los equipos. En <b>Carrera</b>, pulsa <b>Jugar partido 3D</b> para disputar tu siguiente jornada.</p><div class="prematch-guide">'+[["WASD / Flechas","Mover al jugador"],["J","Mantener y soltar para disparar"],["K","Pasar hacia un compañero"],["L","Pase al espacio"],["Espacio","Intentar recuperar el balón"],["E","Cambiar al jugador más cercano"],["Shift","Sprint; consume energía"],["C","Cambiar entre tres cámaras"],["P / Esc","Pausar el partido"]].map(([k,v])=>'<span><kbd>'+k+'</kbd> '+v+'</span>').join("")+'</div><p>Atacas hacia la derecha en la primera parte y hacia la izquierda en la segunda. Tu jugador tiene un anillo verde. Los porteros y tus compañeros se mueven automáticamente.</p><p>Mando estándar: A/X pase, B/○ tiro, X/□ entrada, Y/△ al hueco, LB/L1 cambio, RB/R1 sprint. En pantalla táctil aparecen un joystick y botones.</p><p class="save-info">Fútbol arcade: sin fueras de juego ni faltas. Elige el once y la formación antes de jugar. Durante la pausa puedes ajustar la táctica y hacer hasta cinco sustituciones.</p></div>');}
+  function controlsModal(){openModal("CÓMO JUGAR",'<div class="controls-explainer"><span class="eyebrow">TÚ LLEVAS EL BALÓN</span><h3>Del menú al césped.</h3><p>En <b>Partido rápido</b> eliges los equipos. En <b>Carrera</b>, pulsa <b>Jugar partido 3D</b> para disputar tu siguiente jornada.</p><div class="prematch-guide">'+[["WASD / Flechas","Mover al jugador"],["J","Mantener y soltar para disparar"],["K","Pasar hacia un compañero"],["L","Pase al espacio"],["Espacio","Intentar recuperar el balón"],["E","Cambiar al jugador más cercano"],["Shift","Sprint; consume energía"],["C","Cambiar entre tres cámaras"],["P / Esc","Pausar el partido"]].map(([k,v])=>'<span><kbd>'+k+'</kbd> '+v+'</span>').join("")+'</div><p>Atacas hacia la derecha en la primera parte y hacia la izquierda en la segunda. Tu jugador tiene un anillo verde. Los porteros y tus compañeros se mueven automáticamente.</p><p>Mando estándar: A/X pase, B/○ tiro, X/□ entrada, Y/△ al hueco, LB/L1 cambio, RB/R1 sprint. En pantalla táctil aparecen un joystick y botones.</p><p class="save-info">Fútbol arcade con fueras de juego y faltas. Elige el once y la formación antes de jugar. Durante la pausa puedes ajustar la táctica y hacer hasta cinco sustituciones.</p></div>');}
   function handleClick(button){
     const d=button.dataset;
     if(d.evoMode){return chooseMode(d.evoMode);}
     if(d.evoPin){
       if(!modeCards.some(row=>row[0]===d.evoPin))return true;
-      pinnedMode=pinnedMode===d.evoPin?null:d.evoPin;render();return true;
+      pinnedMode=pinnedMode===d.evoPin?null:d.evoPin;
+      try{
+        localStorage.setItem("aura-pinned-mode-v1",pinnedMode||"");
+      }catch{}
+      render();return true;
     }
     if(d.draftPick!==undefined){const p=draft?.offers[Number(d.draftPick)];if(p&&draft.players.length<11){draft.players.push({...p});offerDraft();render();}return true;}
     if(!d.evo)return false;
@@ -220,6 +232,7 @@ const AuraEvolution=(()=>{
     }
     if(d.evo==="argentina-open"){
       mode="ultimate";modeOpen=true;recentMode="ultimate";lobby=true;
+      try{localStorage.setItem("aura-recent-mode-v1","ultimate");}catch{}
       if(!AuraUTUI.openArgentinaEvent())render();
       return true;
     }
