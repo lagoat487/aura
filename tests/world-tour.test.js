@@ -85,3 +85,40 @@ test("Club World Cup catalog supports 16 unique participants and a complete four
   assert.ok(clubs.some(c=>c.id===cup.champion));
   assert.equal(Tour.advanceCup(cup),false);
 });
+
+test("National cups accept the available Spanish, English and Ecuadorian clubs",()=>{
+  const cases=[
+    ["copadelrey","spain",16,"Sevilla · España"],
+    ["facup","england",4,"Londres · Inglaterra"],
+    ["copaecuador","ecuador",4,"Guayaquil · Ecuador"]
+  ];
+  for(const [id,region,size,city] of cases){
+    const def=Tour.cupTypes.find(c=>c.id===id);
+    assert.equal(def.region,region);assert.equal(def.size,size);
+    const candidate={id:"test",name:"Fútbol Club",city};
+    assert.equal(Tour.eligibleForCup(def,candidate,()=>region),true);
+    assert.equal(Tour.eligibleForCup(def,{...candidate,city:"París · Francia"},()=>region),false);
+    const entries=Array.from({length:size},(_,i)=>({id:"c"+i,name:"Club "+i,rating:75}));
+    const cup=Tour.createCup(id,entries,"c0",2026);
+    while(!cup.champion)Tour.advanceCup(cup);
+    assert.equal(cup.rounds.length,Math.log2(size));
+    assert.ok(cup.entrants.some(c=>c.id===cup.champion));
+  }
+});
+test("Club World Cup respects 8+8 regional quota, selected club and unique participants",()=>{
+  const zone=c=>c.region;
+  const pool=[
+    ...Array.from({length:10},(_,i)=>({id:"S"+i,region:"south",rating:83})),
+    ...Array.from({length:10},(_,i)=>({id:"E"+i,region:"europe",rating:83}))
+  ];
+  for(const chosen of [pool[0],pool[10]]){
+    const selected=Tour.clubWorldEntrants(pool,chosen,zone);
+    assert.equal(selected.length,16);
+    assert.equal(selected[0].id,chosen.id);
+    assert.equal(new Set(selected.map(c=>c.id)).size,16);
+    assert.equal(selected.filter(c=>zone(c)==="south").length,8);
+    assert.equal(selected.filter(c=>zone(c)==="europe").length,8);
+    const copy=pool.slice(0,15);
+    assert.throws(()=>Tour.clubWorldEntrants(copy,chosen,zone),/Se necesitan/);
+  }
+});
