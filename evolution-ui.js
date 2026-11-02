@@ -130,7 +130,9 @@ const AuraEvolution=(()=>{
         '<article><span>PARTIDO '+match.round+'</span><strong>'+match.score.home+' — '+match.score.away+'</strong>'+
         '<small>'+(match.penalties?'Penaltis '+match.penalties.home+' — '+match.penalties.away+' · ':'')+
         'Ganó '+text(getClub(match.winner===0?rivalry.home:rivalry.away).name)+'</small></article>').join('')+'</div>'+
-      (round?'<button class="btn primary" data-evo="quick-rivalry-play">Jugar partido '+round+' →</button>':'')+
+      (round?'<button class="btn primary" data-evo="quick-rivalry-play">Jugar partido '+round+' →</button>'+
+         '<button class="btn" data-evo="quick-rivalry-sim">Simular siguiente partido</button>'+
+         '<button class="btn" data-evo="quick-rivalry-sim-all">Simular toda la serie</button>':'')+
       '<button class="btn" data-evo="quick-rivalry-reset">'+(finished?'Otra rivalidad':'Cancelar rivalidad')+'</button></section>';
   }
   function playRivalry(){
@@ -199,7 +201,9 @@ const AuraEvolution=(()=>{
       '<div class="draft-run-progress">'+draftRounds.map((name,i)=>'<span class="'+(i<tournament.round?'passed':i===tournament.round&&tournament.status==="playing"?'current':'')+'">'+
          (i+1)+' · '+name+'</span>').join('')+'</div>'+
       '<div class="draft-run-history">'+(completed||'<p>Aún no hay encuentros disputados.</p>')+'</div>'+
-      (tournament.status==="playing"?'<button class="btn primary" data-evo="draft-play">Jugar contra '+text(club.name)+' →</button>':
+      (tournament.status==="playing"?'<button class="btn primary" data-evo="draft-play">Jugar contra '+text(club.name)+' →</button>'+
+         '<button class="btn" data-evo="draft-sim">Simular eliminatoria</button>'+
+         '<button class="btn" data-evo="draft-sim-all">Simular hasta terminar el Draft</button>':
         '<button class="btn" data-evo="draft-retry">Reiniciar torneo con el mismo once →</button>')+'</section>';
   }
   function playDraftTournament(){
@@ -306,6 +310,12 @@ const AuraEvolution=(()=>{
     }
     if(d.evo==="quick-rivalry-reset"){quickRivalry=null;persistModes();render();return true;}
     if(d.evo==="quick-rivalry-play"){playRivalry();return true;}
+    if(d.evo==="quick-rivalry-sim"||d.evo==="quick-rivalry-sim-all"){
+      if(AuraArena.isRunning()){notify("Termina el partido activo antes de simular.");return true;}
+      const results=AuraModeSimulation.simulateRivalry(quickRivalry,d.evo==="quick-rivalry-sim-all");
+      if(results.length){persistModes();render();notify("Rivalidad: "+results.length+" partido(s) simulados.");}
+      return true;
+    }
     if(d.evo==="quick-start")try{if(quickHome===quickAway){notify("Elige dos clubes distintos para este partido.");return true;}AuraArena.preMatch(AuraArena.team(getClub(quickHome)),AuraArena.team(getClub(quickAway)),{});}catch(err){notify(err.message);}
     if(d.evo==="draft-new"){startDraft();render();}
     if(d.evo==="draft-reroll"){if(rerollDraft())render();else notify("No hay más cambios disponibles.");return true;}
@@ -313,6 +323,12 @@ const AuraEvolution=(()=>{
       draft.tournament=AuraKnockout.createDraft(draft.players);persistModes();render();
     }
     if(d.evo==="draft-play"&&draft?.players.length===11)playDraftTournament();
+    if(d.evo==="draft-sim"||d.evo==="draft-sim-all"){
+      if(AuraArena.isRunning()){notify("Termina el partido activo antes de simular.");return true;}
+      const results=AuraModeSimulation.simulateDraft(draft,id=>getClub(id).rating,d.evo==="draft-sim-all");
+      if(results.length){persistModes();render();notify("Draft XI: "+results.length+" eliminatoria(s) simuladas.");}
+      return true;
+    }
     if(d.evo==="career-play")playCareer();return true;
   }
   function input(e){
