@@ -29,7 +29,11 @@ function boot(options={}){
   pointer(button,type,id=1){buttons.get(button)['on'+type]?.({pointerId:id,preventDefault(){}});},
   key(key){events.get('keydown')?.({key,target:root,preventDefault(){},stopImmediatePropagation(){}});},
   pauseButton:()=>root.querySelector('[data-street="pause"]').onclick(),blur:()=>events.get('blur')?.(),
-  close:()=>root.querySelector('[data-street="close"]').onclick(),running:()=>context.AuraStreet.isRunning(),
+  close:()=>root.querySelector('[data-street="close"]').onclick(),
+  report:()=>root.querySelector(".street-finish"),
+  finishAction:key=>root.querySelector(".street-finish").querySelector('[data-street="'+key+'"]').onclick(),
+  running:()=>context.AuraStreet.isRunning(),
+  closeActive:()=>context.AuraStreet.getSession()?.close(),
  };
 }
 
@@ -68,4 +72,43 @@ test('Abandoning the street match before the end never triggers a circuit result
  let calls=0;const a=boot({onFinish:()=>{calls++;}});
  a.frame();a.close();assert.equal(calls,0);
  assert.equal(a.running(),false);
+});
+
+test("Finished VOLTA fixtures display live score, possession, attempts and an explicit circuit exit",()=>{
+ let count=0;const a=boot({homeName:"FC Barcelona",awayName:"Boca Juniors",seconds:60,onFinish:()=>{count++;}});
+ a.frame();a.game.score=[2,1];a.game.stats[0].shots=8;a.game.stats[1].shots=6;
+ a.game.stats[0].passes=10;a.game.stats[1].passes=7;
+ a.game.stats[0].possession=6;a.game.stats[1].possession=4;
+ a.game.elapsed=59.99;a.frame();
+ const panel=a.report();
+ assert.equal(count,1);assert.equal(panel.hidden,false);
+ assert.match(panel.innerHTML,/INFORME FINAL/);
+ assert.match(panel.innerHTML,/FC Barcelona VS Boca Juniors/);
+ assert.match(panel.innerHTML,/2 — 1/);
+ assert.match(panel.innerHTML,/Tiros/);assert.match(panel.innerHTML,/Pases/);
+ assert.match(panel.innerHTML,/Posesión/);assert.match(panel.innerHTML,/60%/);
+ assert.match(panel.innerHTML,/Volver al circuito/);
+ assert.doesNotMatch(panel.innerHTML,/data-street="again"/);
+ a.frame();assert.equal(count,1);
+ a.finishAction("finish-close");assert.equal(a.running(),false);
+});
+test("VOLTA friendlies offer a working rematch and replace the old game without registering a second match",()=>{
+ const a=boot({seconds:60});
+ a.frame();a.game.elapsed=59.99;a.frame();
+ assert.match(a.report().innerHTML,/data-street="again"/);
+ assert.match(a.report().innerHTML,/Revancha/);
+ a.finishAction("again");assert.equal(a.running(),true);
+ assert.equal(a.game.done,true);
+ a.closeActive();assert.equal(a.running(),false);
+});
+test("Completed match markup renders safely escaped club names",()=>{
+ const g={done:true,score:[1,0],seconds:60,elapsed:60,goalLimit:3,stats:[
+  {shots:1,passes:2,tackles:0,goals:1,possession:6},
+  {shots:1,passes:0,tackles:1,goals:0,possession:4}],goalLog:[]};
+ const fs=require("node:fs"),vm2=require("node:vm");
+ const ctx=vm2.createContext({});
+ vm2.runInContext(fs.readFileSync(path.join(__dirname,"..","street.js"),"utf8"),ctx);
+ const html=ctx.AuraStreet.finalReport(g,{homeName:'<script>alert(1)</script>',awayName:"Rival"});
+ assert.doesNotMatch(html,/<script>/);assert.match(html,/&lt;script&gt;/);
+ assert.match(html,/Revancha/);
 });

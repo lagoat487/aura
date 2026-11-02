@@ -74,13 +74,33 @@
       goalLimit:g.goalLimit,stats:g.stats.map(v=>({...v,possession:Math.round(v.possession*10)/10})),
       goals:g.goalLog.map(v=>({...v}))};
   }
+  function finalReport(game,options={}){
+    const r=result(game);
+    if(!r)return "";
+    const verdict=r.home>r.away?"🏆 ¡GANASTE!":r.home===r.away?"🤝 EMPATE":"💪 EL RIVAL GANA";
+    const home=String(options.homeName||"TU CLUB").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+    const away=String(options.awayName||"RIVAL").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+    const possession=r.stats[0].possession+r.stats[1].possession;
+    const lines=[["Goles",r.home,r.away],["Tiros",r.stats[0].shots,r.stats[1].shots],
+      ["Pases",r.stats[0].passes,r.stats[1].passes],["Entradas",r.stats[0].tackles,r.stats[1].tackles],
+      ["Posesión",possession?Math.round(r.stats[0].possession*100/possession)+"%":"0%",
+       possession?Math.round(r.stats[1].possession*100/possession)+"%":"0%"]];
+    return '<div class="street-finish-content"><span class="eyebrow">AURA CALLE / INFORME FINAL</span>'+
+      '<h2>'+verdict+'</h2><p>'+home+' VS '+away+'</p>'+
+      '<strong class="street-finish-score">'+r.home+' — '+r.away+'</strong>'+
+      '<div class="street-finish-stats">'+lines.map(([label,h,a])=>
+        '<div><b>'+h+'</b><span>'+label+'</span><b>'+a+'</b></div>').join("")+'</div>'+
+      '<div class="street-finish-actions">'+
+      (!options.onFinish?'<button class="btn primary" data-street="again">Revancha →</button>':'')+
+      '<button class="btn" data-street="finish-close">← Volver '+(options.onFinish?'al circuito':'a Calle / Volta')+'</button></div></div>';
+  }
   let live=null;
   function open(home,away,options={}){
     if(live)return;const g=create(home,away,options),node=document.createElement("section");node.className="street-overlay";node.setAttribute("role","dialog");node.setAttribute("aria-modal","true");node.setAttribute("aria-label","AURA Calle, fútbol 3 contra 3");node.tabIndex=-1;
-    node.innerHTML='<header><div><span class="eyebrow">AURA CALLE / 3 CONTRA 3</span><h2>DOMINA LA CALLE.</h2></div><div class="street-score" role="status"></div><button class="btn" data-street="pause">Pausa</button><button class="btn" data-street="close" aria-label="Volver al menú">Salir ✕</button></header><div class="street-stage"><canvas aria-label="Cancha de fútbol callejero"></canvas><div class="street-status"></div></div><div class="street-guide"><span>WASD / Flechas · mover</span><span>J · tirar</span><span>K · pasar</span><span>E · cambiar</span><span>Espacio · entrada</span><span>Shift · correr</span><span>P · pausa</span><span>Primero a '+g.goalLimit+' goles o '+Math.round(g.seconds/60)+' minuto(s)</span></div><div class="street-touch"><div class="street-dpad"><button data-move="up" aria-label="Mover arriba">↑</button><button data-move="left" aria-label="Mover izquierda">←</button><button data-move="down" aria-label="Mover abajo">↓</button><button data-move="right" aria-label="Mover derecha">→</button></div><div><button data-action-street="switch">CAMBIO</button><button data-action-street="pass">PASE</button><button data-action-street="tackle">ENTRADA</button><button data-action-street="shoot">TIRO</button></div></div>';
+    node.innerHTML='<header><div><span class="eyebrow">AURA CALLE / 3 CONTRA 3</span><h2>DOMINA LA CALLE.</h2></div><div class="street-score" role="status"></div><button class="btn" data-street="pause">Pausa</button><button class="btn" data-street="close" aria-label="Volver al menú">Salir ✕</button></header><div class="street-stage"><canvas aria-label="Cancha de fútbol callejero"></canvas><div class="street-status"></div></div><section class="street-finish" hidden role="region" aria-label="Resultados del partido Calle"></section><div class="street-guide"><span>WASD / Flechas · mover</span><span>J · tirar</span><span>K · pasar</span><span>E · cambiar</span><span>Espacio · entrada</span><span>Shift · correr</span><span>P · pausa</span><span>Primero a '+g.goalLimit+' goles o '+Math.round(g.seconds/60)+' minuto(s)</span></div><div class="street-touch"><div class="street-dpad"><button data-move="up" aria-label="Mover arriba">↑</button><button data-move="left" aria-label="Mover izquierda">←</button><button data-move="down" aria-label="Mover abajo">↓</button><button data-move="right" aria-label="Mover derecha">→</button></div><div><button data-action-street="switch">CAMBIO</button><button data-action-street="pass">PASE</button><button data-action-street="tackle">ENTRADA</button><button data-action-street="shoot">TIRO</button></div></div>';
     if(options.homeName&&options.awayName)node.querySelector('h2').textContent=options.homeName+' vs '+options.awayName;
     document.body.appendChild(node);document.body.classList.add("in-match");AuraEvolution.stopPreview();AuraTourUI.audio.suspend();
-    const canvas=node.querySelector("canvas"),ctx=canvas.getContext("2d"),keys=new Set(),touch=new Set(),previous=document.activeElement;
+    const canvas=node.querySelector("canvas"),ctx=canvas.getContext("2d"),keys=new Set(),touch=new Set(),previous=document.activeElement,finishPanel=node.querySelector(".street-finish");
     let raf=0,last=0,reported=false;
     const axes=()=>({x:Number(keys.has("d")||keys.has("arrowright")||touch.has("right"))-Number(keys.has("a")||keys.has("arrowleft")||touch.has("left")),z:Number(keys.has("s")||keys.has("arrowdown")||touch.has("down"))-Number(keys.has("w")||keys.has("arrowup")||touch.has("up")),sprint:keys.has("shift")});
     function close(){cancelAnimationFrame(raf);window.removeEventListener("keydown",down,true);window.removeEventListener("keyup",up,true);window.removeEventListener("blur",blur);node.remove();document.body.classList.remove("in-match");live=null;AuraTourUI.audio.resume();previous?.focus?.();}
@@ -108,11 +128,17 @@
         reported=true;
         const final=result(g);
         try{options.onFinish?.(final);}catch(error){console.warn("VOLTA callback",error);}
+        finishPanel.innerHTML=finalReport(g,options);
+        finishPanel.hidden=false;
+        finishPanel.querySelector('[data-street="finish-close"]').onclick=close;
+        if(!options.onFinish){
+          finishPanel.querySelector('[data-street="again"]').onclick=()=>{close();open(home,away,options);};
+        }
       }
       paint();
       raf=requestAnimationFrame(frame);
     }
     live={game:g,close};node.focus();raf=requestAnimationFrame(frame);
   }
-  return {create,step,action,result,open,isRunning:()=>!!live,getSession:()=>live};
+  return {create,step,action,result,finalReport,open,isRunning:()=>!!live,getSession:()=>live};
 });
