@@ -594,7 +594,7 @@ test("Draft XI plays through four distinct knockout rounds and becomes champion 
    assert.equal((app.html().match(/class="draft-run-match"/g)||[]).length,i+1);
  }
  assert.match(app.html(),/CAMPEONES DEL DRAFT/);
- const count=app.run('document.getElementById("app").innerHTML.includes("data-evo=\"draft-play\"")');
+ const count=app.html().includes('data-evo="draft-play"');
  assert.equal(count,false);
  const previously=app.json('AuraEvolution.pool().length');
  app.click({evo:"draft-retry"});
