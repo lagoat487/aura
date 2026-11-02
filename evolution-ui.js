@@ -1,7 +1,7 @@
 /* AURA Club Update 4.2 — console lobby, career hub and playable modes. */
 const AuraEvolution=(()=>{
   "use strict";
-  let mode="career",leagueQuery="",clubQuery="",quickHome="barcelona",quickAway="madrid",quickQuery="",draft=null,preview=null,previewFrame=0;
+  let mode="career",modeOpen=false,recentMode=null,pinnedMode=null,leagueQuery="",clubQuery="",quickHome="barcelona",quickAway="madrid",quickQuery="",draft=null,preview=null,previewFrame=0;
   const compact=n=>n>=1000000?"€"+(n/1e6).toLocaleString("es-ES",{maximumFractionDigits:1})+" M":money(n);
   const text=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const normal=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
@@ -18,16 +18,61 @@ const AuraEvolution=(()=>{
       catch{try{preview=AuraGraphics.fallback(canvas,{preview:true,quality:"low",stadium:"night",home:getClub("barcelona"),away:getClub("madrid")});preview.render(null,"wide",0);}catch{canvas.classList.add("stadium-unavailable");}}
     }
   }
+  const modeCards=[
+    ["career","01","CARRERA MÁNAGER","TU CLUB, TUS REGLAS","Construye tu equipo, negocia fichajes y conquista tu liga.","Liga · Fichajes · Cantera","🏟️"],
+    ["quick","02","PARTIDO RÁPIDO","AL CAMPO DIRECTAMENTE","Elige dos equipos, personaliza el estadio y juega sin compromisos.","11 contra 11 · Dos jugadores","⚡"],
+    ["draft","03","DRAFT XI","ONCE ELECCIONES. UN TROFEO.","Elige 11 futbolistas y pelea en un torneo de cuatro eliminatorias.","Fichajes fantasy · Eliminatorias","🃏"],
+    ["pro","04","CARRERA DE JUGADOR","TU NOMBRE EN LA CAMISETA","Controla a tu futbolista, suma minutos y haz historia.","Tu jugador · Experiencia · Goles","🌟"],
+    ["cup","05","COPAS Y SELECCIONES","EL MUNDO EN JUEGO","Juega octavos, cuartos, semifinales y finales internacionales.","Champions · Libertadores · Mundial","🏆"],
+    ["ultimate","06","ULTIMATE TEAM","TU CLUB. TUS CARTAS.","Colecciona, mejora tu once y juega los eventos especiales.","Mercado · Sobres · Liga Argentina","💎"],
+    ["street","07","CALLE / VOLTA","LA CALLE ES TU ESTADIO","Partidos rápidos de tres contra tres: ritmo, técnica y espectáculo.","3 contra 3 · Fútbol urbano","🔥"]
+  ];
+  function modeMeta(id){return modeCards.find(row=>row[0]===id)||modeCards[0];}
+  function chooseMode(id){
+    if(!modeCards.some(row=>row[0]===id))return false;
+    mode=id;modeOpen=true;recentMode=id;lobby=true;render();
+    window.scrollTo(0,0);return true;
+  }
   function modeTabs(){
-    return '<div class="mode-tabs" role="group" aria-label="Modo de juego">'+[
-      ["career","01","Carrera mánager","Dirige. Decide. Compite."],
-      ["quick","02","Partido rápido","Elige tu equipo y sal a jugar."],
-      ["draft","03","Draft XI","Construye tu once ideal."],
-      ["pro","04","Carrera de jugador","Tu nombre. Tu camino."],
-      ["cup","05","Copas y selecciones","Compite por el mundo."],
-      ["ultimate","06","AURA UT","Colecciona. Forma. Juega."],
-      ["street","07","Calle / Volta","Domina el 3 contra 3."]
-    ].map(([id,n,title,desc])=>'<button data-evo-mode="'+id+'" class="mode-tab '+(mode===id?'selected':'')+'" aria-pressed="'+(mode===id)+'"><span>'+n+'</span><div><strong>'+title+'</strong><small>'+desc+'</small></div><b aria-hidden="true">→</b></button>').join("")+'</div>';
+    const ordered=modeCards.slice().sort((a,b)=>Number(b[0]===pinnedMode)-Number(a[0]===pinnedMode));
+    return '<section class="aura-mode-library" aria-labelledby="aura-mode-choose">'+
+      '<div class="aura-mode-library-heading"><div><span class="eyebrow">AURA 27 · ELIGE TU MUNDO</span>'+
+      '<h2 id="aura-mode-choose">SIETE MODOS.<br><em>SIETE HISTORIAS.</em></h2></div>'+
+      '<p>Ya no son pestañas mezcladas. Cada modo abre su propio espacio y puedes volver sin perder el equipo que estabas preparando.</p></div>'+
+      '<div class="mode-tabs aura-mode-cards">'+ordered.map(([id,num,title,slogan,description,feature,emoji])=>{
+        const pin=pinnedMode===id;
+        return '<article class="aura-mode-tile aura-mode-tile--'+id+'" data-mode-card="'+id+'">'+
+          '<button class="aura-mode-launch" data-evo-mode="'+id+'" aria-label="Entrar a '+title+'">'+
+            '<span class="aura-mode-tile-top"><span class="aura-mode-number">'+num+' / 07</span><span class="aura-mode-emoji" aria-hidden="true">'+emoji+'</span></span>'+
+            '<strong>'+title+'</strong><em>'+slogan+'</em><span class="aura-mode-description">'+description+'</span>'+
+            '<span class="aura-mode-feature">'+feature+'</span><span class="aura-mode-cta">ENTRAR AL MODO <b>↗</b></span>'+
+          '</button><button class="aura-mode-pin" data-evo-pin="'+id+'" aria-pressed="'+pin+'" aria-label="'+(pin?'Quitar de favoritos':'Destacar')+' '+title+'">'+
+            (pin?'★ DESTACADO':'☆ DESTACAR')+'</button></article>';
+      }).join('')+'</div></section>';
+  }
+  function modeHeader(){
+    const [id,num,title,slogan,description,feature,emoji]=modeMeta(mode);
+    return '<div class="aura-mode-breadcrumb"><button class="aura-mode-back" data-evo="mode-back">← TODOS LOS MODOS</button>'+
+      '<span>AURA 27 / '+num+' / '+title+'</span></div>'+
+      '<header class="aura-mode-detail-header aura-mode-detail-header--'+id+'"><div>'+
+      '<span class="eyebrow">MODO '+num+' · '+title+'</span><h1>'+slogan+'</h1>'+
+      '<p>'+description+'</p><span class="aura-mode-feature">'+feature+'</span></div>'+
+      '<span class="aura-mode-detail-symbol" aria-hidden="true">'+emoji+'</span></header>';
+  }
+  function modeHub(){
+    const stats=World.getStats(),loaded=World.isLoaded(),recent=recentMode&&modeMeta(recentMode);
+    return '<div class="season-intro"><span>AURA 27 <b>/ MODOS INDEPENDIENTES</b></span>'+
+      '<button data-evo="controls" class="club-controls-link">Controles y cómo jugar <span>→</span></button></div>'+
+      '<section class="aura-mode-home-hero"><div class="aura-mode-home-mesh" aria-hidden="true"></div>'+
+      '<span class="eyebrow">UN JUEGO · SIETE EXPERIENCIAS</span>'+
+      '<h1>ELIGE CÓMO<br><em>HACER HISTORIA.</em></h1>'+
+      '<p>Carrera, partidos, Draft, copas, fútbol callejero y Ultimate Team. Entra en cada uno desde su propia pantalla. Puedes iniciar nueva carrera entrando en Carrera Mánager.</p>'+
+      '<div class="aura-mode-home-actions"><button class="btn primary" data-evo="hero-start">EXPLORAR MODOS ↓</button>'+
+      (recent?'<button class="btn" data-evo="mode-resume">↗ VOLVER A '+recent[2]+'</button>':'')+
+      '<button class="btn" data-evo="argentina-open">🇦🇷 LIGA ARGENTINA</button></div>'+
+      '<div class="aura-mode-home-metrics"><span><strong>07</strong> MODOS</span>'+
+      '<span><strong>'+(loaded?Number(stats.clubs||0).toLocaleString("es-ES"):'11×11')+'</strong> CLUBES O JUGADORES</span>'+
+      '<span><strong>3D</strong> PARTIDOS JUGABLES</span></div></section>'+modeTabs();
   }
   function leagueControls(){
     const definition=Competitions.getDefinition(selectedCompetition),featured=Competitions.definitions.filter(c=>c.id==="laliga"||c.id==="exhibition"||["Premier League","Bundesliga","Serie A Enilive","Ligue 1 McDonalds"].includes(c.name)).slice(0,7);
@@ -120,14 +165,12 @@ const AuraEvolution=(()=>{
       '<div class="draft-selected"><h3>TU EQUIPO · 4-3-3</h3><div>'+AuraSquad.formations["4-3-3"].map(([pos],i)=>'<span class="draft-slot '+(draft.players[i]?'filled':'')+'"><small>'+pos+'</small><strong>'+text(draft.players[i]?.name||"Por elegir")+'</strong>'+(draft.players[i]?'<b>'+draft.players[i].overall+'</b>':'')+'</span>').join("")+'</div></div>';
   }
   function welcome(){
-    if(mode==="ultimate")return AuraUTUI.render();
-    const stats=World.getStats(),loaded=World.isLoaded(),amount=n=>Number(n||0).toLocaleString("es-ES");
-    return '<div class="season-intro"><span>AURA 27 <b>/ CLUB UPDATE 4.2</b></span><button data-evo="controls" class="club-controls-link">Controles y cómo jugar <span>→</span></button></div>'+modeTabs()+
-      '<section class="evolution-hero"><div class="lobby-stadium" id="lobby-stadium" aria-hidden="true"></div><div class="evolution-hero-overlay"></div><div class="hero-outline-number" aria-hidden="true">27</div>'+
-      '<div class="hero-content"><span class="release-label"><i></i> TU CASA ES EL FÚTBOL <span>CLUB EDITION</span></span><h1>TU CLUB.<br>TU FÚTBOL.<br><em>TU HISTORIA.</em></h1><p>Del primer fichaje al último minuto.<br>Haz que cada decisión cuente.</p><div class="hero-actions"><button class="btn primary" data-evo="hero-start">'+({career:"Empezar mi carrera",quick:"Elegir equipos",draft:"Crear mi Draft XI",pro:"Crear mi jugador",cup:"Elegir mi torneo",ultimate:"Crear mi club UT",street:"Jugar en la calle"}[mode])+' <span>→</span></button> <button class="btn" data-evo="argentina-open">🇦🇷 NUEVO EVENTO LIGA ARGENTINA · JUGAR →</button></div><div class="hero-play-details"><span>11 contra 11</span><span>Partidos 3D</span><span>Teclado, mando o táctil</span></div></div>'+
-      '<div class="hero-side-caption"><span>CLUB UPDATE / 4.2</span><b>AURA 27</b></div></section>'+
-      '<div class="season-signal"><span class="signal-heading"><i></i> EL MUNDO DEL FÚTBOL.<br>A TU ALCANCE.</span><div><strong>'+(loaded?amount(stats.players):"11 × 11")+'</strong><span>'+(loaded?'FUTBOLISTAS DEL CATÁLOGO':'EN EL TERRENO')+'</span></div><div><strong>'+(loaded?amount(stats.clubs):"3")+'</strong><span>'+(loaded?'CLUBES PARA ELEGIR':'MODOS DE JUEGO')+'</span></div><div><strong>'+(loaded?amount(stats.leagues):"3D")+'</strong><span>'+(loaded?'LIGAS DEL CATÁLOGO':'PARTIDOS JUGABLES')+'</span></div></div>'+
-      '<div id="mode-content"><div class="mode-section-label"><span>ELIGE TU PRÓXIMO PASO</span><b>'+({career:'01 / CARRERA',quick:'02 / PARTIDO RÁPIDO',draft:'03 / DRAFT XI',pro:'04 / MI JUGADOR',cup:'05 / COPAS',ultimate:'06 / AURA UT',street:'07 / CALLE'}[mode])+'</b></div>'+(mode==="career"?careerPicker():mode==="quick"?quickPicker():mode==="draft"?draftView():AuraTourUI.welcome(mode,mode==="pro"?careerPicker():""))+'</div>';
+    if(!modeOpen)return modeHub();
+    const content=mode==="ultimate"?AuraUTUI.render():
+      mode==="career"?careerPicker():mode==="quick"?quickPicker():
+      mode==="draft"?draftView():AuraTourUI.welcome(mode,mode==="pro"?careerPicker():"");
+    return '<div class="aura-mode-page aura-mode-page--'+mode+'">'+modeHeader()+
+      '<section class="aura-mode-stage" id="mode-content">'+content+'</section></div>';
   }
   function scheduleStrip(){
     if(state.version!==2)return "";
@@ -159,9 +202,15 @@ const AuraEvolution=(()=>{
   function controlsModal(){openModal("CÓMO JUGAR",'<div class="controls-explainer"><span class="eyebrow">TÚ LLEVAS EL BALÓN</span><h3>Del menú al césped.</h3><p>En <b>Partido rápido</b> eliges los equipos. En <b>Carrera</b>, pulsa <b>Jugar partido 3D</b> para disputar tu siguiente jornada.</p><div class="prematch-guide">'+[["WASD / Flechas","Mover al jugador"],["J","Mantener y soltar para disparar"],["K","Pasar hacia un compañero"],["L","Pase al espacio"],["Espacio","Intentar recuperar el balón"],["E","Cambiar al jugador más cercano"],["Shift","Sprint; consume energía"],["C","Cambiar entre tres cámaras"],["P / Esc","Pausar el partido"]].map(([k,v])=>'<span><kbd>'+k+'</kbd> '+v+'</span>').join("")+'</div><p>Atacas hacia la derecha en la primera parte y hacia la izquierda en la segunda. Tu jugador tiene un anillo verde. Los porteros y tus compañeros se mueven automáticamente.</p><p>Mando estándar: A/X pase, B/○ tiro, X/□ entrada, Y/△ al hueco, LB/L1 cambio, RB/R1 sprint. En pantalla táctil aparecen un joystick y botones.</p><p class="save-info">Fútbol arcade: sin fueras de juego ni faltas. Elige el once y la formación antes de jugar. Durante la pausa puedes ajustar la táctica y hacer hasta cinco sustituciones.</p></div>');}
   function handleClick(button){
     const d=button.dataset;
-    if(d.evoMode){mode=d.evoMode;lobby=true;render();document.getElementById("mode-content")?.scrollIntoView({behavior:"smooth",block:"start"});return true;}
+    if(d.evoMode){return chooseMode(d.evoMode);}
+    if(d.evoPin){
+      if(!modeCards.some(row=>row[0]===d.evoPin))return true;
+      pinnedMode=pinnedMode===d.evoPin?null:d.evoPin;render();return true;
+    }
     if(d.draftPick!==undefined){const p=draft?.offers[Number(d.draftPick)];if(p&&draft.players.length<11){draft.players.push({...p});offerDraft();render();}return true;}
     if(!d.evo)return false;
+    if(d.evo==="mode-back"){modeOpen=false;render();window.scrollTo(0,0);return true;}
+    if(d.evo==="mode-resume"&&recentMode)return chooseMode(recentMode);
     if(d.evo==="controls")controlsModal();
     if(d.evo==="view-roster"){
       const club=clubs.find(c=>c.id===d.club);if(!club)return true;
@@ -170,11 +219,15 @@ const AuraEvolution=(()=>{
       openModal("PLANTILLA · "+club.name,'<div class="club-roster-modal"><div class="club-roster-heading">'+badge(club,50)+'<div><span class="eyebrow">'+players.length+' FUTBOLISTAS</span><h3>'+text(club.name)+'</h3></div></div>'+(status?'<p class="save-info">'+text(status.note)+' · '+text(status.verifiedAt||status.snapshot)+' <a href="'+text(status.source)+'" target="_blank" rel="noopener noreferrer">Ver fuente</a>'+'</p>':'')+'<div class="table-wrap"><table class="table"><thead><tr><th>Jugador</th><th>POS</th><th>GRL</th></tr></thead><tbody>'+players.map(p=>'<tr><td><span class="face-name">'+AuraPortraits.html(p)+text(p.name)+'</span></td><td>'+text(p.pos)+'</td><td class="accent">'+p.overall+'</td></tr>').join("")+'</tbody></table></div></div>');
     }
     if(d.evo==="argentina-open"){
-      mode="ultimate";lobby=true;
+      mode="ultimate";modeOpen=true;recentMode="ultimate";lobby=true;
       if(!AuraUTUI.openArgentinaEvent())render();
       return true;
     }
-    if(d.evo==="hero-start"){if(mode==="draft"&&!draft){startDraft();render();}document.getElementById("mode-content")?.scrollIntoView({behavior:"smooth",block:"start"});}
+    if(d.evo==="hero-start"){
+      if(!modeOpen){document.querySelector(".aura-mode-library")?.scrollIntoView({behavior:"smooth",block:"start"});return true;}
+      if(mode==="draft"&&!draft){startDraft();render();}
+      document.getElementById("mode-content")?.scrollIntoView({behavior:"smooth",block:"start"});
+    }
     if(d.evo==="quick-swap"){[quickHome,quickAway]=[quickAway,quickHome];render();document.getElementById("quick-home")?.focus();}
     if(d.evo==="quick-start")try{if(quickHome===quickAway){notify("Elige dos clubes distintos para este partido.");return true;}AuraArena.preMatch(AuraArena.team(getClub(quickHome)),AuraArena.team(getClub(quickAway)),{});}catch(err){notify(err.message);}
     if(d.evo==="draft-new"){startDraft();render();}
@@ -199,5 +252,8 @@ const AuraEvolution=(()=>{
     if(e.target.id==="quick-away"){quickAway=e.target.value;render();}
     if(e.target.id==="evo-tactic"&&state){state.tactic=e.target.value;notify("Identidad de juego actualizada");}
   }
-  return {welcome,dashboard,badge,handleClick,input,change,afterRender,stopPreview,playCareer,pool,setMode:name=>{mode=name}};
+  return {welcome,dashboard,badge,handleClick,input,change,afterRender,stopPreview,playCareer,pool,setMode:name=>{
+    if(name==="hub"){modeOpen=false;return;}
+    if(modeCards.some(row=>row[0]===name)){mode=name;modeOpen=true;recentMode=name;}
+  },getMode:()=>({mode:modeOpen?mode:"hub",recentMode,pinnedMode})};
 })();

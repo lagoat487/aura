@@ -285,7 +285,7 @@ function findPlayer(id){
 function buy(id){AuraCareerUI.start(id,"buy")}
 function sell(id){AuraCareerUI.start(id,"sell")}
 function train(id){const result=AuraProgression.train(state,id,"balanced");notify(result.error||result.message);save();render()}
-function goToModes(){lobby=true;AuraEvolution.setMode("career");closeModal();render();window.scrollTo(0,0);}
+function goToModes(){lobby=true;AuraEvolution.setMode("hub");closeModal();render();window.scrollTo(0,0);}
 function render(){
  AuraEvolution.stopPreview();const inLobby=lobby||!state,active=inLobby?"modes":screen;
  $("topnav").innerHTML=nav.map(([id,label])=>'<button class="'+(active===id?'active':'')+'" '+(active===id?'aria-current="page" ':'')+'data-nav="'+id+'">'+label+'</button>').join("");
