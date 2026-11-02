@@ -474,3 +474,128 @@ input,select{background:#121813;border:1px solid #ffffff22;border-radius:5px;col
 .draft-run-match small{font-size:10px;color:#b8dbcf}
 .draft-run-history>p{color:#b7cdbf;font-size:12px}
 @media(max-width:650px){.draft-run{padding:12px}.draft-run-progress{grid-template-columns:repeat(2,minmax(0,1fr))}.draft-run-header h3{font-size:24px}}
+
+/* AURA MODOS 5.0 — seven standalone entrances, never a tab strip. */
+.aura-mode-home-hero,.aura-mode-detail-header{
+  position:relative;isolation:isolate;overflow:hidden;
+  border-radius:18px;border:1px solid #bde3df33;
+}
+.aura-mode-home-hero{
+  min-height:390px;box-sizing:border-box;padding:clamp(28px,5vw,66px);
+  background:radial-gradient(ellipse at 84% 34%,#a0e4c934,transparent 40%),
+    radial-gradient(ellipse at 60% 115%,#4877b451,transparent 48%),
+    linear-gradient(128deg,#081d2b,#14382b 57%,#182e25);
+  box-shadow:inset 0 1px #ffffff2c,0 26px 60px #0005;
+}
+.aura-mode-home-mesh{position:absolute;inset:-140px -30px -40px 40%;z-index:-1;transform:rotate(-16deg);
+  opacity:.42;pointer-events:none;background-image:
+  linear-gradient(125deg,transparent 48%,#d0f4c352 49%,transparent 50%),
+  repeating-linear-gradient(0deg,transparent 0 42px,#d5f5ef23 43px 44px),
+  repeating-linear-gradient(90deg,transparent 0 42px,#d5f5ef23 43px 44px);
+  mask-image:linear-gradient(90deg,transparent,#000 45%);
+}
+.aura-mode-home-hero>.eyebrow{font:800 10px Arial;letter-spacing:2.4px;color:#c1ffa3}
+.aura-mode-home-hero h1{font:italic 900 clamp(46px,7vw,100px)/.87 var(--display,Impact,Arial);
+  letter-spacing:-1.8px;color:#f9fff9;margin:25px 0}
+.aura-mode-home-hero h1 em{color:#b8fa8d;font-style:italic}
+.aura-mode-home-hero p{font:400 13px/1.85 Arial;max-width:490px;color:#dae8e0}
+.aura-mode-home-actions{display:flex;flex-wrap:wrap;gap:10px;margin:24px 0 31px}
+.aura-mode-home-actions .btn{white-space:normal}
+.aura-mode-home-metrics{display:flex;gap:30px;flex-wrap:wrap}
+.aura-mode-home-metrics span{display:flex;align-items:baseline;gap:9px;color:#9dbeb3;
+  font:800 9px Arial;letter-spacing:1px}
+.aura-mode-home-metrics strong{font:900 23px var(--display,Impact,Arial);color:white}
+.aura-mode-library{margin:42px 0 56px}
+.aura-mode-library-heading{display:flex;align-items:end;justify-content:space-between;gap:26px;margin-bottom:20px}
+.aura-mode-library-heading h2{font:italic 900 clamp(35px,4.5vw,63px)/.95 var(--display,Impact,Arial);
+  margin:13px 0 0;color:#f5fdf5}
+.aura-mode-library-heading h2 em{color:#a8edb1;font-style:italic}
+.aura-mode-library-heading p{max-width:380px;color:#9bb0ac;font:400 12px/1.65 Arial}
+.mode-tabs.aura-mode-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:17px;margin:0;padding:0}
+.aura-mode-tile{--mode-a:#b6ee8b;--mode-b:#1e643e;position:relative;min-width:0;
+  border-radius:14px;overflow:hidden;border:1px solid color-mix(in srgb,var(--mode-a) 42%,transparent);
+  background:radial-gradient(ellipse at 91% 10%,color-mix(in srgb,var(--mode-b) 80%,transparent),transparent 50%),
+  linear-gradient(120deg,#152329 0%,#111d22 70%,#121e28);
+  box-shadow:inset 0 1px #ffffff15,0 9px 22px #0002;transition:transform .16s,border-color .16s,box-shadow .16s}
+.aura-mode-tile:hover,.aura-mode-tile:focus-within{transform:translateY(-3px);
+  border-color:var(--mode-a);box-shadow:0 14px 34px #0005}
+.aura-mode-tile--quick{--mode-a:#80e6ff;--mode-b:#1a6b9a}
+.aura-mode-tile--draft{--mode-a:#d8b5ff;--mode-b:#604b9d}
+.aura-mode-tile--pro{--mode-a:#ffd59a;--mode-b:#986b28}
+.aura-mode-tile--cup{--mode-a:#f7de7b;--mode-b:#776224}
+.aura-mode-tile--ultimate{--mode-a:#b4d1ff;--mode-b:#3849a3}
+.aura-mode-tile--street{--mode-a:#f99cbb;--mode-b:#8c3760}
+.aura-mode-tile--career{grid-column:span 1}
+.aura-mode-launch{font-family:inherit;display:flex;flex-direction:column;width:100%;box-sizing:border-box;
+  min-height:235px;gap:9px;text-align:left;border:0;border-radius:0;cursor:pointer;background:transparent;
+  color:#f9fffd;padding:24px 25px 19px}
+.aura-mode-tile-top{display:flex;justify-content:space-between;align-items:center}
+.aura-mode-number{font:800 9px Arial;letter-spacing:2px;color:var(--mode-a)}
+.aura-mode-emoji{font-size:30px;filter:drop-shadow(0 6px 10px #0007)}
+.aura-mode-launch>strong{font:italic 900 clamp(24px,3vw,35px)/.95 var(--display,Impact,Arial);
+  color:#fbfffd;letter-spacing:.2px}
+.aura-mode-launch>em{font:800 10px Arial;letter-spacing:1.4px;font-style:normal;color:var(--mode-a)}
+.aura-mode-description{color:#c0d0cb;font:400 11px/1.65 Arial;max-width:440px}
+.aura-mode-feature{display:inline-flex;align-self:flex-start;max-width:100%;box-sizing:border-box;
+  border:1px solid color-mix(in srgb,var(--mode-a) 45%,transparent);
+  background:#ffffff08;color:var(--mode-a);padding:8px 11px;
+  border-radius:5px;font:800 9px/1.5 Arial;letter-spacing:.4px}
+.aura-mode-cta{margin-top:auto;display:flex;justify-content:space-between;align-items:center;
+  width:100%;padding-top:15px;color:#f6fff4;font:900 10px Arial;letter-spacing:1.1px}
+.aura-mode-cta b{font:900 22px Arial;color:var(--mode-a)}
+.aura-mode-pin{border:0;border-top:1px solid #ffffff17;width:100%;
+  background:#080f1470;color:#c5d0cb;text-align:right;padding:10px 22px;font:800 9px Arial;
+  letter-spacing:.8px;cursor:pointer}
+.aura-mode-pin[aria-pressed="true"]{color:var(--mode-a);background:#ffffff10}
+.aura-mode-launch:focus-visible,.aura-mode-pin:focus-visible,.aura-mode-back:focus-visible{
+  outline:3px solid var(--mode-a,#c9ff70);outline-offset:-3px}
+.aura-mode-page{--mode-a:#b6ee8b;--mode-b:#234637;padding-bottom:40px;min-width:0}
+.aura-mode-page--quick{--mode-a:#80e6ff;--mode-b:#144465}
+.aura-mode-page--draft{--mode-a:#d8b5ff;--mode-b:#4d3670}
+.aura-mode-page--pro{--mode-a:#ffd59a;--mode-b:#78552a}
+.aura-mode-page--cup{--mode-a:#f7de7b;--mode-b:#554e29}
+.aura-mode-page--ultimate{--mode-a:#b4d1ff;--mode-b:#283f73}
+.aura-mode-page--street{--mode-a:#f99cbb;--mode-b:#712c4a}
+.aura-mode-breadcrumb{display:flex;gap:16px;align-items:center;justify-content:space-between;
+  margin:6px 0 17px;color:#8da5a6;font:800 9px Arial;letter-spacing:1.1px}
+.aura-mode-back{border:1px solid #aec5bc49;background:#122324;color:#eaf4e8;
+  border-radius:6px;padding:11px 15px;font:800 10px Arial;cursor:pointer}
+.aura-mode-back:hover{background:#283a35;color:var(--mode-a)}
+.aura-mode-detail-header{box-sizing:border-box;min-height:235px;
+  background:radial-gradient(ellipse at 84% 20%,color-mix(in srgb,var(--mode-b) 78%,transparent),transparent 50%),
+    linear-gradient(115deg,#0d1924,#1d2e33);padding:clamp(23px,4vw,46px);
+  display:flex;justify-content:space-between;align-items:center;gap:18px}
+.aura-mode-detail-header .eyebrow{color:var(--mode-a);font:900 10px Arial;letter-spacing:2px}
+.aura-mode-detail-header h1{color:#fff;font:italic 900 clamp(34px,6vw,66px)/.95 var(--display,Impact,Arial);
+  margin:14px 0 13px;max-width:780px}
+.aura-mode-detail-header p{font:400 13px/1.75 Arial;color:#c7d9d8;max-width:560px}
+.aura-mode-detail-header .aura-mode-feature{margin-top:8px}
+.aura-mode-detail-symbol{font-size:clamp(65px,12vw,140px);opacity:.62;filter:drop-shadow(0 10px 20px #0006);user-select:none}
+.aura-mode-stage{margin:28px 0;min-width:0}
+.aura-mode-stage>section:first-child{margin-top:0}
+.aura-mode-page--ultimate .ut-shell{margin-top:0}
+@media(max-width:860px){
+  .aura-mode-home-hero{min-height:335px}
+  .aura-mode-library-heading{display:block}
+  .aura-mode-library-heading p{max-width:650px}
+}
+@media(max-width:620px){
+  .aura-mode-home-hero{min-height:0;padding:30px 23px;border-radius:12px}
+  .aura-mode-home-hero h1{font-size:clamp(43px,11vw,68px)}
+  .aura-mode-home-actions .btn{width:100%;padding:12px 14px}
+  .aura-mode-home-metrics{gap:15px}.aura-mode-home-metrics span{font-size:7px}
+  .aura-mode-home-metrics strong{font-size:18px}
+  .aura-mode-library{margin-top:28px}
+  .aura-mode-library-heading h2{font-size:39px}
+  .mode-tabs.aura-mode-cards{grid-template-columns:1fr;gap:12px}
+  .aura-mode-launch{min-height:210px;padding:20px}
+  .aura-mode-launch>strong{font-size:31px}
+  .aura-mode-breadcrumb{flex-wrap:wrap;font-size:8px}
+  .aura-mode-detail-header{padding:24px 20px;min-height:190px}
+  .aura-mode-detail-header h1{font-size:clamp(35px,9vw,50px)}
+  .aura-mode-detail-header p{font-size:11px}
+  .aura-mode-detail-symbol{font-size:64px}
+  .aura-mode-stage{margin:18px 0}
+}
+@media(prefers-reduced-motion:reduce){.aura-mode-tile{transition:none}.aura-mode-tile:hover{transform:none}}
