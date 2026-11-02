@@ -110,11 +110,39 @@
     {id:"libertadores",name:"Copa Libertadores",region:"south",size:16},
     {id:"sudamericana",name:"Copa Sudamericana",region:"south",size:16},
     {id:"clubworld",name:"Mundial de Clubes AURA",region:"worldclubs",size:16},
+    {id:"copadelrey",name:"Copa del Rey AURA · 16 equipos",region:"spain",size:16},
+    {id:"facup",name:"FA Cup AURA · 4 equipos",region:"england",size:4},
+    {id:"copaecuador",name:"Copa Ecuador AURA · 4 equipos",region:"ecuador",size:4},
     {id:"world",name:"Mundial",region:"world",national:true,size:16},
     {id:"euro",name:"Eurocopa",region:"europe",national:true,size:16},
     {id:"america",name:"Copa América",region:"americas",national:true,size:16},
     {id:"youth",name:"Copa de Canteranos Sub-21",region:"youth",size:8,youth:true}
   ];
+  function eligibleForCup(def,club,regionOf){
+    if(!club||club.gender==="women")return false;
+    const city=String(club.city||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+    if(def.region==="spain")return city.includes("espana");
+    if(def.region==="england")return city.includes("inglaterra");
+    if(def.region==="ecuador")return city.includes("ecuador");
+    if(def.youth)return true;
+    const region=regionOf(club);
+    return def.region==="worldclubs"?["south","europe"].includes(region):region===def.region;
+  }
+  function clubWorldEntrants(candidates,chosen,regionOf){
+    if(!chosen||!["south","europe"].includes(regionOf(chosen)))throw Error("Elige un club sudamericano o europeo.");
+    const quota={south:8,europe:8},selected=[chosen],seen=new Set([chosen.id]);
+    quota[regionOf(chosen)]--;
+    for(const region of ["south","europe"]){
+      for(const club of candidates){
+        if(quota[region]===0)break;
+        if(club&&regionOf(club)===region&&!seen.has(club.id)){
+          selected.push(club);seen.add(club.id);quota[region]--;
+        }
+      }
+    }
+    if(selected.length!==16||quota.south!==0||quota.europe!==0)throw Error("Se necesitan 8 clubes sudamericanos y 8 europeos.");
+    return selected;
+  }
   function createCup(type,entrants,user,seed=Date.now()){
     const def=cupTypes.find(c=>c.id===type);if(!def)throw Error("Copa desconocida.");
     if(entrants.length!==def.size||new Set(entrants.map(t=>t.id)).size!==def.size)throw Error("Participantes insuficientes o repetidos.");
@@ -178,5 +206,5 @@
     if(!result||!Number.isInteger(result.home)||!Number.isInteger(result.away)||result.home<0||result.away<0)return false;
     ut.claimed.push(token);ut.played++;const outcome=result.home>result.away?"wins":result.home===result.away?"draws":"losses";ut[outcome]++;const reward=outcome==="wins"?1200:outcome==="draws"?600:350;ut.coins+=reward;return reward;
   }
-  return {kitu,KITU_SOURCE,verifiedSquads,price,value,simulate,random,hash,initialize,afterRound,rollover,selectXI,cupTypes,createCup,cupFixture,advanceCup,youthRoster,startPlayer,ultimate,openPack,rewardUltimate};
+  return {kitu,KITU_SOURCE,verifiedSquads,price,value,simulate,random,hash,initialize,afterRound,rollover,selectXI,cupTypes,eligibleForCup,clubWorldEntrants,createCup,cupFixture,advanceCup,youthRoster,startPlayer,ultimate,openPack,rewardUltimate};
 });
