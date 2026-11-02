@@ -6,7 +6,7 @@ test("mobile.html is a separate production entry to seven independent mode scree
  const mobile=read("mobile.html"),desktop=read("index.html");
  assert.match(mobile,/<meta name="viewport" content="width=device-width, initial-scale=1">/);
  assert.match(mobile,/<body class="aura-mobile-entry">/);
- assert.match(mobile,/MENÚS 5\\.2 · VERSIÓN MÓVIL/);
+ assert.match(mobile,/MENÚS 5\.2 · VERSIÓN MÓVIL/);
  assert.match(mobile,/7 modos separados/);
  assert.match(mobile,/href="\.\/mode-hub\.css\?v=5\.1"/);
  assert.match(mobile,/src="\.\/evolution-ui\.js\?v=5\.2"/);
