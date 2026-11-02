@@ -37,6 +37,14 @@ const AuraEvolution=(()=>{
     try{if(typeof AuraModeProgress!=="undefined"&&typeof localStorage!=="undefined")
       AuraModeProgress.save(localStorage,draft,quickRivalry);}catch{}
   }
+  // Penalty Challenge save lives outside Career, UT, Draft and Rivalry.
+  let penaltyChallenge=null;
+  try{if(typeof AuraPenaltyChallenge!=="undefined"&&typeof localStorage!=="undefined")
+    penaltyChallenge=AuraPenaltyChallenge.load(localStorage);}catch{}
+  function persistPenalty(){
+    try{if(typeof AuraPenaltyChallenge!=="undefined"&&typeof localStorage!=="undefined")
+      AuraPenaltyChallenge.save(localStorage,penaltyChallenge);}catch{}
+  }
   // Mode-navigation preferences are separate from career and Ultimate Team saves.
   try{
     const last=localStorage.getItem("aura-recent-mode-v1"),fav=localStorage.getItem("aura-pinned-mode-v1");
@@ -150,10 +158,38 @@ const AuraEvolution=(()=>{
     });
     return true;
   }
+  function penaltyPanel(){
+    const c=penaltyChallenge,dirNames={left:"IZQUIERDA",center:"CENTRO",right:"DERECHA"};
+    if(!c)return '<section class="quick-penalties"><span class="penalty-eyebrow">NUEVO DESAFÍO · PARTIDO RÁPIDO</span>'+
+      '<h3>EL MOMENTO DE LOS PENALTIS.</h3><p>Elige tus equipos y juega una tanda contra la IA. Tú decides dónde disparar y hacia dónde lanzarte. El progreso se guarda en este navegador.</p>'+
+      '<button class="btn primary penalty-new" data-evo="quick-penalty-new">⚽ Comenzar tanda →</button></section>';
+    const finished=c.status==="finished",attack=AuraPenaltyChallenge.side(c)===0;
+    const last=c.kicks[c.kicks.length-1],names={left:"izquierda",center:"centro",right:"derecha"};
+    const lastResult=last?(last.scored?"¡GOL!":"¡ATAJADA O FALLO!")+
+      " · Balón: "+names[last.aim]+" · Portero: "+names[last.dive]:"";
+    const kicks=c.kicks.map((shot,i)=>'<span class="quick-penalty-shot '+(shot.scored?"scored":"missed")+
+      '" title="'+(shot.side===0?"Tu tiro":"Tiro rival")+' '+(i+1)+': '+(shot.scored?"gol":"fallo")+'">'+
+      (shot.scored?"✓":"✕")+'</span>').join("");
+    return '<section class="quick-penalties" aria-label="Desafío de penaltis">'+
+      '<span class="penalty-eyebrow">⚽ TANDA DE PENALTIS · '+(finished?"TERMINADA":"EN JUEGO")+'</span>'+
+      '<h3>'+(finished?"🏆 ¡TENEMOS GANADOR!":attack?"TU TURNO: DISPARAR":"TU TURNO: ATAJAR")+'</h3>'+
+      '<div class="quick-penalty-score" role="status"><span>'+text(getClub(c.home).name)+'</span>'+
+      '<strong>'+c.score[0]+' — '+c.score[1]+'</strong><span>'+text(getClub(c.away).name)+'</span></div>'+
+      '<div class="quick-penalty-shots" aria-label="Historial de tiros">'+kicks+'</div>'+
+      (last?'<p class="penalty-last">'+lastResult+'</p>':"")+
+      (finished?'<p class="penalty-finished">Ganador: '+text(getClub(c.winner).name)+'</p>':
+        '<p>'+(attack?"Elige dónde tirar. El portero rival intentará adivinar.":"Elige hacia dónde lanzarte. La IA disparará.")+
+        ' Cinco tiros por equipo y muerte súbita si empatan.</p>'+
+        '<div class="quick-penalty-choices">'+AuraPenaltyChallenge.directions.map(d=>
+          '<button type="button" data-evo="quick-penalty-kick" data-penalty-dir="'+d+'">'+dirNames[d]+'</button>'
+        ).join("")+'</div>')+
+      '<button class="btn penalty-new" data-evo="quick-penalty-new">'+(finished?"↻ Jugar otra tanda":"↻ Reiniciar con los equipos seleccionados")+'</button>'+
+      '<p class="save-info">Desafío independiente de Rivalidad, Draft, Carrera y Ultimate Team.</p></section>';
+  }
   function quickPicker(){
     const h=getClub(quickHome),a=getClub(quickAway);
     const team=(club,id,label)=>'<div class="quick-team"><span class="quick-team-label">'+label+'</span>'+badge(club,105)+'<label class="sr-only" for="'+id+'">'+label+'</label><select id="'+id+'" '+(quickRivalry?.status==='playing'?'disabled':'')+'>'+quickChoices(club.id)+'</select><button class="quick-roster-link" data-evo="view-roster" data-club="'+text(club.id)+'">Ver plantilla →</button><div class="quick-strength"><strong>'+club.rating+'</strong><span>FORTALEZA<br>DEL CLUB</span></div><div class="quick-strength-track" aria-hidden="true"><i style="width:'+club.rating+'%"></i></div></div>';
-    return '<section class="quick-match-panel"><div class="selection-heading"><div><span class="eyebrow">02 / DIRECTO AL PARTIDO</span><h2>EL CÉSPED TE ESPERA.</h2></div><span class="pill">11 contra 11 · Tú contra la IA</span></div><div class="quick-search-bar"><label for="quick-club-search">Encuentra un equipo<input id="quick-club-search" type="search" placeholder="Busca club o ciudad…" value="'+text(quickQuery)+'" autocomplete="off"></label><span id="quick-search-status" role="status">'+quickClubs().filter(c=>!quickQuery||normal(c.name+" "+c.city).includes(normal(quickQuery))).length+' equipos en la búsqueda</span></div><div class="quick-teams">'+team(h,"quick-home","TU EQUIPO")+'<div class="quick-versus"><b aria-hidden="true">VS</b><button class="quick-swap" data-evo="quick-swap" aria-label="Intercambiar tu equipo y el rival" title="Intercambiar equipos">⇄</button></div>'+team(a,"quick-away","EL RIVAL")+'</div><div class="quick-cta"><button class="btn primary" data-evo="quick-start">Preparar partido <span>→</span></button><p>Duración, dificultad, ambiente y gráficos. El siguiente paso lo eliges tú.</p></div></section>'+rivalryPanel();
+    return '<section class="quick-match-panel"><div class="selection-heading"><div><span class="eyebrow">02 / DIRECTO AL PARTIDO</span><h2>EL CÉSPED TE ESPERA.</h2></div><span class="pill">11 contra 11 · Tú contra la IA</span></div><div class="quick-search-bar"><label for="quick-club-search">Encuentra un equipo<input id="quick-club-search" type="search" placeholder="Busca club o ciudad…" value="'+text(quickQuery)+'" autocomplete="off"></label><span id="quick-search-status" role="status">'+quickClubs().filter(c=>!quickQuery||normal(c.name+" "+c.city).includes(normal(quickQuery))).length+' equipos en la búsqueda</span></div><div class="quick-teams">'+team(h,"quick-home","TU EQUIPO")+'<div class="quick-versus"><b aria-hidden="true">VS</b><button class="quick-swap" data-evo="quick-swap" aria-label="Intercambiar tu equipo y el rival" title="Intercambiar equipos">⇄</button></div>'+team(a,"quick-away","EL RIVAL")+'</div><div class="quick-cta"><button class="btn primary" data-evo="quick-start">Preparar partido <span>→</span></button><p>Duración, dificultad, ambiente y gráficos. El siguiente paso lo eliges tú.</p></div></section>'+rivalryPanel()+penaltyPanel();
   }
   function pool(){
     if(typeof AuraRosterSync!=="undefined")return AuraRosterSync.pool();
@@ -314,6 +350,20 @@ const AuraEvolution=(()=>{
       if(AuraArena.isRunning()){notify("Termina el partido activo antes de simular.");return true;}
       const results=AuraModeSimulation.simulateRivalry(quickRivalry,d.evo==="quick-rivalry-sim-all");
       if(results.length){persistModes();render();notify("Rivalidad: "+results.length+" partido(s) simulados.");}
+      return true;
+    }
+    if(d.evo==="quick-penalty-new"){
+      if(AuraArena.isRunning()){notify("Termina el partido activo antes de comenzar penaltis.");return true;}
+      try{
+        penaltyChallenge=AuraPenaltyChallenge.create(quickHome,quickAway,getClub(quickHome).rating,getClub(quickAway).rating);
+        persistPenalty();render();
+      }catch(error){notify(error.message);}
+      return true;
+    }
+    if(d.evo==="quick-penalty-kick"){
+      if(AuraArena.isRunning()||!penaltyChallenge)return true;
+      const shot=AuraPenaltyChallenge.kick(penaltyChallenge,d.penaltyDir);
+      if(shot){persistPenalty();render();if(penaltyChallenge.status==="finished")notify("¡Tanda de penaltis terminada!");}
       return true;
     }
     if(d.evo==="quick-start")try{if(quickHome===quickAway){notify("Elige dos clubes distintos para este partido.");return true;}AuraArena.preMatch(AuraArena.team(getClub(quickHome)),AuraArena.team(getClub(quickAway)),{});}catch(err){notify(err.message);}
