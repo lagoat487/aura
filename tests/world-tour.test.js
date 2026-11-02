@@ -67,3 +67,21 @@ test("street football has six players, scores inside the posts, bounces off wall
 test("youth cups keep eligible players and explicitly identify generated fillers",()=>{
   const source=roster("c");source[2].age=19;source[3].age=20;const ps=Tour.youthRoster({id:"c"},source);assert.equal(ps.length,18);assert.ok(ps.every(p=>p.age<=21));assert.ok(ps.some(p=>p.pos==="POR"));assert.equal(new Set(ps.map(p=>p.id)).size,18);assert.ok(ps.filter(p=>p.academy).every(p=>p.real===false&&p.name.startsWith("Canterano")));
 });
+
+test("Club World Cup catalog supports 16 unique participants and a complete four-round knockout",()=>{
+  const cupDef=Tour.cupTypes.find(c=>c.id==="clubworld");
+  assert.ok(cupDef);assert.equal(cupDef.size,16);
+  assert.equal(cupDef.national,undefined);
+  const clubs=Array.from({length:16},(_,i)=>({id:"worldclub"+i,name:"World club "+i,rating:70+i}));
+  const cup=Tour.createCup("clubworld",clubs,"worldclub0",5427);
+  assert.equal(cup.current.length,16);
+  assert.equal(new Set(cup.current).size,16);
+  assert.ok(Tour.cupFixture(cup));
+  for(const count of [8,4,2,1]){
+    Tour.advanceCup(cup);
+    assert.equal(cup.current.length,count);
+  }
+  assert.equal(cup.rounds.length,4);
+  assert.ok(clubs.some(c=>c.id===cup.champion));
+  assert.equal(Tour.advanceCup(cup),false);
+});
