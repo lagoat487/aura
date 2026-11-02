@@ -729,3 +729,50 @@ test("Argentina quick event shortcut remembers Ultimate Team without altering cl
  assert.equal(app.run('localStorage.getItem("aura-recent-mode-v1")'),"ultimate");
  assert.deepEqual(app.json("AuraUTUI.getClub().owned.map(p=>p.id)"),before);
 });
+
+test("VOLTA circuit completes four unique fixtures with live 3v3 results and avoids duplicate scores",()=>{
+ const app=boot();app.click({evoMode:"street"});
+ assert.match(app.html(),/PARTIDO LIBRE/);
+ app.click({tour:"street-mode",streetMode:"circuit"});
+ assert.match(app.html(),/CIRCUITO VOLTA/);
+ app.change("street-goals","3");app.change("street-duration","60");
+ app.change("street-difficulty",".78");
+ app.click({tour:"street-circuit-new"});
+ assert.match(app.html(),/JORNADA 1/);
+ assert.equal(app.run("AuraTourUI.getStreetCircuit().fixtures.length"),4);
+ assert.equal(app.run("AuraTourUI.getStreetCircuit().seconds"),60);
+ assert.equal(app.run("AuraTourUI.getStreetCircuit().goalLimit"),3);
+ app.run("AuraStreet.open=(home,away,opts)=>{globalThis.voltaFixture={home,away,opts}}");
+ const rivals=app.json("AuraTourUI.getStreetCircuit().fixtures");
+ for(let i=0;i<4;i++){
+   app.click({tour:"street-circuit-play"});
+   assert.equal(app.run("voltaFixture.away.id"),rivals[i]);
+   assert.equal(app.run("voltaFixture.opts.seconds"),60);
+   assert.equal(app.run("voltaFixture.opts.goalLimit"),3);
+   const finished=app.run("voltaFixture.opts.onFinish");
+   finished({home:3,away:1});finished({home:3,away:1});
+   assert.equal(app.run("AuraTourUI.getStreetCircuit().results.length"),i+1);
+ }
+ assert.match(app.html(),/ORO · CIRCUITO TERMINADO/);
+ assert.equal(app.run("AuraTourUI.getStreetCircuit().points"),12);
+ assert.equal(app.run("AuraTourUI.getStreetCircuit().wins"),4);
+ assert.doesNotMatch(app.html(),/data-tour="street-circuit-play"/);
+ assert.equal(app.saved(),undefined);
+ app.click({nav:"modes"});app.click({evoMode:"street"});
+ assert.equal(app.run("AuraTourUI.getStreetCircuit().points"),12);
+ app.click({tour:"street-circuit-new"});
+ assert.equal(app.run("AuraTourUI.getStreetCircuit().results.length"),0);
+});
+test("VOLTA free play remains available and independent of the circuit",()=>{
+ const app=boot();app.click({evoMode:"street"});
+ app.run("AuraStreet.open=(home,away,opts)=>{globalThis.voltaFriendly={home,away,opts}}");
+ app.change("street-home","boca");app.change("street-away","madrid");
+ app.change("street-goals","7");app.change("street-duration","180");
+ app.click({tour:"street-play"});
+ assert.equal(app.run("voltaFriendly.home.id"),"boca");
+ assert.equal(app.run("voltaFriendly.away.id"),"madrid");
+ assert.equal(app.run("voltaFriendly.opts.goalLimit"),7);
+ assert.equal(app.run("voltaFriendly.opts.seconds"),180);
+ assert.equal(app.run("voltaFriendly.opts.onFinish"),undefined);
+ assert.equal(app.run("AuraTourUI.getStreetCircuit()"),null);
+});
