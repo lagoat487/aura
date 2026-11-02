@@ -707,3 +707,25 @@ test("existing career and Ultimate Team club remain intact after changing separa
  app.click({nav:"career"});
  assert.deepEqual(app.json('state'),snapshot);
 });
+
+test("mode favorite and last-opened selection have isolated persistence keys",()=>{
+ const app=boot();
+ assert.equal(app.run('localStorage.getItem("aura-recent-mode-v1")'),null);
+ app.click({evoMode:"draft"});
+ assert.equal(app.run('localStorage.getItem("aura-recent-mode-v1")'),"draft");
+ app.click({evo:"mode-back"});app.click({evoPin:"cup"});
+ assert.equal(app.run('localStorage.getItem("aura-pinned-mode-v1")'),"cup");
+ assert.equal(app.run("AuraEvolution.getMode().pinnedMode"),"cup");
+ app.click({evoPin:"cup"});
+ assert.equal(app.run('localStorage.getItem("aura-pinned-mode-v1")'),"");
+ assert.equal(app.run("AuraEvolution.getMode().pinnedMode"),null);
+ assert.equal(app.saved(),undefined,"UI preferences must not create a Career autosave");
+});
+test("Argentina quick event shortcut remembers Ultimate Team without altering club ownership",()=>{
+ const app=boot();app.click({evoMode:"ultimate"});app.click({ut:"create"});
+ const before=app.json("AuraUTUI.getClub().owned.map(p=>p.id)");
+ app.click({ut:"lobby"});app.click({evo:"argentina-open"});
+ assert.equal(app.run("AuraEvolution.getMode().mode"),"ultimate");
+ assert.equal(app.run('localStorage.getItem("aura-recent-mode-v1")'),"ultimate");
+ assert.deepEqual(app.json("AuraUTUI.getClub().owned.map(p=>p.id)"),before);
+});
