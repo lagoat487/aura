@@ -21,7 +21,7 @@ function boot(saved) {
     localStorage: { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value) },
     setTimeout() {}, clearTimeout() {},
   });
-  for (const file of ["clubs.js", "competitions.js", "world.js", "real-players.js", "world-tour.js", "roster-sync.js", "club-badges.js", "portraits.js", "squad.js", "champions.js", "ultimate-team.js", "ultimate-save.js", "progression.js", "negotiations.js", "loans.js", "career-ui.js", "progression-ui.js", "match-engine.js", "match-presentation.js", "match-graphics.js", "match-ui.js", "mode-knockout.js", "quick-rivalry.js", "evolution-ui.js", "street.js", "street-circuit.js", "tour-ui.js", "ultimate-ui.js", "argentina-event.js", "career-continental.js", "game.js"]) {
+  for (const file of ["clubs.js", "competitions.js", "world.js", "real-players.js", "world-tour.js", "roster-sync.js", "club-badges.js", "portraits.js", "squad.js", "champions.js", "ultimate-team.js", "ultimate-save.js", "progression.js", "negotiations.js", "loans.js", "career-ui.js", "progression-ui.js", "match-engine.js", "match-presentation.js", "match-graphics.js", "match-ui.js", "mode-knockout.js", "quick-rivalry.js", "evolution-ui.js", "street.js", "street-circuit.js", "pro-training.js", "tour-ui.js", "ultimate-ui.js", "argentina-event.js", "career-continental.js", "game.js"]) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, "..", file), "utf8"), context, { filename: file });
   }
   return {
@@ -859,4 +859,43 @@ test("Cup simulation leaves manager budget, rounds and squad intact",()=>{
  app.click({tour:"cup-finish"});
  assert.ok(app.run("AuraTourUI.getCup().champion"));
  assert.deepEqual(app.json("({round:state.round,budget:state.budget,club:state.club,rosters:state.rosters})"),before);
+});
+
+test("Pro player career has a separate weekly training centre with four drills and no XP farming",()=>{
+ const app=boot();
+ app.click({evoMode:"pro"});
+ app.node("tour-pro-player").value="new";
+ app.node("tour-pro-name").value="Emilio";
+ app.node("tour-pro-pos").value="DC";
+ app.click({tour:"start-pro"});
+ assert.match(app.html(),/PREPARA TU PRÓXIMO PARTIDO/);
+ assert.equal((app.html().match(/data-tour="pro-train"/g)||[]).length,4);
+ const before=app.run("state.playerCareer.xp");
+ app.click({tour:"pro-train",drill:"shooting"});
+ assert.equal(app.run("state.playerCareer.xp"),before+42);
+ assert.match(app.html(),/HISTORIAL DE ENTRENAMIENTO/);
+ assert.match(app.html(),/YA ENTRENADO \/ CERRADO/);
+ assert.equal((app.html().match(/data-tour="pro-train"/g)||[]).length,4);
+ const state=app.json("state");
+ app.click({tour:"pro-train",drill:"sprint"});
+ assert.deepEqual(app.json("state"),state,"second drill cannot grant EXP in the same round");
+ app.run("state.round=1");app.click({nav:"pro"});
+ assert.match(app.html(),/DISPONIBLE/);
+ app.click({tour:"pro-train",drill:"recovery"});
+ assert.equal(app.run("state.playerCareer.trainingHistory.length"),2);
+ assert.ok(app.run("clubPlayers(state.club).find(p=>p.id===state.playerCareer.playerId).fitness")<=100);
+ assert.equal(app.saved(),undefined);
+});
+test("Mode return to career, VOLTA, UT and back to Pro does not reset individual training",()=>{
+ const app=boot();app.click({evoMode:"pro"});
+ app.node("tour-pro-player").value="new";app.node("tour-pro-name").value="Emilio";
+ app.click({tour:"start-pro"});app.click({tour:"pro-train",drill:"passing"});
+ const xp=app.run("state.playerCareer.xp");
+ app.click({nav:"modes"});app.click({evoMode:"street"});
+ app.click({evo:"mode-back"});app.click({evoMode:"ultimate"});
+ app.click({ut:"create"});const owned=app.json("AuraUTUI.getClub().owned.map(p=>p.id)");
+ app.click({ut:"lobby"});app.click({nav:"pro"});
+ assert.equal(app.run("state.playerCareer.xp"),xp);
+ assert.match(app.html(),/Visión y pase/);
+ assert.deepEqual(app.json("AuraUTUI.getClub().owned.map(p=>p.id)"),owned);
 });

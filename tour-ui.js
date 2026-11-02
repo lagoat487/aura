@@ -151,11 +151,35 @@ const AuraTourUI=(()=>{
     const id=document.getElementById("tour-pro-player")?.value||"new",name=document.getElementById("tour-pro-name")?.value||"Mi jugador",pos=document.getElementById("tour-pro-pos")?.value||"DC";
     const player=T.startPlayer(state,id,name,pos);AuraSquad.ensure(state);ensurePro();lobby=false;screen="pro";render();window.scrollTo(0,0);notify("Tu carrera empieza con "+player.name+".");
   }
+  function proTrainingView(){
+    if(!state?.playerCareer)return "";
+    const ready=AuraProTraining.status(state),pc=state.playerCareer;
+    const options=Object.entries(AuraProTraining.drills);
+    return '<section class="tour-pro-training"><header class="pro-training-heading"><div>'+
+      '<span class="eyebrow">MODO CARRERA DE JUGADOR · ENTRENAMIENTO SEMANAL</span>'+
+      '<h2>PREPARA TU PRÓXIMO PARTIDO.</h2>'+
+      '<p>Escoge un ejercicio por jornada: ganarás experiencia con distintas consecuencias para energía, forma y moral. No utiliza monedas ni dinero real.</p></div>'+
+      '<strong class="pro-training-ready">'+(ready?.available?'DISPONIBLE':'YA ENTRENADO / CERRADO')+'</strong></header>'+
+      '<div class="pro-training-grid">'+options.map(([key,d])=>
+        '<article class="pro-training-drill"><span class="pro-training-icon">'+d.icon+'</span>'+
+        '<h3>'+d.name+'</h3><p>'+d.desc+'</p>'+
+        '<div class="pro-training-effect"><span>+'+d.xp+' EXP</span>'+
+        '<span>'+((d.fitness>=0)?'+':'')+d.fitness+' ENERGÍA</span>'+
+        '<span>+'+d.form+' FORMA</span><span>+'+d.morale+' MORAL</span></div>'+
+        '<button class="btn '+(ready?.available?'primary':'')+'" data-tour="pro-train" data-drill="'+key+'" '+(!ready?.available?'disabled':'')+'>Entrenar '+d.name+' →</button></article>'
+      ).join('')+'</div>'+
+      '<div class="pro-training-log"><h3>HISTORIAL DE ENTRENAMIENTO</h3>'+
+      ((pc.trainingHistory||[]).length?pc.trainingHistory.slice(0,6).map(v=>
+         '<div class="pro-training-row"><span>Jornada '+(v.round+1)+' · '+v.season+'</span>'+
+         '<strong>'+esc(v.name)+'</strong><b>+'+v.xp+' EXP'+(v.leveled?' · +1 GRL':'')+'</b></div>').join(''):
+         '<p>Aún no has hecho entrenamientos individuales.</p>')+
+      '</div></section>';
+  }
   function playerHub(){
     if(!state.playerCareer)return proPicker('<button class="btn primary" data-tour="enable-pro">Comenzar con este club →</button>',true);
     const pc=state.playerCareer,p=clubPlayers(state.club).find(p=>p.id===pc.playerId);if(!p)return '<p>No se encontró a tu jugador.</p>';
     return headline('CARRERA DE JUGADOR / '+esc(myClub().name),'EL PARTIDO EMPIEZA CONTIGO.','WASD o flechas para moverte; K para pasar y J para tirar. Mantienes el control de tu futbolista cuando un compañero recibe el balón.')+
-      '<section class="tour-pro-hub">'+face(p,true)+'<div><span class="eyebrow">'+p.pos+' · '+p.age+' AÑOS</span><h2>'+esc(p.name)+'</h2><p>'+p.overall+' GRL · '+p.potential+' POT · '+money(p.value)+' valor estimado</p><div class="tour-metrics"><span><b>'+pc.appearances+'</b> PARTIDOS</span><span><b>'+pc.goals+'</b> GOLES</span><span><b>'+(pc.lastRating||'—')+'</b> ÚLTIMA NOTA</span></div><label>Desarrollo · '+pc.xp+' / 100 EXP<progress max="100" value="'+pc.xp+'"></progress></label><p>100 EXP = +1 GRL hasta el potencial. La nota depende de goles, resultado y rendimiento de la jornada; al simular es una estimación.</p><button class="btn primary" data-evo="career-play">Jugar mi siguiente partido →</button><button class="btn" data-action="play">Simular jornada</button><button class="btn" data-nav="academy">Entrenar →</button></div></section>';
+      '<section class="tour-pro-hub">'+face(p,true)+'<div><span class="eyebrow">'+p.pos+' · '+p.age+' AÑOS</span><h2>'+esc(p.name)+'</h2><p>'+p.overall+' GRL · '+p.potential+' POT · '+money(p.value)+' valor estimado</p><div class="tour-metrics"><span><b>'+pc.appearances+'</b> PARTIDOS</span><span><b>'+pc.goals+'</b> GOLES</span><span><b>'+(pc.lastRating||'—')+'</b> ÚLTIMA NOTA</span></div><label>Desarrollo · '+pc.xp+' / 100 EXP<progress max="100" value="'+pc.xp+'"></progress></label><p>100 EXP = +1 GRL hasta el potencial. La nota depende de goles, resultado y rendimiento de la jornada; al simular es una estimación.</p><button class="btn primary" data-evo="career-play">Jugar mi siguiente partido →</button><button class="btn" data-action="play">Simular jornada</button><button class="btn" data-nav="academy">Desarrollo del club →</button></div></section>'+proTrainingView();
   }
   function streetView(){
     const seen=new Set(),options=clubs.filter(c=>c.gender!=="women").filter(c=>{const id=World.matchingClub(c)?.id||c.id;if(seen.has(id))return false;seen.add(id);return true;}).sort((a,b)=>a.name.localeCompare(b.name));
@@ -209,6 +233,11 @@ const AuraTourUI=(()=>{
       if(action==='music')audio.toggle();
       if(action==='start-pro'){const previous=state;state=createGame(selected);try{enablePro();AuraProgression.initialize(state);}catch(error){state=previous;throw error;}}
       if(action==='enable-pro')enablePro();
+      if(action==='pro-train'){
+        const result=AuraProTraining.train(state,button.dataset.drill);
+        if(result.ok){render();notify(result.message);}
+        else notify(result.error);
+      }
       if(action==='cup-create'){createCup();render();}
       if(action==='cup-sim'){const cup=currentCup();if(cup){T.advanceCup(cup);render();}}
       if(action==='cup-finish'){
