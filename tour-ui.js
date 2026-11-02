@@ -3,7 +3,7 @@ const AuraTourUI=(()=>{
   "use strict";
   const T=AuraTour,esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
-  let streetHome="barcelona",streetAway="madrid",streetDifficulty=1;
+  let streetHome="barcelona",streetAway="madrid",streetDifficulty=1,streetGoalLimit=5,streetSeconds=120,streetCircuit=null,streetMode="friendly";
   let cupType="champions",cupTeam="",friendlyCups=[];
   const audio=(()=>{
     let ctx=null,bus=null,timer=null,enabled=false,step=0,visibilityBound=false;
@@ -132,8 +132,44 @@ const AuraTourUI=(()=>{
   function streetView(){
     const seen=new Set(),options=clubs.filter(c=>c.gender!=="women").filter(c=>{const id=World.matchingClub(c)?.id||c.id;if(seen.has(id))return false;seen.add(id);return true;}).sort((a,b)=>a.name.localeCompare(b.name));
     const choices=id=>options.map(c=>'<option value="'+esc(c.id)+'" '+(c.id===id?'selected':'')+'>'+esc(c.name)+'</option>').join('');
-    return headline('AURA CALLE / FÚTBOL 3 CONTRA 3','LA CALLE TIENE SUS REGLAS.','Elige dos clubes. Juega con sus tres mejores futbolistas de campo, paredes con rebote y primero a cinco goles o dos minutos.')+
-      '<div class="tour-form"><label>Tu club<select id="street-home">'+choices(streetHome)+'</select></label><label>Rival<select id="street-away">'+choices(streetAway)+'</select></label><label>Dificultad<select id="street-difficulty">'+[[.78,'Principiante'],[1,'Normal'],[1.16,'Profesional']].map(([v,n])=>'<option value="'+v+'" '+(v===streetDifficulty?'selected':'')+'>'+n+'</option>').join('')+'</select></label></div><section class="tour-street-card"><span>GYE / 01</span><h2>JUEGA.<br>COMBINA.<br><em>ATRÉVETE.</em></h2><button class="btn primary" data-tour="street-play">Entrar a la cancha →</button><p>WASD / flechas · J tiro · K pase · E cambio · Espacio entrada · Shift sprint. Botones táctiles en pantalla.</p></section>';
+    const selected=(id,opts)=>opts.map(([v,label])=>'<option value="'+v+'" '+(String(v)===String(id)?'selected':'')+'>'+label+'</option>').join('');
+    const current=streetCircuit,opponent=current?AuraStreetCircuit.next(current):null;
+    const rank=current?AuraStreetCircuit.rank(current):null;
+    const circuitView=streetMode==="circuit"?(
+      current?
+        '<section class="volta-tour"><div class="volta-tour-head"><div><span class="eyebrow">AURA CALLE / CIRCUITO URBANO</span>'+
+        '<h2>'+(rank?rank.icon+' '+rank.name+' · CIRCUITO TERMINADO':'🏆 CAMINO A LA CIMA')+'</h2>'+
+        '<p>Cuatro partidos, puntos por ganar y medalla de campeón. Los resultados se guardan en esta sesión de AURA.</p></div>'+
+        '<div class="volta-tour-points"><strong>'+current.points+'</strong><span>PUNTOS</span></div></div>'+
+        '<div class="volta-tour-stats"><span><b>'+current.wins+'</b> GANADOS</span><span><b>'+current.draws+'</b> EMPATES</span>'+
+        '<span><b>'+current.losses+'</b> PERDIDOS</span><span><b>'+current.goals+'</b> GOLES</span>'+
+        '<span><b>'+current.bestStreak+'</b> MEJOR RACHA</span></div>'+
+        '<div class="volta-tour-fixtures">'+current.fixtures.map((id,i)=>{
+          const finished=current.results[i],isNext=!finished&&opponent===id;
+          return '<article class="'+(finished?'completed':isNext?'next':'pending')+'">'+
+            '<span>'+esc(AuraStreetCircuit.labels[i])+'</span><strong>'+esc(getClub(id).name)+'</strong>'+
+            '<small>'+(finished?'AURA '+finished.home+' — '+finished.away+' · '+finished.points+' pts':
+              isNext?'SIGUIENTE PARTIDO':'BLOQUEADO')+'</small></article>';
+        }).join('')+'</div>'+
+        (opponent?'<button class="btn primary" data-tour="street-circuit-play">Jugar contra '+esc(getClub(opponent).name)+' →</button>':
+          '<button class="btn primary" data-tour="street-circuit-new">Nuevo circuito →</button>')+
+        '<button class="btn" data-tour="street-circuit-reset">Cambiar de club y comenzar otro circuito</button></section>'
+      :'<section class="volta-tour volta-tour-welcome"><span class="eyebrow">4 PARTIDOS · UNA MEDALLA</span>'+
+        '<h2>CONQUISTA LA CALLE.</h2><p>Recorre Guayaquil, Buenos Aires, Madrid y Manchester contra rivales cada vez más fuertes.</p>'+
+        '<p>3 puntos por victoria, 1 por empate y 0 por derrota. Medallas al terminar el circuito.</p>'+
+        '<button class="btn primary" data-tour="street-circuit-new">Iniciar circuito de 4 partidos →</button></section>'
+    ):'<section class="tour-street-card"><span>GYE / 01</span><h2>JUEGA.<br>COMBINA.<br><em>ATRÉVETE.</em></h2>'+
+      '<button class="btn primary" data-tour="street-play">Entrar a la cancha →</button>'+
+      '<p>WASD / flechas · J tiro · K pase · E cambio · Espacio entrada · Shift sprint. Botones táctiles en pantalla.</p></section>';
+    return headline('AURA CALLE / FÚTBOL 3 CONTRA 3','LA CALLE TIENE SUS REGLAS.','Dos experiencias: amistosos personalizados o cuatro jornadas de un circuito urbano con medallas.')+
+      '<nav class="volta-mode-choices" aria-label="Experiencias Calle / Volta">'+
+      '<button class="btn '+(streetMode==="friendly"?'primary':'')+'" data-tour="street-mode" data-street-mode="friendly" aria-pressed="'+(streetMode==="friendly")+'">⚡ PARTIDO LIBRE</button>'+
+      '<button class="btn '+(streetMode==="circuit"?'primary':'')+'" data-tour="street-mode" data-street-mode="circuit" aria-pressed="'+(streetMode==="circuit")+'">🏆 CIRCUITO VOLTA</button></nav>'+
+      '<div class="tour-form"><label>Tu club<select id="street-home" '+(current&&streetMode==="circuit"?'disabled':'')+'>'+choices(current&&streetMode==="circuit"?current.home:streetHome)+'</select></label>'+
+      (streetMode==="friendly"?'<label>Rival<select id="street-away">'+choices(streetAway)+'</select></label>':'')+
+      '<label>Dificultad<select id="street-difficulty" '+(current&&streetMode==="circuit"?'disabled':'')+'>'+selected(current&&streetMode==="circuit"?current.difficulty:streetDifficulty,[[.78,"Principiante"],[1,"Normal"],[1.16,"Profesional"]])+'</select></label>'+
+      '<label>Goles para ganar<select id="street-goals" '+(current&&streetMode==="circuit"?'disabled':'')+'>'+selected(current&&streetMode==="circuit"?current.goalLimit:streetGoalLimit,[[3,"3 goles"],[5,"5 goles"],[7,"7 goles"]])+'</select></label>'+
+      '<label>Duración<select id="street-duration" '+(current&&streetMode==="circuit"?'disabled':'')+'>'+selected(current&&streetMode==="circuit"?current.seconds:streetSeconds,[[60,"1 minuto"],[120,"2 minutos"],[180,"3 minutos"]])+'</select></label></div>'+circuitView;
   }
   function welcome(mode,picker){return mode==='pro'?proPicker(picker):mode==='cup'?cupView():mode==='ultimate'?AuraUTUI.render():streetView();}
   function afterRender(){
@@ -148,18 +184,47 @@ const AuraTourUI=(()=>{
       if(action==='cup-create'){createCup();render();}
       if(action==='cup-sim'){const cup=currentCup();if(cup){T.advanceCup(cup);render();}}
       if(action==='cup-play')playCup();
-      if(action==='street-play'){if(streetHome===streetAway){notify('Elige dos clubes distintos.');return true;}const top=id=>AuraArena.team(getClub(id)).players.filter(p=>p.pos!=='POR').sort((a,b)=>b.overall-a.overall).slice(0,3);AuraStreet.open(top(streetHome),top(streetAway),{homeName:getClub(streetHome).name,awayName:getClub(streetAway).name,difficulty:streetDifficulty});}
+      if(action==='street-mode'){
+        if(['friendly','circuit'].includes(button.dataset.streetMode)){streetMode=button.dataset.streetMode;render();}
+      }
+      if(action==='street-circuit-reset'){streetCircuit=null;render();}
+      if(action==='street-circuit-new'){
+        streetCircuit=AuraStreetCircuit.create(streetHome,{difficulty:streetDifficulty,
+          seconds:streetSeconds,goalLimit:streetGoalLimit});
+        streetMode="circuit";render();
+      }
+      if(action==='street-play'||action==='street-circuit-play'){
+        const circuit=action==='street-circuit-play'?streetCircuit:null;
+        const rival=circuit?AuraStreetCircuit.next(circuit):streetAway;
+        const home=circuit?circuit.home:streetHome;
+        if(!rival||home===rival){notify('Elige dos clubes distintos.');return true;}
+        const top=id=>AuraArena.team(getClub(id)).players.filter(p=>p.pos!=='POR').sort((a,b)=>b.overall-a.overall).slice(0,3);
+        AuraStreet.open(top(home),top(rival),{
+          homeName:getClub(home).name,awayName:getClub(rival).name,
+          difficulty:circuit?.difficulty||streetDifficulty,seconds:circuit?.seconds||streetSeconds,
+          goalLimit:circuit?.goalLimit||streetGoalLimit,
+          onFinish:circuit?(result=>{
+            if(streetCircuit!==circuit)return;
+            const done=AuraStreetCircuit.complete(circuit,result);
+            if(done){render();notify('Calle: '+(done.points===3?'¡Ganaste!':done.points===1?'Empate':'Derrota')+
+              ' · +'+done.points+' puntos de circuito.');}
+          }):undefined
+        });
+      }
       if(action==='gala'&&state){const annual=T.initialize(state).annual[0];if(annual)openModal('GALA DEL BALÓN DE ORO AURA','<div class="tour-gala"><span class="eyebrow">TEMPORADA '+annual.season+' · PREMIOS DE TU LIGA</span><div class="tour-trophy" aria-hidden="true">★</div><h2>'+esc(annual.winner.name)+'</h2><p>GANADOR DEL BALÓN DE ORO AURA</p><p>'+annual.winner.goals+' goles · '+annual.winner.appearances+' partidos · '+annual.winner.points.toFixed(1)+' puntos de rendimiento</p></div><ol class="tour-shortlist">'+annual.shortlist.map(p=>'<li><b>'+esc(p.name)+'</b><span>'+p.points.toFixed(1)+' puntos · '+p.goals+' goles</span></li>').join('')+'</ol>');}
     }catch(error){notify(error.message);}return true;
   }
   function change(e){
     if(e.target.id==='street-home')streetHome=e.target.value;
     if(e.target.id==='street-away')streetAway=e.target.value;
-    if(e.target.id==='street-difficulty')streetDifficulty=Number(e.target.value);
+    if(e.target.id==='street-difficulty'&&!streetCircuit)streetDifficulty=Number(e.target.value);
+    if(e.target.id==='street-goals'&&!streetCircuit)streetGoalLimit=Number(e.target.value);
+    if(e.target.id==='street-duration'&&!streetCircuit)streetSeconds=Number(e.target.value);
     if(e.target.id==='tour-cup-type'){cupType=e.target.value;cupTeam='';render();}
     if(e.target.id==='tour-cup-team')cupTeam=e.target.value;
     if(e.target.dataset?.utSlot!==undefined&&ultimate){const i=Number(e.target.dataset.utSlot),id=e.target.value;if(!Number.isInteger(i)||i<0||i>10||!ultimate.owned.some(p=>p.id===id))return;const j=ultimate.xi.indexOf(id),old=ultimate.xi[i];ultimate.xi[i]=id;if(j>=0)ultimate.xi[j]=old;render();}
   }
   function reset(){cupTeam='';}
-  return {welcome,careerHub,playerHub,ensurePro,handleClick,change,afterRender,face,audio,reset,getUltimate:()=>AuraUTUI.getClub(),getCup:currentCup};
+  return {welcome,careerHub,playerHub,ensurePro,handleClick,change,afterRender,face,audio,reset,
+    getUltimate:()=>AuraUTUI.getClub(),getCup:currentCup,getStreetCircuit:()=>streetCircuit};
 })();
