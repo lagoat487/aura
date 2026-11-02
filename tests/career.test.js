@@ -823,3 +823,40 @@ test("Rivalry locks team selection while active and ignores stale callbacks afte
  app.click({evo:"quick-rivalry-new"});
  assert.equal(app.run("AuraEvolution.getRivalry().home"),"boca");
 });
+
+test("Cup shows its full live next-round pairings, allows initial redraw and simulates to a champion",()=>{
+ const app=boot();app.click({evoMode:"cup"});app.click({tour:"cup-create"});
+ let cup=app.json("AuraTourUI.getCup()");
+ assert.equal(cup.rounds.length,0);
+ assert.equal(cup.current.length,16);
+ assert.equal((app.html().match(/CUADRO DE PRÓXIMOS PARTIDOS/g)||[]).length,1);
+ assert.equal((app.html().match(/class="yours"/g)||[]).length,1);
+ assert.match(app.html(),/data-tour="cup-reroll"/);
+ const seed=cup.seed,user=cup.user,entrants=cup.entrants.map(t=>t.id).sort();
+ app.click({tour:"cup-reroll"});cup=app.json("AuraTourUI.getCup()");
+ assert.equal(cup.seed,seed+1);assert.equal(cup.user,user);
+ assert.deepEqual(cup.entrants.map(t=>t.id).sort(),entrants);
+ assert.equal(cup.rounds.length,0);
+ app.click({tour:"cup-finish"});cup=app.json("AuraTourUI.getCup()");
+ assert.equal(cup.rounds.length,4);assert.ok(cup.champion);
+ assert.equal(cup.rounds.flat().length,15);
+ assert.equal(cup.current.length,1);
+ assert.match(app.html(),/LEVANTA LA COPA/);
+ assert.match(app.html(),/TANDAS DE PENALES/);
+ assert.doesNotMatch(app.html(),/data-tour="cup-finish"/);
+ assert.doesNotMatch(app.html(),/data-tour="cup-reroll"/);
+ assert.equal(app.saved(),undefined);
+ const frozen=app.json("AuraTourUI.getCup()");
+ app.click({tour:"cup-finish"});app.click({tour:"cup-reroll"});
+ assert.deepEqual(app.json("AuraTourUI.getCup()"),frozen);
+});
+test("Cup simulation leaves manager budget, rounds and squad intact",()=>{
+ const app=boot();app.click({evoMode:"career"});app.click({action:"start"});
+ const before=app.json("({round:state.round,budget:state.budget,club:state.club,rosters:state.rosters})");
+ app.click({nav:"modes"});app.click({evoMode:"cup"});
+ app.click({tour:"cup-create"});app.click({tour:"cup-sim"});
+ assert.match(app.html(),/CUADRO DE PRÓXIMOS PARTIDOS/);
+ app.click({tour:"cup-finish"});
+ assert.ok(app.run("AuraTourUI.getCup().champion"));
+ assert.deepEqual(app.json("({round:state.round,budget:state.budget,club:state.club,rosters:state.rosters})"),before);
+});
