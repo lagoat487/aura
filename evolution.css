@@ -455,3 +455,22 @@ input,select{background:#121813;border:1px solid #ffffff22;border-radius:5px;col
 .roster-status{display:flex;align-items:center;justify-content:center;gap:9px;padding:11px 13px;border:1px solid #ffffff10;background:#111a0d4d;border-radius:5px;margin:15px 0 0;text-align:left}.roster-status>i{width:5px;height:5px;background:#768c64;border-radius:50%;flex:none}.roster-status.covered>i{background:var(--pitch);box-shadow:0 0 0 3px #d5fc710e}.roster-status strong{display:block;font-size:9px;color:#b7c9a8;font-weight:500}.roster-status span{display:block;font-size:8px;color:#718961;margin-top:4px;line-height:1.4}.club-preview>.roster-status{grid-column:1/-1}.club-preview>.roster-status+.club-metrics{margin-top:17px}
 
 .club-preview>.club-roster-link{grid-column:1/-1;width:100%;margin:5px 0 10px;background:#ffffff04;border-color:#b2cd8e27;color:#b6cd9f;padding:11px;font-size:10px}.quick-roster-link{color:#a5c48b;background:transparent;border:0;border-bottom:1px solid #8aa86c33;padding:3px 0 6px;font-size:10px;cursor:pointer;margin-top:-5px}.quick-roster-link:hover{color:#e3fbc2}.club-roster-heading{display:flex;align-items:center;gap:17px;margin:17px 0}.club-roster-heading .eyebrow{font-size:8px;color:#a6c18c}.club-roster-heading h3{margin:7px 0 0;font-size:22px}.club-roster-modal .table td{font-size:12px;padding:11px 13px}.club-roster-modal .save-info{line-height:1.7;font-size:11px;margin:17px 0}.club-roster-modal .table-wrap{max-height:55dvh}.club-roster-modal .table th{position:sticky;top:0}
+
+/* Mode-focused Draft XI knockout journey: no persistent UT/Card state. */
+.draft-run{margin:10px auto 20px;padding:18px;border:1px solid #cef39844;
+  border-radius:12px;background:linear-gradient(140deg,#17312f,#0c1b27)}
+.draft-run-header h3{font:italic 28px var(--display,Impact,Arial);margin:8px 0;color:#e9f8f4}
+.draft-run-header p{color:#bed2cf;font-size:12px;line-height:1.5;max-width:650px}
+.draft-run-progress{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:16px 0}
+.draft-run-progress span{padding:11px 5px;text-align:center;border-radius:6px;
+  background:#ffffff0d;border:1px solid #ffffff1e;color:#a9b5af;font:900 10px Arial}
+.draft-run-progress span.current{background:#cee7a322;border-color:#cef398;color:#e6ffbd}
+.draft-run-progress span.passed{background:#48976d3b;color:#cbffde}
+.draft-run-history{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-bottom:15px}
+.draft-run-match{display:flex;flex-direction:column;gap:5px;padding:11px;
+  background:#031a22c2;border:1px solid #ffffff23;border-radius:7px}
+.draft-run-match span{font:900 9px Arial;color:#caef93;letter-spacing:.7px}
+.draft-run-match strong{font-size:12px;color:#fff}
+.draft-run-match small{font-size:10px;color:#b8dbcf}
+.draft-run-history>p{color:#b7cdbf;font-size:12px}
+@media(max-width:650px){.draft-run{padding:12px}.draft-run-progress{grid-template-columns:repeat(2,minmax(0,1fr))}.draft-run-header h3{font-size:24px}}

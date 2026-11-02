@@ -63,7 +63,7 @@ const AuraEvolution=(()=>{
     return [...map.values()];
   }
   function startDraft(){
-    draft={players:[],pool:pool(),offers:[],finished:false};offerDraft();
+    draft={players:[],pool:pool(),offers:[],finished:false,tournament:null};offerDraft();
   }
   function offerDraft(){
     const index=draft.players.length;if(index===11){draft.offers=[];return;}
@@ -72,11 +72,51 @@ const AuraEvolution=(()=>{
     for(let i=choices.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[choices[i],choices[j]]=[choices[j],choices[i]];}
     draft.offers=choices.slice(0,5);
   }
+  const draftRounds=["OCTAVOS","CUARTOS","SEMIFINALES","FINAL"];
+  function draftTournamentView(){
+    if(!draft||draft.players.length!==11)return "";
+    const tournament=draft.tournament||(draft.tournament=AuraKnockout.createDraft(draft.players));
+    const opponent=AuraKnockout.opponent(tournament);
+    const club=opponent?getClub(opponent):null;
+    const completed=tournament.results.map(match=>
+      '<div class="draft-run-match"><span>'+draftRounds[match.round-1]+'</span>'+
+      '<strong>AURA XI '+match.score.home+' — '+match.score.away+' '+text(getClub(match.opponent).name)+'</strong>'+
+      '<small>'+(match.penalties?'Penaltis '+match.penalties.home+' — '+match.penalties.away+' · ':'')+
+      (match.won?'✓ CLASIFICADO':'✕ ELIMINADO')+'</small></div>').join("");
+    return '<section class="draft-run"><div class="draft-run-header"><span class="eyebrow">AURA DRAFT · TORNEO ELIMINATORIO</span>'+
+      '<h3>'+(tournament.status==="champion"?'🏆 ¡CAMPEONES DEL DRAFT!':
+        tournament.status==="eliminated"?'ELIMINADOS EN '+draftRounds[tournament.results.length-1]:
+        draftRounds[tournament.round]+' · '+text(club.name))+'</h3>'+
+      '<p>'+(tournament.status==="playing"?'Gana cuatro eliminatorias para levantar la copa. Si empatas, hay tanda de penaltis.':
+        'Has ganado '+tournament.results.filter(m=>m.won).length+' eliminatorias. Tu recorrido termina aquí.')+'</p></div>'+
+      '<div class="draft-run-progress">'+draftRounds.map((name,i)=>'<span class="'+(i<tournament.round?'passed':i===tournament.round&&tournament.status==="playing"?'current':'')+'">'+
+         (i+1)+' · '+name+'</span>').join('')+'</div>'+
+      '<div class="draft-run-history">'+(completed||'<p>Aún no hay encuentros disputados.</p>')+'</div>'+
+      (tournament.status==="playing"?'<button class="btn primary" data-evo="draft-play">Jugar contra '+text(club.name)+' →</button>':
+        '<button class="btn" data-evo="draft-retry">Reiniciar torneo con el mismo once →</button>')+'</section>';
+  }
+  function playDraftTournament(){
+    if(!draft||draft.players.length!==11)return false;
+    const tournament=draft.tournament||(draft.tournament=AuraKnockout.createDraft(draft.players));
+    const opponent=AuraKnockout.opponent(tournament);
+    if(!opponent)return false;
+    const round=tournament.round,c={id:"aura-draft",name:"AURA Draft XI",rating:tournament.rating};
+    AuraArena.preMatch(AuraArena.team(c,null,draft.players),AuraArena.team(getClub(opponent)),{
+      draft:true,label:"AURA DRAFT · "+draftRounds[round],
+      onFinish:result=>{
+        if(draft?.tournament!==tournament||tournament.status!=="playing"||tournament.round!==round)return;
+        const outcome=AuraKnockout.recordDraft(tournament,result,getClub(opponent).rating);
+        if(outcome){render();notify(outcome.won?"¡Eliminatoria superada!": "Fin de tu torneo Draft XI.");}
+      }
+    });
+    return true;
+  }
   function draftView(){
     if(!draft)return '<section class="draft-intro"><div><span class="eyebrow">DRAFT XI / SIN COSTE</span><h2>ONCE ELECCIONES.<br>UN EQUIPO<br><em>IRREPETIBLE.</em></h2><p>Elige uno de cinco futbolistas para cada posición. Completa tu once y sal al estadio contra un rival de élite.</p><button class="btn primary" data-evo="draft-new">Crear mi Draft XI →</button></div><div class="draft-card-fan">'+[88,92,90].map((n,i)=>'<div class="draft-art-card art-'+i+'"><span>'+n+'</span><small>'+(i===1?'AURA':'XI')+'</small><b>★</b></div>').join("")+'</div></section>';
     const done=draft.players.length===11,rating=Math.round(draft.players.reduce((n,p)=>n+p.overall,0)/Math.max(1,draft.players.length));
     return '<div class="draft-progress"><span>CONSTRUYE TU XI</span><progress max="11" value="'+draft.players.length+'" aria-label="Jugadores elegidos"></progress><b>'+draft.players.length+' / 11</b></div><div class="selection-heading"><div><span class="eyebrow">'+draft.players.length+' / 11 JUGADORES ELEGIDOS</span><h2>'+(done?'TU ONCE ESTÁ LISTO.':'ELIGE TU '+AuraSquad.formations["4-3-3"][draft.players.length][0])+ '</h2></div><span class="draft-rating">'+rating+' <small>GRL</small></span></div>'+
-      (done?'<div class="draft-ready"><h3>El talento está. Demuéstralo en el campo.</h3><button class="btn primary" data-evo="draft-play">Jugar contra Real Madrid →</button><button class="btn" data-evo="draft-new">Crear otro once</button></div>':'<div class="draft-offers">'+draft.offers.map((p,i)=>'<button class="draft-player-card" data-draft-pick="'+i+'"><div class="draft-card-top"><strong>'+p.overall+'</strong><span>'+text(p.pos)+'</span></div>'+AuraPortraits.html(p,true)+'<h3>'+text(p.name)+'</h3><p>'+text(p.sourceClub||clubs.find(c=>c.id===p.club)?.name||p.nationality||"Futbolista real")+'</p><span class="draft-card-choice">Elegir jugador →</span></button>').join("")+'</div>')+
+      (done?'<div class="draft-ready"><h3>EL TORNEO TE ESPERA.</h3>'+
+          draftTournamentView()+'<button class="btn" data-evo="draft-new">Crear otro once</button></div>':'<div class="draft-offers">'+draft.offers.map((p,i)=>'<button class="draft-player-card" data-draft-pick="'+i+'"><div class="draft-card-top"><strong>'+p.overall+'</strong><span>'+text(p.pos)+'</span></div>'+AuraPortraits.html(p,true)+'<h3>'+text(p.name)+'</h3><p>'+text(p.sourceClub||clubs.find(c=>c.id===p.club)?.name||p.nationality||"Futbolista real")+'</p><span class="draft-card-choice">Elegir jugador →</span></button>').join("")+'</div>')+
       '<div class="draft-selected"><h3>TU EQUIPO · 4-3-3</h3><div>'+AuraSquad.formations["4-3-3"].map(([pos],i)=>'<span class="draft-slot '+(draft.players[i]?'filled':'')+'"><small>'+pos+'</small><strong>'+text(draft.players[i]?.name||"Por elegir")+'</strong>'+(draft.players[i]?'<b>'+draft.players[i].overall+'</b>':'')+'</span>').join("")+'</div></div>';
   }
   function welcome(){
@@ -138,7 +178,10 @@ const AuraEvolution=(()=>{
     if(d.evo==="quick-swap"){[quickHome,quickAway]=[quickAway,quickHome];render();document.getElementById("quick-home")?.focus();}
     if(d.evo==="quick-start")try{if(quickHome===quickAway){notify("Elige dos clubes distintos para este partido.");return true;}AuraArena.preMatch(AuraArena.team(getClub(quickHome)),AuraArena.team(getClub(quickAway)),{});}catch(err){notify(err.message);}
     if(d.evo==="draft-new"){startDraft();render();}
-    if(d.evo==="draft-play"&&draft?.players.length===11){const c={id:"aura-draft",name:"AURA Draft XI",rating:Math.round(draft.players.reduce((s,p)=>s+p.overall,0)/11)};AuraArena.preMatch(AuraArena.team(c,null,draft.players),AuraArena.team(getClub("madrid")),{draft:true});}
+    if(d.evo==="draft-retry"&&draft?.players.length===11){
+      draft.tournament=AuraKnockout.createDraft(draft.players);render();
+    }
+    if(d.evo==="draft-play"&&draft?.players.length===11)playDraftTournament();
     if(d.evo==="career-play")playCareer();return true;
   }
   function input(e){

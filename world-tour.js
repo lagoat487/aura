@@ -126,10 +126,16 @@
   function advanceCup(cup,provided=null){
     if(cup.champion)return false;
     if(provided&&(!Number.isInteger(provided.home)||!Number.isInteger(provided.away)||provided.home<0||provided.away<0))throw Error("Resultado inválido.");
+    if(provided?.penalties&&(!Number.isInteger(provided.penalties.home)||!Number.isInteger(provided.penalties.away)||
+      provided.penalties.home<0||provided.penalties.away<0||provided.penalties.home===provided.penalties.away||
+      provided.home!==provided.away))throw Error("Penaltis inválidos.");
     const rng=random(cup.seed+cup.rounds.length*7919),winner=[],matches=[];
     for(let i=0;i<cup.current.length;i+=2){const h=cup.current[i],a=cup.current[i+1],home=cup.entrants.find(t=>t.id===h),away=cup.entrants.find(t=>t.id===a);
       const score=provided&&(h===cup.user||a===cup.user)?{...provided}:simulate(home.rating,away.rating,rng);
-      const penalties=score.home===score.away?(rng()<.5?{home:5,away:4}:{home:4,away:5}):null;
+      const penalties=score.home===score.away?
+        provided&&(h===cup.user||a===cup.user)&&provided.penalties?
+          {home:provided.penalties.home,away:provided.penalties.away}:
+          (rng()<.5?{home:5,away:4}:{home:4,away:5}):null;
       const win=(penalties?penalties.home>penalties.away:score.home>score.away)?h:a;
       winner.push(win);matches.push({home:h,away:a,score,penalties,winner:win});
     }

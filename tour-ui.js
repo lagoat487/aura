@@ -94,7 +94,15 @@ const AuraTourUI=(()=>{
     const homeFirst=f.home===cup.user,round=cup.rounds.length;
     AuraArena.preMatch(cupArenaTeam(cup,cup.user),cupArenaTeam(cup,homeFirst?f.away:f.home),{label:cup.name+' · ELIMINATORIA',onFinish:result=>{
       if(currentCup()!==cup||cup.rounds.length!==round||cup.champion)return;
-      T.advanceCup(cup,homeFirst?{home:result.home,away:result.away}:{home:result.away,away:result.home});render();
+      const orientation=homeFirst?{home:result.home,away:result.away}:{home:result.away,away:result.home};
+      if(result.home===result.away){
+        const opponent=homeFirst?f.away:f.home;
+        const us=cup.entrants.find(t=>t.id===cup.user),them=cup.entrants.find(t=>t.id===opponent);
+        const kicks=AuraKnockout.shootout(us.rating,them.rating,cup.seed+round*7919);
+        orientation.penalties=homeFirst?{home:kicks.home,away:kicks.away}:{home:kicks.away,away:kicks.home};
+        notify("Empate: tanda de penaltis "+kicks.home+" — "+kicks.away+".");
+      }
+      T.advanceCup(cup,orientation);render();
     }});
   }
   function awardsView(){
