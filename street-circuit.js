@@ -12,7 +12,7 @@
     const seconds=[60,120,180].includes(settings.seconds)?settings.seconds:120;
     const difficulty=[.78,1,1.16].includes(settings.difficulty)?settings.difficulty:1;
     const schedule=opponents.filter(id=>id!==home);
-    if(schedule.length<3)schedule.push("river");
+    if(schedule.length<4)schedule.push("river");
     return {home,goalLimit,seconds,difficulty,
       fixtures:schedule.slice(0,4),results:[],status:"playing",
       wins:0,draws:0,losses:0,goals:0,conceded:0,points:0,streak:0,bestStreak:0};
