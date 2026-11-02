@@ -41,7 +41,9 @@
     return row.score[0]===row.goals&&row.score[1]===row.opponentGoals&&
       row.goals<=row.kicksTaken&&row.opponentGoals<=row.opponentKicks&&
       row.saves<=row.divesCorrect&&row.divesCorrect<=row.opponentKicks&&
-      row.winner===(row.goals>row.opponentGoals?row.home:row.goals<row.opponentGoals?row.away:null);
+      (row.goals!==row.opponentGoals?
+        row.winner===(row.goals>row.opponentGoals?row.home:row.away):
+        (row.kicksTaken===30&&row.opponentKicks===30));
   }
   function load(storage){
     try{
