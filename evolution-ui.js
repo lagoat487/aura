@@ -170,7 +170,7 @@ const AuraEvolution=(()=>{
       mode==="career"?careerPicker():mode==="quick"?quickPicker():
       mode==="draft"?draftView():AuraTourUI.welcome(mode,mode==="pro"?careerPicker():"");
     return '<div class="aura-mode-page aura-mode-page--'+mode+'">'+modeHeader()+
-      '<main class="aura-mode-stage" id="mode-content">'+content+'</main></div>';
+      '<section class="aura-mode-stage" id="mode-content">'+content+'</section></div>';
   }
   function scheduleStrip(){
     if(state.version!==2)return "";
