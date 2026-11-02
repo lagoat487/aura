@@ -21,7 +21,7 @@ function boot(saved) {
     localStorage: { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value) },
     setTimeout() {}, clearTimeout() {},
   });
-  for (const file of ["clubs.js", "competitions.js", "world.js", "real-players.js", "world-tour.js", "roster-sync.js", "club-badges.js", "portraits.js", "squad.js", "champions.js", "ultimate-team.js", "ultimate-save.js", "progression.js", "negotiations.js", "loans.js", "career-ui.js", "progression-ui.js", "match-engine.js", "match-presentation.js", "match-graphics.js", "match-ui.js", "mode-knockout.js", "evolution-ui.js", "street.js", "street-circuit.js", "tour-ui.js", "ultimate-ui.js", "argentina-event.js", "career-continental.js", "game.js"]) {
+  for (const file of ["clubs.js", "competitions.js", "world.js", "real-players.js", "world-tour.js", "roster-sync.js", "club-badges.js", "portraits.js", "squad.js", "champions.js", "ultimate-team.js", "ultimate-save.js", "progression.js", "negotiations.js", "loans.js", "career-ui.js", "progression-ui.js", "match-engine.js", "match-presentation.js", "match-graphics.js", "match-ui.js", "mode-knockout.js", "quick-rivalry.js", "evolution-ui.js", "street.js", "street-circuit.js", "tour-ui.js", "ultimate-ui.js", "argentina-event.js", "career-continental.js", "game.js"]) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, "..", file), "utf8"), context, { filename: file });
   }
   return {
@@ -775,4 +775,51 @@ test("VOLTA free play remains available and independent of the circuit",()=>{
  assert.equal(app.run("voltaFriendly.opts.seconds"),180);
  assert.equal(app.run("voltaFriendly.opts.onFinish"),undefined);
  assert.equal(app.run("AuraTourUI.getStreetCircuit()"),null);
+});
+
+test("Quick Match offers a separate best-of-three rivalry without changing career or coins",()=>{
+ const app=boot();app.click({evoMode:"quick"});
+ assert.match(app.html(),/AL MEJOR DE TRES/);
+ app.click({evo:"quick-rivalry-new"});
+ assert.equal(app.run("AuraEvolution.getRivalry().status"),"playing");
+ assert.equal(app.run("AuraEvolution.getRivalry().home"),"barcelona");
+ app.run("AuraArena.preMatch=(home,away,options)=>{globalThis.rivalryMatch={home,away,options}}");
+ app.click({evo:"quick-rivalry-play"});
+ assert.match(app.run("rivalryMatch.options.label"),/PARTIDO 1/);
+ const first=app.run("rivalryMatch.options.onFinish");
+ first({home:3,away:0});first({home:3,away:0});
+ assert.equal(app.run("AuraEvolution.getRivalry().results.length"),1);
+ assert.equal(app.run("AuraEvolution.getRivalry().wins[0]"),1);
+ app.click({evo:"quick-rivalry-play"});
+ assert.match(app.run("rivalryMatch.options.label"),/PARTIDO 2/);
+ const second=app.run("rivalryMatch.options.onFinish");
+ second({home:0,away:2});second({home:0,away:2});
+ assert.equal(app.run("AuraEvolution.getRivalry().results.length"),2);
+ app.click({evo:"quick-rivalry-play"});
+ app.run("rivalryMatch.options.onFinish({home:2,away:0})");
+ assert.match(app.html(),/SERIE TERMINADA/);
+ assert.equal(app.run("AuraEvolution.getRivalry().champion"),"barcelona");
+ assert.equal(app.run("AuraEvolution.getRivalry().results.length"),3);
+ assert.doesNotMatch(app.html(),/data-evo="quick-rivalry-play"/);
+ assert.equal(app.saved(),undefined);
+ app.click({nav:"modes"});app.click({evoMode:"quick"});
+ assert.match(app.html(),/SERIE TERMINADA/);
+ app.click({evo:"quick-rivalry-reset"});
+ assert.equal(app.run("AuraEvolution.getRivalry()"),null);
+});
+test("Rivalry locks team selection while active and ignores stale callbacks after reset",()=>{
+ const app=boot();app.click({evoMode:"quick"});
+ app.click({evo:"quick-rivalry-new"});
+ assert.match(app.html(),/id="quick-home" disabled/);
+ app.run("AuraArena.preMatch=(home,away,opts)=>{globalThis.pendingSeries=opts}");
+ app.click({evo:"quick-rivalry-play"});
+ const callback=app.run("pendingSeries.onFinish");
+ app.change("quick-home","boca");
+ assert.equal(app.run("AuraEvolution.getRivalry().home"),"barcelona");
+ app.click({evo:"quick-rivalry-reset"});
+ callback({home:99,away:0});
+ assert.equal(app.run("AuraEvolution.getRivalry()"),null);
+ app.change("quick-home","boca");
+ app.click({evo:"quick-rivalry-new"});
+ assert.equal(app.run("AuraEvolution.getRivalry().home"),"boca");
 });
