@@ -1,0 +1,32 @@
+/* AURA 27 - independent Quick Match penalty challenge */
+.quick-penalties{margin:22px 0;padding:clamp(18px,3vw,30px);border-radius:19px;
+  background:linear-gradient(135deg,#102b2a,#162a20 72%,#222d23);
+  border:1px solid #9cdb864b;box-shadow:0 15px 40px #0003;color:#f4fff0}
+.quick-penalties h3{font:900 clamp(24px,4vw,37px)/1.05 Impact,Arial,sans-serif;margin:9px 0}
+.quick-penalties .penalty-eyebrow{font:800 11px Arial,sans-serif;letter-spacing:2px;color:#b9f6a2}
+.quick-penalties p{color:#d1dfd1;font-size:13px;line-height:1.55}
+.quick-penalty-score{display:flex;align-items:center;justify-content:center;gap:14px;
+  padding:18px 8px;background:#081914b8;border-radius:13px;margin:15px 0;flex-wrap:wrap}
+.quick-penalty-score span{flex:1;min-width:90px;text-align:center;font-size:12px;font-weight:700}
+.quick-penalty-score strong{font:900 clamp(30px,8vw,52px)/1 Impact,sans-serif;color:#d2ff9a}
+.quick-penalty-shots{display:flex;flex-wrap:wrap;gap:8px;padding:9px 0 14px}
+.quick-penalty-shot{width:30px;height:30px;display:grid;place-items:center;
+  border-radius:50%;font-size:13px;font-weight:800;border:1px solid #ffffff3d;background:#ffffff14}
+.quick-penalty-shot.scored{background:#5cae47;color:#091808}
+.quick-penalty-shot.missed{background:#ab3e3b;color:white}
+.quick-penalty-choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.quick-penalty-choices button{min-height:53px;padding:10px 6px;border:1px solid #d3ffb180;
+  border-radius:12px;background:#e5ffc6;color:#193322;font-weight:900;
+  cursor:pointer;touch-action:manipulation}
+.quick-penalty-choices button:hover,.quick-penalty-choices button:focus-visible{
+  background:#c4ff7b;outline:2px solid #ddffbc;outline-offset:2px}
+.quick-penalties .penalty-last{margin:12px 0;padding:10px 12px;
+  background:#ffffff12;border-radius:8px}
+.quick-penalties .penalty-finished{color:#d4ff9b;font-size:15px;font-weight:900}
+.quick-penalties .penalty-new{min-height:44px;margin-top:12px}
+@media(max-width:540px){
+.quick-penalties{padding:18px 14px}
+.quick-penalty-choices{gap:7px}
+.quick-penalty-choices button{font-size:12px;min-height:58px}
+.quick-penalty-score span{font-size:10px;min-width:73px}
+}
