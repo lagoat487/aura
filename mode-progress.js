@@ -77,5 +77,39 @@
         rivalry:validRivalry(data.rivalry)?data.rivalry:null};
     }catch{return {draft:null,rivalry:null};}
   }
-  return {KEY,save,load,validDraft,validRivalry};
+  // Informational labels for the independent mode library; this never changes saves.
+  function progressLabel(mode,ctx={}){
+    const career=ctx.career,round=Number.isInteger(career?.round)&&career.round>=0?career.round+1:1;
+    if(mode==="career"&&career&&!career.playerCareer)return "CARRERA EN CURSO · JORNADA "+round;
+    if(mode==="pro"&&career?.playerCareer)return "JUGADOR ACTIVO · JORNADA "+round;
+    if(mode==="quick"){
+      const series=ctx.rivalry,penalties=ctx.penalty;
+      if(series?.status==="playing"&&Array.isArray(series.wins))
+        return "RIVALIDAD "+series.wins[0]+"–"+series.wins[1]+" · EN CURSO";
+      if(penalties?.status==="playing"&&Array.isArray(penalties.score))
+        return "PENALTIS "+penalties.score[0]+"–"+penalties.score[1]+" · EN CURSO";
+      if(series?.status==="finished")return "🏆 RIVALIDAD TERMINADA";
+      if(penalties?.status==="finished")return "🏆 TANDA TERMINADA";
+    }
+    if(mode==="draft"&&ctx.draft){
+      const d=ctx.draft,t=d.tournament;
+      if(t?.status==="champion")return "🏆 CAMPEÓN DEL DRAFT";
+      if(t?.status==="eliminated")return "DRAFT FINALIZADO";
+      if(t?.status==="playing")return "TORNEO · RONDA "+Math.min(4,Math.max(1,(t.round||0)+1))+"/4";
+      return "DRAFT "+(Array.isArray(d.players)?d.players.length:0)+"/11 · GUARDADO";
+    }
+    if(mode==="cup"&&Array.isArray(ctx.cups)){
+      if(ctx.cups.some(c=>c&&!c.champion))return "COPA EN CURSO · GUARDADA";
+      if(ctx.cups.some(c=>c?.champion))return "🏆 COPA FINALIZADA";
+    }
+    if(mode==="ultimate"&&Array.isArray(ctx.ultimate?.owned))
+      return "ULTIMATE TEAM · "+ctx.ultimate.owned.length+" CARTAS GUARDADAS";
+    if(mode==="street"&&ctx.street){
+      if(ctx.street.status==="finished")return "🏆 CIRCUITO CALLE FINALIZADO";
+      if(Array.isArray(ctx.street.results))
+        return "CIRCUITO CALLE · "+ctx.street.results.length+"/4 PARTIDOS";
+    }
+    return null;
+  }
+  return {KEY,save,load,validDraft,validRivalry,progressLabel};
 });
