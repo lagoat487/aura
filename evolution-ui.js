@@ -52,6 +52,17 @@ const AuraEvolution=(()=>{
     try{if(typeof AuraQuickFormations!=="undefined"&&typeof localStorage!=="undefined")
       AuraQuickFormations.save(localStorage,{home:quickHomeFormation,away:quickAwayFormation});}catch{}
   }
+  // Restore the last valid club pairing. Active rivalries override this below.
+  try{
+    if(typeof AuraQuickFormations!=="undefined"&&typeof localStorage!=="undefined"&&typeof clubs!=="undefined"){
+      const remembered=AuraQuickFormations.loadTeams(localStorage,clubs.map(c=>c.id));
+      if(remembered){quickHome=remembered.home;quickAway=remembered.away;}
+    }
+  }catch{}
+  function persistQuickTeams(){
+    try{if(typeof AuraQuickFormations!=="undefined"&&typeof localStorage!=="undefined"&&typeof clubs!=="undefined")
+      AuraQuickFormations.saveTeams(localStorage,{home:quickHome,away:quickAway},clubs.map(c=>c.id));}catch{}
+  }
   // Independent mode saves never read or modify Career or Ultimate Team.
   const savedModes=typeof AuraModeProgress!=="undefined"&&typeof localStorage!=="undefined"
     ?AuraModeProgress.load(localStorage):{draft:null,rivalry:null};
@@ -488,7 +499,7 @@ const AuraEvolution=(()=>{
     }
     if(d.evo==="quick-swap"){
       if(quickRivalry?.status==="playing"){notify("Termina o cancela la rivalidad para cambiar equipos.");return true;}
-      [quickHome,quickAway]=[quickAway,quickHome];render();document.getElementById("quick-home")?.focus();
+      [quickHome,quickAway]=[quickAway,quickHome];persistQuickTeams();render();document.getElementById("quick-home")?.focus();
     }
     if(d.evo==="quick-rivalry-new"){
       try{quickRivalry=AuraRivalry.create(quickHome,quickAway,getClub(quickHome).rating,getClub(quickAway).rating);persistModes();render();}
@@ -552,8 +563,8 @@ const AuraEvolution=(()=>{
   }
   function change(e){
     if(e.target.id==="evo-league"){const def=Competitions.getDefinition(e.target.value);selectedCompetition=def.id;if(!def.clubIds.includes(selected))selected=def.clubIds[0];clubQuery="";render();}
-    if(e.target.id==="quick-home"&&quickRivalry?.status!=="playing"){quickHome=e.target.value;render();}
-    if(e.target.id==="quick-away"&&quickRivalry?.status!=="playing"){quickAway=e.target.value;render();}
+    if(e.target.id==="quick-home"&&quickRivalry?.status!=="playing"){quickHome=e.target.value;persistQuickTeams();render();}
+    if(e.target.id==="quick-away"&&quickRivalry?.status!=="playing"){quickAway=e.target.value;persistQuickTeams();render();}
     if(e.target.id==="quick-home-formation"&&availableQuickFormations().includes(e.target.value)){
       quickHomeFormation=e.target.value;persistQuickFormations();render();
     }
