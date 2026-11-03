@@ -274,9 +274,12 @@ const AuraEvolution=(()=>{
         (skillFeedback?'<p class="skill-result" role="status">'+text(skillFeedback)+'</p>':'')+'</div>':
         '<p class="skill-empty">Elige un ejercicio para comenzar.</p>')+'</section>';
   }
+  function availableQuickFormations(){
+    return typeof AuraQuickFormations!=="undefined"?AuraQuickFormations.formations:Object.keys(AuraSquad.formations);
+  }
   function quickPicker(){
     const h=getClub(quickHome),a=getClub(quickAway);
-    const team=(club,id,label)=>'<div class="quick-team"><span class="quick-team-label">'+label+'</span>'+badge(club,105)+'<label class="sr-only" for="'+id+'">'+label+'</label><select id="'+id+'" '+(quickRivalry?.status==='playing'?'disabled':'')+'>'+quickChoices(club.id)+'</select><label class="quick-formation-label" for="'+id+'-formation">Formación<select id="'+id+'-formation">'+AuraQuickFormations.formations.map(formation=>
+    const team=(club,id,label)=>'<div class="quick-team"><span class="quick-team-label">'+label+'</span>'+badge(club,105)+'<label class="sr-only" for="'+id+'">'+label+'</label><select id="'+id+'" '+(quickRivalry?.status==='playing'?'disabled':'')+'>'+quickChoices(club.id)+'</select><label class="quick-formation-label" for="'+id+'-formation">Formación<select id="'+id+'-formation">'+availableQuickFormations().map(formation=>
         '<option value="'+formation+'" '+((id==="quick-home"?quickHomeFormation:quickAwayFormation)===formation?'selected':'')+'>'+formation+'</option>').join('')+
       '</select></label><button class="quick-roster-link" data-evo="view-roster" data-club="'+text(club.id)+'">Ver plantilla →</button><div class="quick-strength"><strong>'+club.rating+'</strong><span>FORTALEZA<br>DEL CLUB</span></div><div class="quick-strength-track" aria-hidden="true"><i style="width:'+club.rating+'%"></i></div></div>';
     return '<section class="quick-match-panel"><div class="selection-heading"><div><span class="eyebrow">02 / DIRECTO AL PARTIDO</span><h2>EL CÉSPED TE ESPERA.</h2></div><span class="pill">11 contra 11 · Tú contra la IA</span></div><div class="quick-search-bar"><label for="quick-club-search">Encuentra un equipo<input id="quick-club-search" type="search" placeholder="Busca club o ciudad…" value="'+text(quickQuery)+'" autocomplete="off"></label><span id="quick-search-status" role="status">'+quickClubs().filter(c=>!quickQuery||normal(c.name+" "+c.city).includes(normal(quickQuery))).length+' equipos en la búsqueda</span></div><div class="quick-teams">'+team(h,"quick-home","TU EQUIPO")+'<div class="quick-versus"><b aria-hidden="true">VS</b><button class="quick-swap" data-evo="quick-swap" aria-label="Intercambiar tu equipo y el rival" title="Intercambiar equipos">⇄</button></div>'+team(a,"quick-away","EL RIVAL")+'</div><div class="quick-cta"><button class="btn primary" data-evo="quick-start">Preparar partido <span>→</span></button><p>Duración, dificultad, ambiente y gráficos. El siguiente paso lo eliges tú.</p></div></section>'+rivalryPanel()+penaltyPanel()+skillPanel();
@@ -516,10 +519,10 @@ const AuraEvolution=(()=>{
     if(e.target.id==="evo-league"){const def=Competitions.getDefinition(e.target.value);selectedCompetition=def.id;if(!def.clubIds.includes(selected))selected=def.clubIds[0];clubQuery="";render();}
     if(e.target.id==="quick-home"&&quickRivalry?.status!=="playing"){quickHome=e.target.value;render();}
     if(e.target.id==="quick-away"&&quickRivalry?.status!=="playing"){quickAway=e.target.value;render();}
-    if(e.target.id==="quick-home-formation"&&AuraQuickFormations.formations.includes(e.target.value)){
+    if(e.target.id==="quick-home-formation"&&availableQuickFormations().includes(e.target.value)){
       quickHomeFormation=e.target.value;persistQuickFormations();render();
     }
-    if(e.target.id==="quick-away-formation"&&AuraQuickFormations.formations.includes(e.target.value)){
+    if(e.target.id==="quick-away-formation"&&availableQuickFormations().includes(e.target.value)){
       quickAwayFormation=e.target.value;persistQuickFormations();render();
     }
     if(e.target.id==="evo-tactic"&&state){state.tactic=e.target.value;notify("Identidad de juego actualizada");}
