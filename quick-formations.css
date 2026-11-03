@@ -1,0 +1,7 @@
+/* Individual tactical shapes for quick match and local rivalries. */
+.quick-formation-label{display:flex;flex-direction:column;align-items:stretch;gap:7px;
+ width:100%;margin-top:10px;font:800 11px/1.4 Arial,sans-serif;letter-spacing:.5px;color:#b9e9cd}
+.quick-formation-label select{width:100%;min-height:46px;border-radius:10px;
+ border:1px solid #b3e8be68;background:#142d31;color:#f5fff5;padding:10px}
+.quick-formation-label select:focus-visible{outline:3px solid #c9ff70;outline-offset:2px}
+@media(max-width:650px){.quick-formation-label{font-size:12px}.quick-formation-label select{font-size:16px;min-height:50px}}
