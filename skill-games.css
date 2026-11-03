@@ -1,0 +1,31 @@
+/* AURA 27 independent arcade skill challenges, including touch controls. */
+.skill-games{margin:22px 0 32px;padding:clamp(18px,3vw,30px);border:1px solid #93dda567;border-radius:18px;
+ background:radial-gradient(circle at 80% 0%,#3affaa19,transparent 55%),linear-gradient(135deg,#17252c,#101925)}
+.skill-games h2{margin:8px 0 5px;font:italic 900 clamp(27px,5vw,46px)/1 Impact,Arial,sans-serif;letter-spacing:.04em}
+.skill-games .skill-intro,.skill-tip,.skill-empty{font-size:13px;color:#cadcd5;line-height:1.6}
+.skill-types{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:18px 0}
+.skill-types button{display:flex;flex-direction:column;gap:8px;text-align:left;min-width:0;min-height:125px;
+ padding:16px;border:1px solid #ffffff31;border-radius:12px;background:#1b2837;color:#eefdf7;cursor:pointer}
+.skill-types button.selected,.skill-choices button.selected{border-color:#a8ff86;background:#294a3c;box-shadow:inset 0 0 0 1px #a8ff8650}
+.skill-types strong{font-size:15px}.skill-types small{font-size:11px;color:#c4dcd3}
+.skill-types button span{margin-top:auto;color:#bdff92;font-size:10px;font-weight:800;letter-spacing:.8px}
+.skill-board{margin-top:18px;padding:18px;border:1px solid #ffffff21;border-radius:13px;background:#0a151caa}
+.skill-score{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:12px}
+.skill-score strong{font-size:18px}.skill-score span{font-weight:800;color:#bbff9e}
+.skill-board progress{width:100%;height:10px;margin:16px 0;accent-color:#bbff9e}
+.skill-choices{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:18px 0}
+.skill-choices fieldset{min-width:0;border:1px solid #ffffff36;border-radius:12px;display:flex;flex-wrap:wrap;gap:8px;padding:12px}
+.skill-choices legend{color:#b8f2c4;font-size:12px;font-weight:800;padding:0 7px}
+.skill-choices button{border:1px solid #ffffff32;border-radius:8px;background:#1a2b39;color:white;
+ min-height:44px;padding:9px 13px;flex:1 1 auto;font-weight:800;cursor:pointer}
+.skill-fire{min-height:48px;margin-top:7px;width:100%}
+.skill-result,.skill-finish{font-weight:800;color:#d5ffab;border-radius:9px;margin-top:13px;
+ padding:13px;background:#bfff8c13;border:1px solid #bfff8c4f}
+@media(max-width:650px){
+ .skill-types{grid-template-columns:1fr}
+ .skill-types button{min-height:72px;padding:14px}
+ .skill-choices{grid-template-columns:1fr}
+ .skill-score{gap:7px}
+ .skill-choices button{min-height:50px}
+}
+@media(prefers-reduced-motion:reduce){.skill-games *{scroll-behavior:auto;transition:none!important}}
