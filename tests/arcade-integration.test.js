@@ -35,3 +35,13 @@ test("Keeper drill hides the shot side until a save attempt and retains focus be
  assert.match(ui,/skillFocus/);
  assert.match(ui,/focus\(\{preventScroll:true\}\)/);
 });
+
+test("Practice uses visual goal lanes with a truthful previous shot marker",()=>{
+ const ui=read("evolution-ui.js"),css=read("skill-games.css");
+ assert.match(ui,/skill-goal-visual/);
+ assert.match(ui,/skill-goal-cell/);
+ assert.match(ui,/skill-last-ball/);
+ assert.match(ui,/K\.target\(\{\.\.\.g,turn:g\.turn-1\}\)/);
+ assert.match(css,/\.skill-goal-net\{/);
+ assert.match(css,/prefers-reduced-motion:reduce/);
+});
