@@ -61,3 +61,18 @@ test("Corrupt, duplicate, oversize and blocked mode saves fail safely",()=>{
   store.setItem(Saves.KEY,"x".repeat(60001));
   assert.deepEqual(Saves.load(store),{draft:null,rivalry:null});
 });
+
+test("Mode library displays independent progress without mutating saves",()=>{
+  const career={round:5,season:2026};
+  assert.equal(Saves.progressLabel("career",{career}),"CARRERA EN CURSO · JORNADA 6");
+  assert.equal(Saves.progressLabel("pro",{career:{...career,playerCareer:{playerId:"p1"}}}),"JUGADOR ACTIVO · JORNADA 6");
+  assert.equal(Saves.progressLabel("quick",{rivalry:{status:"playing",wins:[1,0]}}),"RIVALIDAD 1–0 · EN CURSO");
+  assert.equal(Saves.progressLabel("quick",{penalty:{status:"playing",score:[3,2]}}),"PENALTIS 3–2 · EN CURSO");
+  assert.equal(Saves.progressLabel("draft",{draft:{players:[player(0)],tournament:null}}),"DRAFT 1/11 · GUARDADO");
+  assert.equal(Saves.progressLabel("draft",{draft:{players:[],tournament:{status:"playing",round:2}}}),"TORNEO · RONDA 3/4");
+  assert.equal(Saves.progressLabel("cup",{cups:[{champion:null}]}),"COPA EN CURSO · GUARDADA");
+  assert.equal(Saves.progressLabel("ultimate",{ultimate:{owned:Array(14)}}),"ULTIMATE TEAM · 14 CARTAS GUARDADAS");
+  assert.equal(Saves.progressLabel("street",{street:{status:"playing",results:[{},{}]}}),"CIRCUITO CALLE · 2/4 PARTIDOS");
+  assert.equal(Saves.progressLabel("draft",{}),null);
+  assert.equal(Saves.progressLabel("ultimate",{}),null);
+});
