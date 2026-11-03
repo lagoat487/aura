@@ -19,3 +19,17 @@ test("Home and away quick formations persist without touching career saves",()=>
  assert.deepEqual(Q.load(st),Q.defaults);
  assert.equal(Q.save({setItem(){throw Error("blocked");}},one),false);
 });
+
+test("Quick-match clubs persist only when distinct and present in the known catalog",()=>{
+ const st=store(),ids=["barcelona","madrid","psg"];
+ const selected={home:"barcelona",away:"psg"};
+ assert.equal(Q.saveTeams(st,selected,ids),true);
+ assert.deepEqual(Q.loadTeams(st,ids),selected);
+ assert.equal(Q.saveTeams(st,{home:"barcelona",away:"barcelona"},ids),false);
+ assert.equal(Q.saveTeams(st,{home:"barcelona",away:"unknown"},ids),false);
+ assert.deepEqual(Q.loadTeams(st,ids),selected);
+ assert.deepEqual(st.keys(),[Q.TEAM_KEY]);
+ assert.equal(Q.loadTeams(st,["madrid"]),null);
+ st.setItem(Q.TEAM_KEY,"{broken");
+ assert.equal(Q.loadTeams(st,ids),null);
+});
