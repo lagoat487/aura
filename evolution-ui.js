@@ -57,6 +57,9 @@ const AuraEvolution=(()=>{
         penaltyHistory=AuraPenaltyHistory.record(localStorage,penaltyChallenge).rows;
     }
   }catch{}
+  const savedSkill=typeof AuraSkillGames!=="undefined"&&typeof localStorage!=="undefined"?AuraSkillGames.load(localStorage):{session:null,best:{}};
+  let skillSession=savedSkill.session,skillBest=savedSkill.best,skillAim="center",skillPower="medium",skillFeedback="";
+  function persistSkill(){try{if(typeof AuraSkillGames!=="undefined"&&typeof localStorage!=="undefined")AuraSkillGames.save(localStorage,skillSession,skillBest);}catch{}}
   function persistPenalty(){
     try{if(typeof AuraPenaltyChallenge!=="undefined"&&typeof localStorage!=="undefined")
       AuraPenaltyChallenge.save(localStorage,penaltyChallenge);}catch{}
@@ -123,7 +126,8 @@ const AuraEvolution=(()=>{
       '<p>Carrera, partidos, Draft, copas, fútbol callejero y Ultimate Team. Entra en cada uno desde su propia pantalla. Puedes iniciar nueva carrera entrando en Carrera Mánager.</p>'+
       '<div class="aura-mode-home-actions"><button class="btn primary" data-evo="hero-start">EXPLORAR MODOS ↓</button>'+
       (recent?'<button class="btn" data-evo="mode-resume">↗ VOLVER A '+recent[2]+'</button>':'')+
-      '<button class="btn" data-evo="argentina-open">🇦🇷 LIGA ARGENTINA</button></div>'+
+      '<button class="btn" data-evo="argentina-open">🇦🇷 LIGA ARGENTINA</button>'+
+      '<button class="btn" data-evo="skill-open">🎯 CENTRO DE ENTRENAMIENTO</button></div>'+
       '<div class="aura-mode-home-metrics"><span><strong>07</strong> MODOS</span>'+
       '<span><strong>'+(loaded?Number(stats.clubs||0).toLocaleString("es-ES"):'11×11')+'</strong> CLUBES O JUGADORES</span>'+
       '<span><strong>3D</strong> PARTIDOS JUGABLES</span></div></section>'+modeTabs();
@@ -239,10 +243,34 @@ const AuraEvolution=(()=>{
       '<button class="btn penalty-new" data-evo="quick-penalty-new">'+(finished?"↻ Jugar otra tanda":"↻ Reiniciar con los equipos seleccionados")+'</button>'+
       '<p class="save-info">Desafío independiente de Rivalidad, Draft, Carrera y Ultimate Team.</p></section>'+penaltyHistoryPanel();
   }
+  function skillPanel(){
+    if(typeof AuraSkillGames==="undefined")return "";
+    const K=AuraSkillGames,g=skillSession,goal=g?K.target(g):null,L=K.names;
+    return '<section class="skill-games" id="skill-games" aria-label="Desafíos de habilidad">'+
+      '<span class="eyebrow">NUEVO · ENTRENAMIENTO</span><h2>DESAFÍOS DE HABILIDAD</h2>'+
+      '<p class="skill-intro">Tres minijuegos de precisión con récords independientes. No son partidos 3D.</p>'+
+      '<div class="skill-types">'+Object.entries(K.kinds).map(([id,item])=>
+        '<button type="button" data-evo="skill-start" data-skill-kind="'+id+'" class="'+(g?.kind===id?"selected":"")+'">'+
+        '<strong>'+item.name+'</strong><small>Récord: '+(skillBest[id]||0)+' / 900</small>'+
+        '<span>'+(g?.kind===id&&g.status==="playing"?"REINICIAR":"EMPEZAR")+' ↗</span></button>').join("")+'</div>'+
+      (g?'<div class="skill-board"><div class="skill-score"><strong>'+K.kinds[g.kind].name+'</strong>'+
+        '<span>INTENTO '+g.turn+' / '+K.ROUNDS+'</span><span>'+g.score+' PUNTOS</span></div>'+
+        '<progress max="'+K.ROUNDS+'" value="'+g.turn+'" aria-label="Intentos completados"></progress>'+
+        (g.status==="playing"?'<p class="skill-tip">Objetivo: <b>'+L[goal.lane]+'</b> · Potencia <b>'+L[goal.distance]+'</b>. Elige dirección y potencia.</p>'+
+          '<div class="skill-choices"><fieldset><legend>Dirección</legend>'+
+          K.lanes.map(id=>'<button type="button" data-evo="skill-aim" data-skill-aim="'+id+'" aria-pressed="'+(skillAim===id)+'" class="'+(skillAim===id?"selected":"")+'">'+L[id]+'</button>').join("")+
+          '</fieldset><fieldset><legend>Potencia</legend>'+
+          K.powers.map(id=>'<button type="button" data-evo="skill-power" data-skill-power="'+id+'" aria-pressed="'+(skillPower===id)+'" class="'+(skillPower===id?"selected":"")+'">'+L[id]+'</button>').join("")+
+          '</fieldset></div><button type="button" class="btn primary skill-fire" data-evo="skill-fire">'+K.kinds[g.kind].verb+' · '+(g.turn+1)+' / 9 →</button>':
+          '<div class="skill-finish">🏅 '+K.medal(g)+' · '+g.score+' / 900 puntos</div>'+
+          '<button type="button" class="btn skill-fire" data-evo="skill-reset">Cerrar resultado</button>')+
+        (skillFeedback?'<p class="skill-result" role="status">'+text(skillFeedback)+'</p>':'')+'</div>':
+        '<p class="skill-empty">Elige un ejercicio para comenzar.</p>')+'</section>';
+  }
   function quickPicker(){
     const h=getClub(quickHome),a=getClub(quickAway);
     const team=(club,id,label)=>'<div class="quick-team"><span class="quick-team-label">'+label+'</span>'+badge(club,105)+'<label class="sr-only" for="'+id+'">'+label+'</label><select id="'+id+'" '+(quickRivalry?.status==='playing'?'disabled':'')+'>'+quickChoices(club.id)+'</select><button class="quick-roster-link" data-evo="view-roster" data-club="'+text(club.id)+'">Ver plantilla →</button><div class="quick-strength"><strong>'+club.rating+'</strong><span>FORTALEZA<br>DEL CLUB</span></div><div class="quick-strength-track" aria-hidden="true"><i style="width:'+club.rating+'%"></i></div></div>';
-    return '<section class="quick-match-panel"><div class="selection-heading"><div><span class="eyebrow">02 / DIRECTO AL PARTIDO</span><h2>EL CÉSPED TE ESPERA.</h2></div><span class="pill">11 contra 11 · Tú contra la IA</span></div><div class="quick-search-bar"><label for="quick-club-search">Encuentra un equipo<input id="quick-club-search" type="search" placeholder="Busca club o ciudad…" value="'+text(quickQuery)+'" autocomplete="off"></label><span id="quick-search-status" role="status">'+quickClubs().filter(c=>!quickQuery||normal(c.name+" "+c.city).includes(normal(quickQuery))).length+' equipos en la búsqueda</span></div><div class="quick-teams">'+team(h,"quick-home","TU EQUIPO")+'<div class="quick-versus"><b aria-hidden="true">VS</b><button class="quick-swap" data-evo="quick-swap" aria-label="Intercambiar tu equipo y el rival" title="Intercambiar equipos">⇄</button></div>'+team(a,"quick-away","EL RIVAL")+'</div><div class="quick-cta"><button class="btn primary" data-evo="quick-start">Preparar partido <span>→</span></button><p>Duración, dificultad, ambiente y gráficos. El siguiente paso lo eliges tú.</p></div></section>'+rivalryPanel()+penaltyPanel();
+    return '<section class="quick-match-panel"><div class="selection-heading"><div><span class="eyebrow">02 / DIRECTO AL PARTIDO</span><h2>EL CÉSPED TE ESPERA.</h2></div><span class="pill">11 contra 11 · Tú contra la IA</span></div><div class="quick-search-bar"><label for="quick-club-search">Encuentra un equipo<input id="quick-club-search" type="search" placeholder="Busca club o ciudad…" value="'+text(quickQuery)+'" autocomplete="off"></label><span id="quick-search-status" role="status">'+quickClubs().filter(c=>!quickQuery||normal(c.name+" "+c.city).includes(normal(quickQuery))).length+' equipos en la búsqueda</span></div><div class="quick-teams">'+team(h,"quick-home","TU EQUIPO")+'<div class="quick-versus"><b aria-hidden="true">VS</b><button class="quick-swap" data-evo="quick-swap" aria-label="Intercambiar tu equipo y el rival" title="Intercambiar equipos">⇄</button></div>'+team(a,"quick-away","EL RIVAL")+'</div><div class="quick-cta"><button class="btn primary" data-evo="quick-start">Preparar partido <span>→</span></button><p>Duración, dificultad, ambiente y gráficos. El siguiente paso lo eliges tú.</p></div></section>'+rivalryPanel()+penaltyPanel()+skillPanel();
   }
   function pool(){
     if(typeof AuraRosterSync!=="undefined")return AuraRosterSync.pool();
@@ -371,6 +399,29 @@ const AuraEvolution=(()=>{
     if(d.evo==="mode-back"){modeOpen=false;render();window.scrollTo(0,0);return true;}
     if(d.evo==="mode-resume"&&recentMode)return chooseMode(recentMode);
     if(d.evo==="controls")controlsModal();
+    if(d.evo==="skill-open"){
+      chooseMode("quick");document.getElementById("skill-games")?.scrollIntoView({behavior:"smooth",block:"start"});return true;
+    }
+    if(d.evo==="skill-start"){
+      if(!Object.hasOwn(AuraSkillGames.kinds,d.skillKind))return true;
+      skillSession=AuraSkillGames.create(d.skillKind);skillAim="center";skillPower="medium";skillFeedback="";
+      persistSkill();render();document.getElementById("skill-games")?.scrollIntoView({block:"start"});return true;
+    }
+    if(d.evo==="skill-aim"&&AuraSkillGames.lanes.includes(d.skillAim)){
+      skillAim=d.skillAim;render();return true;
+    }
+    if(d.evo==="skill-power"&&AuraSkillGames.powers.includes(d.skillPower)){
+      skillPower=d.skillPower;render();return true;
+    }
+    if(d.evo==="skill-reset"){skillSession=null;skillFeedback="";persistSkill();render();return true;}
+    if(d.evo==="skill-fire"){
+      if(!skillSession)return true;
+      const result=AuraSkillGames.take(skillSession,skillAim,skillPower);
+      if(!result)return true;
+      skillFeedback="Intento "+skillSession.turn+": +"+result.points+" puntos.";
+      if(result.finished){skillBest=AuraSkillGames.finish(skillBest,skillSession)||skillBest;skillFeedback+=" Medalla: "+result.medal+".";}
+      persistSkill();render();return true;
+    }
     if(d.evo==="view-roster"){
       const club=clubs.find(c=>c.id===d.club);if(!club)return true;
       const players=typeof AuraRosterSync!=="undefined"?AuraRosterSync.rosterFor(club):starterRoster(club.id,71921,club.rating);
