@@ -18,3 +18,15 @@ test("Canonical index uses the same seven single-column mobile layout as mobile.
   for(const mode of ["career","quick","draft","pro","cup","ultimate","street"])
     assert.match(modes,new RegExp('\\["'+mode+'","0[1-7]"'));
 });
+
+test("All seven mode cards expose saved progress on desktop and mobile",()=>{
+  const modes=read("evolution-ui.js"),css=read("mode-progress.css");
+  assert.match(modes,/AuraModeProgress\.progressLabel\(id,progress\)/);
+  assert.match(modes,/class="aura-mode-progress"/);
+  assert.match(css,/\.aura-mode-progress\{/);
+  for(const html of [read("index.html"),read("mobile.html")]){
+    assert.match(html,/mode-progress\.js\?v=5\.9/);
+    assert.match(html,/mode-progress\.css\?v=5\.9/);
+    assert.match(html,/evolution-ui\.js\?v=6\.4-progress/);
+  }
+});
