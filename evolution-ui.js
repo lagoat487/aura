@@ -76,6 +76,15 @@ const AuraEvolution=(()=>{
     window.scrollTo(0,0);return true;
   }
   function modeTabs(){
+    // Read each mode's own validated save; never create/overwrite a save on menu render.
+    const progress={career:state,draft,rivalry:quickRivalry,penalty:penaltyChallenge};
+    try{
+      if(typeof localStorage!=="undefined"){
+        if(typeof AuraCupSave!=="undefined")progress.cups=AuraCupSave.load(localStorage,AuraTour.cupTypes);
+        if(typeof AuraStreetSave!=="undefined")progress.street=AuraStreetSave.load(localStorage);
+        if(typeof AuraUTSave!=="undefined")progress.ultimate=AuraUTSave.load(localStorage).snapshot?.club||null;
+      }
+    }catch{} // Browsers with restricted storage still show every mode.
     const ordered=modeCards.slice().sort((a,b)=>Number(b[0]===pinnedMode)-Number(a[0]===pinnedMode));
     return '<section class="aura-mode-library" aria-labelledby="aura-mode-choose">'+
       '<div class="aura-mode-library-heading"><div><span class="eyebrow">AURA 27 · ELIGE TU MUNDO</span>'+
@@ -83,11 +92,14 @@ const AuraEvolution=(()=>{
       '<p>Ya no son pestañas mezcladas. Cada modo abre su propio espacio y puedes volver sin perder el equipo que estabas preparando.</p></div>'+
       '<div class="mode-tabs aura-mode-cards">'+ordered.map(([id,num,title,slogan,description,feature,emoji])=>{
         const pin=pinnedMode===id;
+        const status=typeof AuraModeProgress!=="undefined"?AuraModeProgress.progressLabel(id,progress):null;
         return '<article class="aura-mode-tile aura-mode-tile--'+id+'" data-mode-card="'+id+'">'+
           '<button class="aura-mode-launch" data-evo-mode="'+id+'" aria-label="Entrar a '+title+'">'+
             '<span class="aura-mode-tile-top"><span class="aura-mode-number">'+num+' / 07</span><span class="aura-mode-emoji" aria-hidden="true">'+emoji+'</span></span>'+
             '<strong>'+title+'</strong><em>'+slogan+'</em><span class="aura-mode-description">'+description+'</span>'+
-            '<span class="aura-mode-feature">'+feature+'</span><span class="aura-mode-cta">ENTRAR AL MODO <b>↗</b></span>'+
+            '<span class="aura-mode-feature">'+feature+'</span>'+
+            (status?'<span class="aura-mode-progress" role="status">'+text(status)+'</span>':'')+
+            '<span class="aura-mode-cta">'+(status?'VOLVER AL MODO':'ENTRAR AL MODO')+' <b>↗</b></span>'+
           '</button><button class="aura-mode-pin" data-evo-pin="'+id+'" aria-pressed="'+pin+'" aria-label="'+(pin?'Quitar de favoritos':'Destacar')+' '+title+'">'+
             (pin?'★ DESTACADO':'☆ DESTACAR')+'</button></article>';
       }).join('')+'</div></section>';
