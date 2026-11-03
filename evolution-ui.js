@@ -281,7 +281,7 @@ const AuraEvolution=(()=>{
     const h=getClub(quickHome),a=getClub(quickAway);
     const team=(club,id,label)=>'<div class="quick-team"><span class="quick-team-label">'+label+'</span>'+badge(club,105)+'<label class="sr-only" for="'+id+'">'+label+'</label><select id="'+id+'" '+(quickRivalry?.status==='playing'?'disabled':'')+'>'+quickChoices(club.id)+'</select><label class="quick-formation-label" for="'+id+'-formation">Formación<select id="'+id+'-formation">'+availableQuickFormations().map(formation=>
         '<option value="'+formation+'" '+((id==="quick-home"?quickHomeFormation:quickAwayFormation)===formation?'selected':'')+'>'+formation+'</option>').join('')+
-      '</select></label><button class="quick-roster-link" data-evo="view-roster" data-club="'+text(club.id)+'">Ver plantilla →</button><div class="quick-strength"><strong>'+club.rating+'</strong><span>FORTALEZA<br>DEL CLUB</span></div><div class="quick-strength-track" aria-hidden="true"><i style="width:'+club.rating+'%"></i></div></div>';
+      '</select></label><button class="quick-roster-link" data-evo="view-roster" data-club="'+text(club.id)+'">Ver plantilla →</button><button class="quick-lineup-button" data-evo="quick-lineup" data-quick-side="'+(id==="quick-home"?"home":"away")+'">⚽ Ver once táctico →</button><div class="quick-strength"><strong>'+club.rating+'</strong><span>FORTALEZA<br>DEL CLUB</span></div><div class="quick-strength-track" aria-hidden="true"><i style="width:'+club.rating+'%"></i></div></div>';
     return '<section class="quick-match-panel"><div class="selection-heading"><div><span class="eyebrow">02 / DIRECTO AL PARTIDO</span><h2>EL CÉSPED TE ESPERA.</h2></div><span class="pill">11 contra 11 · Tú contra la IA</span></div><div class="quick-search-bar"><label for="quick-club-search">Encuentra un equipo<input id="quick-club-search" type="search" placeholder="Busca club o ciudad…" value="'+text(quickQuery)+'" autocomplete="off"></label><span id="quick-search-status" role="status">'+quickClubs().filter(c=>!quickQuery||normal(c.name+" "+c.city).includes(normal(quickQuery))).length+' equipos en la búsqueda</span></div><div class="quick-teams">'+team(h,"quick-home","TU EQUIPO")+'<div class="quick-versus"><b aria-hidden="true">VS</b><button class="quick-swap" data-evo="quick-swap" aria-label="Intercambiar tu equipo y el rival" title="Intercambiar equipos">⇄</button></div>'+team(a,"quick-away","EL RIVAL")+'</div><div class="quick-cta"><button class="btn primary" data-evo="quick-start">Preparar partido <span>→</span></button><p>Duración, dificultad, ambiente y gráficos. El siguiente paso lo eliges tú.</p></div></section>'+rivalryPanel()+penaltyPanel()+skillPanel();
   }
   function pool(){
@@ -433,6 +433,26 @@ const AuraEvolution=(()=>{
       skillFeedback="Intento "+skillSession.turn+": +"+result.points+" puntos.";
       if(result.finished){skillBest=AuraSkillGames.finish(skillBest,skillSession)||skillBest;skillFeedback+=" Medalla: "+result.medal+".";}
       persistSkill();render();return true;
+    }
+    if(d.evo==="quick-lineup"){
+      const home=d.quickSide!=="away",club=getClub(home?quickHome:quickAway);
+      const formation=home?quickHomeFormation:quickAwayFormation;
+      try{
+        const lineup=AuraArena.team(club,null,null,formation);
+        const grl=Math.round(lineup.players.reduce((total,p)=>total+p.overall,0)/11);
+        const field='<div class="quick-lineup-pitch" aria-label="Posiciones de los once titulares">'+
+          lineup.players.map((p,i)=>'<span class="quick-lineup-player" style="left:'+lineup.slots[i][1]+
+          '%;top:'+lineup.slots[i][2]+'%" title="'+text(p.name)+'">'+
+          '<b>'+text(lineup.slots[i][0])+'</b><small>'+p.overall+'</small></span>').join('')+'</div>';
+        const rows=lineup.players.map((p,i)=>'<tr><td>'+(i+1)+'</td><td>'+text(p.name)+
+          '</td><td>'+text(lineup.slots[i][0])+'</td><td>'+p.overall+'</td></tr>').join('');
+        openModal("ONCE TÁCTICO · "+club.name,'<section class="quick-lineup-modal"><span class="eyebrow">'+
+          text(formation)+' · GRL '+grl+'</span>'+field+
+          '<p>Este es el once que el juego usará con la formación elegida. Los futbolistas no se duplican.</p>'+
+          '<div class="table-wrap"><table class="table"><thead><tr><th>#</th><th>JUGADOR</th><th>POSICIÓN</th><th>GRL</th></tr></thead>'+
+          '<tbody>'+rows+'</tbody></table></div></section>');
+      }catch(err){notify("No se pudo preparar el once: "+err.message);}
+      return true;
     }
     if(d.evo==="view-roster"){
       const club=clubs.find(c=>c.id===d.club);if(!club)return true;
