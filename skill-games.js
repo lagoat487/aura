@@ -24,7 +24,7 @@
   if(!g||!Object.hasOwn(kinds,g.kind)||!integer(g.turn,0,ROUNDS)||g.turn===ROUNDS)return null;
   let n=(g.seed^Math.imul(g.turn+1,2654435761))>>>0;
   n^=n>>>16;n=Math.imul(n,2246822507)>>>0;n^=n>>>13;
-  return {lane:lanes[n%3],distance:powers[(n>>>8)%3]};
+  return {lane:lanes[(n>>>0)%3],distance:powers[(n>>>8)%3]};
  }
  function reward(t,lane,power){
   if(!t||!lanes.includes(lane)||!powers.includes(power))return null;
