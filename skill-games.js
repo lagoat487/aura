@@ -61,8 +61,8 @@
  }
  function take(g,lane,power){
   if(!valid(g)||g.status!=="playing"||!lanes.includes(lane)||!powers.includes(power))return null;
-  const points=takeUnchecked(g,lane,power);
-  return {points,finished:g.status==="finished",medal:medal(g)};
+  const aim=target(g),points=takeUnchecked(g,lane,power);
+  return {points,target:aim,finished:g.status==="finished",medal:medal(g)};
  }
  function validBest(best){
   return best&&typeof best==="object"&&!Array.isArray(best)&&
