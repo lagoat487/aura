@@ -46,3 +46,12 @@ test("Quick match exposes a tactical pitch preview from the exact chosen XI",()=
  assert.match(css,/\.quick-lineup-pitch\{/);
  assert.match(css,/\.quick-lineup-player\{/);
 });
+
+test("Quick-match player clubs are remembered without modifying other game modes",()=>{
+ const evolution=fs.readFileSync(path.join(__dirname,"..","evolution-ui.js"),"utf8");
+ assert.match(evolution,/AuraQuickFormations\.loadTeams/);
+ assert.match(evolution,/AuraQuickFormations\.saveTeams/);
+ assert.match(evolution,/persistQuickTeams\(\)/);
+ assert.match(evolution,/quickHome=e\.target\.value;persistQuickTeams\(\)/);
+ assert.match(evolution,/quickAway=e\.target\.value;persistQuickTeams\(\)/);
+});
