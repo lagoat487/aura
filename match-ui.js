@@ -12,9 +12,10 @@ const AuraArena=(()=>{
   const escape=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const cameraNames={broadcast:'TV · Transmisión',tele:'Tele · Cercana',wide:'Panorámica',tactical:'Táctica'};
   const short=s=>String(s||"").replace(/FC | CF| CF|Club |Manchester /g,"").slice(0,19);
-  function team(club,career=null,custom=null){
+  function team(club,career=null,custom=null,preferredFormation="4-3-3"){
     let roster=custom||career?.rosters?.[club.id]||starterRoster(club.id,71921,club.rating);
-    const formation=career&&club.id===career.club?AuraSquad.ensure(career).formation:"4-3-3";
+    const formation=career&&club.id===career.club?AuraSquad.ensure(career).formation:
+      (Object.hasOwn(AuraSquad.formations,preferredFormation)?preferredFormation:"4-3-3");
     const slots=AuraSquad.formations[formation];
     const ids=career&&club.id===career.club?AuraSquad.ensure(career).xi:AuraSquad.choose(roster,formation);
     const players=ids.map((id,index)=>{
