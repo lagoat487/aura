@@ -146,3 +146,19 @@
  #arena .match-mvp{padding:9px 13px}
  #arena .match-mvp strong{font-size:15px}
 }
+
+/* AURA quick match profile selector, keyboard and touch. */
+.prematch-presets{display:flex;align-items:center;flex-wrap:wrap;gap:9px;
+  margin:16px 0;padding:12px 14px;border-radius:11px;
+  border:1px solid #8dd59d55;background:linear-gradient(100deg,#172b2c,#152333)}
+.prematch-presets strong{font:800 10px Arial,sans-serif;letter-spacing:.5px;color:#c3f8b2;margin-right:3px}
+.prematch-presets button{min-height:40px;border:1px solid #ffffff36;border-radius:8px;
+  padding:8px 12px;background:#263d43;color:#f2fcf9;font-weight:800;cursor:pointer}
+.prematch-presets button:hover{border-color:#b7f78d;background:#314e46}
+.prematch-presets button:focus-visible{outline:2px solid #b7f78d;outline-offset:3px}
+.prematch-presets small{flex-basis:100%;font-size:11px;color:#bad7c8}
+@media(max-width:650px){
+ .prematch-presets{gap:8px}
+ .prematch-presets strong{flex-basis:100%}
+ .prematch-presets button{flex:1 1 43%;font-size:12px;min-height:46px}
+}
