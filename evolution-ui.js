@@ -274,6 +274,7 @@ const AuraEvolution=(()=>{
   function skillPanel(){
     if(typeof AuraSkillGames==="undefined")return "";
     const K=AuraSkillGames,g=skillSession,goal=g?K.target(g):null,L=K.names;
+    const previous=g?.turn?K.target({...g,turn:g.turn-1}):null;
     return '<section class="skill-games" id="skill-games" aria-label="Desafíos de habilidad">'+
       '<span class="eyebrow">NUEVO · ENTRENAMIENTO</span><h2>DESAFÍOS DE HABILIDAD</h2>'+
       '<p class="skill-intro">Tres minijuegos de precisión con récords independientes. No son partidos 3D.</p>'+
@@ -284,6 +285,12 @@ const AuraEvolution=(()=>{
       (g?'<div class="skill-board"><div class="skill-score"><strong>'+K.kinds[g.kind].name+'</strong>'+
         '<span>INTENTO '+g.turn+' / '+K.ROUNDS+'</span><span>'+g.score+' PUNTOS</span></div>'+
         '<progress max="'+K.ROUNDS+'" value="'+g.turn+'" aria-label="Intentos completados"></progress>'+
+        '<div class="skill-goal-visual" aria-hidden="true"><div class="skill-goal-net">'+
+        K.lanes.map(id=>'<div class="skill-goal-cell '+(skillAim===id?"aimed ":"")+
+          (g.status==="playing"&&g.kind!=="keeping"&&goal.lane===id?"target":"")+'">'+
+          '<span>'+L[id]+'</span></div>').join('')+
+        (previous?'<span class="skill-last-ball skill-last-ball--'+previous.lane+'">⚽</span>':'')+
+        '</div><small>'+(previous?"ÚLTIMO INTENTO · POSICIÓN DEL BALÓN":"SELECCIONA UNA ZONA PARA EMPEZAR")+'</small></div>'+
         (g.status==="playing"?(g.kind==="keeping"?
           '<p class="skill-tip">🧤 ¡Se acerca un disparo! Altura <b>'+({soft:"Baja",medium:"Media",strong:"Alta"}[goal.distance])+
           '</b>. Adivina el lado al que irá el balón y elige la altura de tu estirada.</p>':
