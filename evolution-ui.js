@@ -13,6 +13,16 @@ const AuraEvolution=(()=>{
   function stopPreview(){globalThis.cancelAnimationFrame?.(previewFrame);preview?.dispose();preview=null;}
   function afterRender(){
     stopPreview();
+    // Keep keyboard/touch practice focused when buttons are re-rendered.
+    if(skillFocus){
+      const [action,value]=skillFocus;
+      const selector=action==="skill-aim"?'[data-evo="skill-aim"][data-skill-aim="'+value+'"]':
+        action==="skill-power"?'[data-evo="skill-power"][data-skill-power="'+value+'"]':
+        '[data-evo="'+action+'"]';
+      const button=document.querySelector(selector);
+      try{button?.focus({preventScroll:true});}catch{button?.focus();}
+      skillFocus=null;
+    }
     // Preserve touch/keyboard selection across the rerender after a penalty kick.
     if(penaltyFocus){
       const button=document.querySelector('[data-evo="quick-penalty-kick"][data-penalty-dir="'+penaltyFocus+'"]')||
@@ -65,7 +75,7 @@ const AuraEvolution=(()=>{
     }
   }catch{}
   const savedSkill=typeof AuraSkillGames!=="undefined"&&typeof localStorage!=="undefined"?AuraSkillGames.load(localStorage):{session:null,best:{}};
-  let skillSession=savedSkill.session,skillBest=savedSkill.best,skillAim="center",skillPower="medium",skillFeedback="";
+  let skillSession=savedSkill.session,skillBest=savedSkill.best,skillAim="center",skillPower="medium",skillFeedback="",skillFocus=null;
   function persistSkill(){try{if(typeof AuraSkillGames!=="undefined"&&typeof localStorage!=="undefined")AuraSkillGames.save(localStorage,skillSession,skillBest);}catch{}}
   function persistPenalty(){
     try{if(typeof AuraPenaltyChallenge!=="undefined"&&typeof localStorage!=="undefined")
@@ -263,11 +273,14 @@ const AuraEvolution=(()=>{
       (g?'<div class="skill-board"><div class="skill-score"><strong>'+K.kinds[g.kind].name+'</strong>'+
         '<span>INTENTO '+g.turn+' / '+K.ROUNDS+'</span><span>'+g.score+' PUNTOS</span></div>'+
         '<progress max="'+K.ROUNDS+'" value="'+g.turn+'" aria-label="Intentos completados"></progress>'+
-        (g.status==="playing"?'<p class="skill-tip">Objetivo: <b>'+L[goal.lane]+'</b> · Potencia <b>'+L[goal.distance]+'</b>. Elige dirección y potencia.</p>'+
+        (g.status==="playing"?(g.kind==="keeping"?
+          '<p class="skill-tip">🧤 ¡Se acerca un disparo! Altura <b>'+({soft:"Baja",medium:"Media",strong:"Alta"}[goal.distance])+
+          '</b>. Adivina el lado al que irá el balón y elige la altura de tu estirada.</p>':
+          '<p class="skill-tip">Objetivo: <b>'+L[goal.lane]+'</b> · Potencia <b>'+L[goal.distance]+'</b>. Elige dirección y potencia.</p>')+
           '<div class="skill-choices"><fieldset><legend>Dirección</legend>'+
           K.lanes.map(id=>'<button type="button" data-evo="skill-aim" data-skill-aim="'+id+'" aria-pressed="'+(skillAim===id)+'" class="'+(skillAim===id?"selected":"")+'">'+L[id]+'</button>').join("")+
-          '</fieldset><fieldset><legend>Potencia</legend>'+
-          K.powers.map(id=>'<button type="button" data-evo="skill-power" data-skill-power="'+id+'" aria-pressed="'+(skillPower===id)+'" class="'+(skillPower===id?"selected":"")+'">'+L[id]+'</button>').join("")+
+          '</fieldset><fieldset><legend>'+(g.kind==="keeping"?"Altura de la estirada":"Potencia")+'</legend>'+
+          K.powers.map(id=>'<button type="button" data-evo="skill-power" data-skill-power="'+id+'" aria-pressed="'+(skillPower===id)+'" class="'+(skillPower===id?"selected":"")+'">'+(g.kind==="keeping"?({soft:"Baja",medium:"Media",strong:"Alta"}[id]):L[id])+'</button>').join("")+
           '</fieldset></div><button type="button" class="btn primary skill-fire" data-evo="skill-fire">'+K.kinds[g.kind].verb+' · '+(g.turn+1)+' / 9 →</button>':
           '<div class="skill-finish">🏅 '+K.medal(g)+' · '+g.score+' / 900 puntos</div>'+
           '<button type="button" class="btn skill-fire" data-evo="skill-reset">Cerrar resultado</button>')+
@@ -416,22 +429,24 @@ const AuraEvolution=(()=>{
     }
     if(d.evo==="skill-start"){
       if(!Object.hasOwn(AuraSkillGames.kinds,d.skillKind))return true;
-      skillSession=AuraSkillGames.create(d.skillKind);skillAim="center";skillPower="medium";skillFeedback="";
+      skillSession=AuraSkillGames.create(d.skillKind);skillAim="center";skillPower="medium";skillFeedback="";skillFocus=["skill-fire",""];
       persistSkill();render();document.getElementById("skill-games")?.scrollIntoView({block:"start"});return true;
     }
     if(d.evo==="skill-aim"&&AuraSkillGames.lanes.includes(d.skillAim)){
-      skillAim=d.skillAim;render();return true;
+      skillAim=d.skillAim;skillFocus=["skill-aim",d.skillAim];render();return true;
     }
     if(d.evo==="skill-power"&&AuraSkillGames.powers.includes(d.skillPower)){
-      skillPower=d.skillPower;render();return true;
+      skillPower=d.skillPower;skillFocus=["skill-power",d.skillPower];render();return true;
     }
-    if(d.evo==="skill-reset"){skillSession=null;skillFeedback="";persistSkill();render();return true;}
+    if(d.evo==="skill-reset"){skillSession=null;skillFeedback="";skillFocus=null;persistSkill();render();return true;}
     if(d.evo==="skill-fire"){
       if(!skillSession)return true;
       const result=AuraSkillGames.take(skillSession,skillAim,skillPower);
       if(!result)return true;
-      skillFeedback="Intento "+skillSession.turn+": +"+result.points+" puntos.";
+      skillFeedback="Intento "+skillSession.turn+": +"+result.points+" puntos."+
+        (skillSession.kind==="keeping"?" El disparo fue hacia "+AuraSkillGames.names[result.target.lane]+".":"");
       if(result.finished){skillBest=AuraSkillGames.finish(skillBest,skillSession)||skillBest;skillFeedback+=" Medalla: "+result.medal+".";}
+      skillFocus=[result.finished?"skill-reset":"skill-fire",""];
       persistSkill();render();return true;
     }
     if(d.evo==="quick-lineup"){
