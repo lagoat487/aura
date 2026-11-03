@@ -9,14 +9,14 @@ test("mobile.html is a separate production entry to seven independent mode scree
  assert.match(mobile,/MENÚS 5\.7 · VERSIÓN MÓVIL/);
  assert.match(mobile,/7 modos separados/);
  assert.match(mobile,/href="\.\/mode-hub\.css\?v=5\.1"/);
- assert.match(mobile,/src="\.\/evolution-ui\.js\?v=7\.6-clubs"/);
+ assert.match(mobile,/src="\.\/evolution-ui\.js\?v=7\.7-goal"/);
  assert.match(mobile,/src="\.\/game\.js\?v=5\.1"/);
  const assets=html=>Array.from(html.matchAll(/(?:src|href)="\.\/([^"?#]+)/g),m=>m[1]);
  assert.deepEqual(assets(mobile),assets(desktop),"mobile must load the same game code and assets");
  assert.match(read("evolution-ui.js"),/function modeHub\(\)/);
  assert.match(read("evolution-ui.js"),/aura-mode-cards/);
  assert.match(mobile,/src="\.\/skill-games\.js\?v=7\.5"/);
- assert.match(mobile,/href="\.\/skill-games\.css\?v=7\.0"/);
+ assert.match(mobile,/href="\.\/skill-games\.css\?v=7\.7"/);
  assert.match(read("evolution-ui.js"),/function skillPanel\(\)/);
  assert.match(read("mobile-mode.css"),/grid-template-columns:minmax\(0,1fr\)/,"mobile cards stack");
 });
