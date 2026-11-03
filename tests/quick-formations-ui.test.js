@@ -35,3 +35,14 @@ test("Quick-match controls are wired for both local sides and best-of-three riva
  assert.match(evolution,/AuraArena\.team\(mine,null,null,quickHomeFormation\)/);
  assert.match(evolution,/AuraArena\.team\(getClub\(quickAway\),null,null,quickAwayFormation\)/);
 });
+
+test("Quick match exposes a tactical pitch preview from the exact chosen XI",()=>{
+ const ui=fs.readFileSync(path.join(__dirname,"..","evolution-ui.js"),"utf8");
+ const css=fs.readFileSync(path.join(__dirname,"..","quick-formations.css"),"utf8");
+ assert.match(ui,/data-evo="quick-lineup"/);
+ assert.match(ui,/data-quick-side/);
+ assert.match(ui,/lineup\.slots\[i\]/);
+ assert.match(ui,/AuraArena\.team\(club,null,null,formation\)/);
+ assert.match(css,/\.quick-lineup-pitch\{/);
+ assert.match(css,/\.quick-lineup-player\{/);
+});
