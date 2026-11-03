@@ -43,3 +43,11 @@ test("Skill records save independently and survive reload safely",()=>{
  st.setItem(S.KEY,"{bad");assert.deepEqual(S.load(st),{session:null,best:{}});
  assert.equal(S.save({setItem(){throw Error("blocked");}},g,best),false);
 });
+
+test("Keeper decisions reveal the shot only after the attempt, without changing its score",()=>{
+ const g=S.create("keeping",77),before=S.target(g);
+ const result=S.take(g,"left","strong");
+ assert.deepEqual(result.target,before);
+ assert.equal(g.attempts[0].points,result.points);
+ assert.equal(S.valid(g),true);
+});
