@@ -9,3 +9,16 @@
   .draft-offer-tools{display:flex;flex-direction:column;align-items:stretch;padding:14px}
   .draft-offer-tools .btn{min-height:48px;width:100%;font-size:12px}
 }
+
+/* Live mode-status chips: visible, accessible and compact on phones. */
+.aura-mode-progress{
+ display:inline-flex;align-items:center;max-width:100%;box-sizing:border-box;
+ margin-top:12px;padding:7px 10px;border-radius:8px;
+ border:1px solid color-mix(in srgb,var(--mode-accent,#c9ff70) 52%,transparent);
+ background:color-mix(in srgb,var(--mode-accent,#c9ff70) 13%,#101c22);
+ color:#f2fff0;font:800 10px/1.5 Arial,sans-serif;letter-spacing:.25px;
+ overflow-wrap:anywhere;
+}
+@media(max-width:650px){
+ .aura-mode-progress{font-size:11px;padding:8px 10px}
+}
