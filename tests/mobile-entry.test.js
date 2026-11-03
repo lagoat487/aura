@@ -15,7 +15,7 @@ test("mobile.html is a separate production entry to seven independent mode scree
  assert.deepEqual(assets(mobile),assets(desktop),"mobile must load the same game code and assets");
  assert.match(read("evolution-ui.js"),/function modeHub\(\)/);
  assert.match(read("evolution-ui.js"),/aura-mode-cards/);
- assert.match(mobile,/src="\.\/skill-games\.js\?v=7\.0"/);
+ assert.match(mobile,/src="\.\/skill-games\.js\?v=7\.5"/);
  assert.match(mobile,/href="\.\/skill-games\.css\?v=7\.0"/);
  assert.match(read("evolution-ui.js"),/function skillPanel\(\)/);
  assert.match(read("mobile-mode.css"),/grid-template-columns:minmax\(0,1fr\)/,"mobile cards stack");
