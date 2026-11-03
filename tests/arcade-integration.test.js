@@ -26,3 +26,12 @@ test("Match setup exposes three real presets and saves only after confirmed kick
  assert.match(evolution,/skillFeedback/);
  assert.match(evolution,/skillBest=AuraSkillGames\.finish/);
 });
+
+test("Keeper drill hides the shot side until a save attempt and retains focus between attempts",()=>{
+ const ui=read("evolution-ui.js");
+ assert.match(ui,/g\.kind==="keeping"/);
+ assert.match(ui,/Adivina el lado al que irá el balón/);
+ assert.match(ui,/result\.target\.lane/);
+ assert.match(ui,/skillFocus/);
+ assert.match(ui,/focus\(\{preventScroll:true\}\)/);
+});
