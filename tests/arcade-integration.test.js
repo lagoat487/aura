@@ -3,7 +3,7 @@ const test=require("node:test"),assert=require("node:assert/strict"),fs=require(
 const read=file=>fs.readFileSync(path.join(__dirname,"..",file),"utf8");
 test("Mobile and canonical entries load practice and match preferences before dependent code",()=>{
  for(const html of [read("index.html"),read("mobile.html")]){
-  assert.match(html,/skill-games\.js\?v=7\.0/);
+  assert.match(html,/skill-games\.js\?v=7\.5/);
   assert.match(html,/skill-games\.css\?v=7\.0/);
   assert.match(html,/match-preferences\.js\?v=7\.1/);
   assert.match(html,/matchday\.css\?v=7\.1/);
