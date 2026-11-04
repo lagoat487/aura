@@ -2,7 +2,7 @@
 const fs=require("node:fs"),path=require("node:path");
 const root=path.resolve(__dirname,".."),out=path.join(root,"dist");
 const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
-const files=["index.html","mobile.html",...Array.from(html.matchAll(/(?:src|href)="\.\/([^"?#]+)"/g),m=>m[1]),"vendor/THREE-LICENSE.txt"];
+const files=["index.html","mobile.html",...Array.from(html.matchAll(/(?:src|href)="\.\/([^"?#]+)(?:[?#][^"]*)?"/g),m=>m[1]),"vendor/THREE-LICENSE.txt"];
 function addAssets(directory){
   const source=path.join(root,directory);
   if(!fs.existsSync(source))return;
@@ -22,3 +22,4 @@ for(const file of new Set(files)){
   fs.mkdirSync(path.dirname(target),{recursive:true});fs.copyFileSync(src,target);
 }
 console.log("AURA Club Update 4.2: "+new Set(files).size+" runtime files checked and copied to dist/.");
+

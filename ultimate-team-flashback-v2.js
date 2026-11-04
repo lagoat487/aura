@@ -37,7 +37,33 @@
     {id:"flashback:neymar-junior",name:"Neymar Júnior",overall:91,pos:"EI",price:800000,nationality:"Brasil",sourceClub:"FC Barcelona",aliases:["Neymar","Neymar Jr","Neymar Júnior"]},
     {id:"flashback:keylor-navas",name:"Keylor Navas",overall:87,pos:"POR",price:200000,nationality:"Costa Rica",sourceClub:"Real Madrid"}
   ])});
+  // MURALLA: defensive collector editions with fixed virtual coin prices.
+  const muralla=Object.freeze({id:"muralla",name:"MURALLA",cards:Object.freeze([
+    {id:"muralla:saliba",name:"William Saliba",overall:90,pos:"DFC",price:550000,nationality:"Francia",playerId:"243715",aliases:["William Alain André Gabriel Saliba"]},
+    {id:"muralla:cubarsi",name:"Pau Cubarsí",overall:89,pos:"DFC",price:450000,nationality:"España",playerId:"278046"},
+    {id:"muralla:pacho",name:"Willian Pacho",overall:90,pos:"DFC",price:500000,nationality:"Ecuador",playerId:"256196",aliases:["Willian Joel Pacho Tenorio"]},
+    {id:"muralla:nuno-mendes",name:"Nuno Mendes",overall:90,pos:"LI",price:550000,nationality:"Portugal",playerId:"252145",aliases:["Nuno Alexandre Tavares Mendes"]},
+    {id:"muralla:hincapie",name:"Piero Hincapié",overall:87,pos:"DFC",price:350000,nationality:"Ecuador",playerId:"256197",aliases:["Piero Martin Hincapié Reyna"]},
+    {id:"muralla:hakimi",name:"Achraf Hakimi",overall:90,pos:"LD",price:600000,nationality:"Marruecos",playerId:"235212"},
+    {id:"muralla:gerard-martin",name:"Gerard Martín",overall:85,pos:"LI",price:300000,nationality:"España",playerId:"74462"},
+    {id:"muralla:rudiger",name:"Antonio Rüdiger",overall:87,pos:"DFC",price:400000,nationality:"Alemania",playerId:"205452"},
+    {id:"muralla:van-dijk",name:"Virgil van Dijk",overall:91,pos:"DFC",price:600000,nationality:"Países Bajos",playerId:"203376"}
+  ])});
   const normalizeName=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
+  function murallaCards(pool){
+    const available=Array.isArray(pool)?pool:[];
+    return muralla.cards.map(def=>{
+      const aliases=[def.name,...(def.aliases||[])].map(normalizeName);
+      const base=available.find(p=>p.real&&p.id==="real:"+def.playerId)||
+        available.find(p=>p.real&&aliases.includes(normalizeName(p.name)));
+      const portrait=def.playerId.padStart(6,"0");
+      return {...(base||{}),id:def.id,originalId:base?.originalId||base?.id||"real:"+def.playerId,
+        name:def.name,overall:def.overall,pos:def.pos,real:true,event:muralla.id,eventPrice:def.price,
+        nationality:def.nationality,sourceClub:base?.sourceClub||"Edición MURALLA",
+        photo:base?.photo||"https://cdn.sofifa.net/players/"+portrait.slice(0,-3)+"/"+portrait.slice(-3)+"/26_120.png",
+        tradeable:true,leagueId:base?.leagueId||"reference",leagueLabel:"Muralla · AURA 27"};
+    });
+  }
   function eventCards(pool){
     const available=Array.isArray(pool)?pool:[];
     return sigma.cards.map(def=>{
@@ -127,6 +153,8 @@
     return selected;
   }
   function price(p){
+    const wall=p?.event===muralla.id&&muralla.cards.find(x=>x.id===p.id&&x.overall===p.overall);
+    if(wall)return wall.price;
     const fb=p?.event===flashback.id&&flashback.cards.find(x=>x.id===p.id&&x.overall===p.overall);
     if(fb)return fb.price;
     const special=p?.event===sigma.id&&sigma.cards.find(x=>x.id===p.id);if(special)return special.price;
@@ -134,7 +162,7 @@
     if(arg)return arg.price;return Math.round((p.overall<65?300:p.overall<75?700+(p.overall-65)*80:p.overall<84?1200+Math.pow(p.overall-74,2)*160:18000*Math.pow(1.6,p.overall-84))/50)*50;}
   function marketPrice(u,p){
     const base=price(p);
-    if(!u||p?.event===sigma.id||p?.event===argentina.id||p?.event===flashback.id||!Number.isSafeInteger(u.played)||u.played<=0)return base;
+    if(!u||p?.event===sigma.id||p?.event===argentina.id||p?.event===flashback.id||p?.event===muralla.id||!Number.isSafeInteger(u.played)||u.played<=0)return base;
     let hash=0;for(const ch of String(p.id))hash=(Math.imul(hash,31)+ch.charCodeAt(0))>>>0;
     // Offline market trend is predictable for a given matchday and card;
     // no networking or arbitrary real-money prices are involved.
@@ -142,7 +170,7 @@
     return Math.max(100,Math.round(base*(1+cycle*.025)/50)*50);
   }
   function evolutionCost(p){
-    if(!p||!Number.isInteger(p.overall)||(p.event===sigma.id||p.event===argentina.id||p.event===flashback.id)||(p.evolutionLevel||0)>=2||p.overall>90)return null;
+    if(!p||!Number.isInteger(p.overall)||(p.event===sigma.id||p.event===argentina.id||p.event===flashback.id||p.event===muralla.id)||(p.evolutionLevel||0)>=2||p.overall>90)return null;
     return Math.max(1500,Math.round((p.overall-60)*400/50)*50);
   }
   function evolve(u,id){
@@ -158,6 +186,9 @@
     return {ok:true,player:p,cost,overall:p.overall,level:p.evolutionLevel};
   }
   function buy(u,player){if(!player?.real||!player.id)return {error:"Jugador no disponible."};
+    if((player.event===muralla.id||String(player.id).startsWith("muralla:"))&&
+      (player.event!==muralla.id||!muralla.cards.some(p=>p.id===player.id&&p.name===player.name&&p.overall===player.overall&&p.pos===player.pos)))
+      return {error:"Carta Muralla no disponible."};
     if(player.event===flashback.id&&!flashback.cards.some(p=>p.id===player.id&&p.name===player.name&&p.overall===player.overall&&p.pos===player.pos))
       return {error:"Carta Flashback no disponible."};if(player.event===sigma.id&&!sigma.cards.some(p=>p.id===player.id&&p.overall===player.overall))return {error:"Carta Ultimate Sigma no disponible."};
     if(player.event===argentina.id&&!argentina.cards.some(p=>p.id===player.id&&p.overall===player.overall&&p.price>=300000&&p.price<=500000))return {error:"Carta Liga Argentina no disponible."};if(u.owned.some(p=>p.id===player.id))return {error:"Este jugador ya está en tu club."};const cost=marketPrice(u,player);if(u.coins<cost)return {error:"No tienes monedas suficientes."};u.coins-=cost;u.owned.push({...player,tradeable:true});u.purchases++;return {ok:true,cost};}
@@ -205,5 +236,5 @@
     return coins;
   }
   function claimBattles(u){if(u.battlesClaimed.includes(u.battleCycle)||u.battlePoints<1000)return {error:"Consigue al menos 1.000 puntos en esta serie."};const reward=u.battlePoints>=5000?4000:u.battlePoints>=2500?2500:1000;u.battlesClaimed.push(u.battleCycle);u.coins+=reward;u.battleCycle++;u.battlePoints=0;return {ok:true,coins:reward};}
-  return {create,chemistry,rating,league,packs,challenges,sigma,eventCards,argentina,argentinaCards,flashback,flashbackCards,claimFlashbackGift,claimSigmaGift,draw,setPlayer,setFormation,auto,bench,price,marketPrice,evolutionCost,evolve,buy,quickSell,itemScore,sbcPool,sbcPreview,submitSBC,objectives,claim,reward,claimBattles};
+  return {create,chemistry,rating,league,packs,challenges,sigma,eventCards,argentina,argentinaCards,flashback,flashbackCards,muralla,murallaCards,claimFlashbackGift,claimSigmaGift,draw,setPlayer,setFormation,auto,bench,price,marketPrice,evolutionCost,evolve,buy,quickSell,itemScore,sbcPool,sbcPreview,submitSBC,objectives,claim,reward,claimBattles};
 });
