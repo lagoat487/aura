@@ -20,6 +20,9 @@
     if(type==="switch"){g.controlled=nearest(g,0).index;return true;}
     const p=g.players[g.controlled],b=g.ball;
     if(type==="tackle"&&b.owner!==null&&g.players[b.owner].team!==0&&distance(p,g.players[b.owner])<4){
+      const rival=g.players[b.owner];if(p.cooldown>0||rival.cooldown>0)return false;
+      // Use the same recovery as AI steals so the rival cannot take it straight back.
+      rival.cooldown=.8;p.cooldown=.5;
       b.owner=p.index;g.controlled=p.index;g.stats[0].tackles++;return true;
     }
     if(b.owner!==p.index||p.cooldown>0)return false;

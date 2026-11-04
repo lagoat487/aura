@@ -64,6 +64,26 @@ test("street football has six players, scores inside the posts, bounces off wall
   const g=Street.create(roster("h").slice(1,4),roster("a").slice(1,4));assert.equal(g.players.length,6);g.wait=0;g.ball={owner:null,x:44.9,z:0,vx:30,vz:0};Street.step(g,.02);assert.equal(g.score[0],1);
   g.wait=0;g.ball={owner:null,x:44.9,z:12,vx:30,vz:0};Street.step(g,.02);assert.equal(g.score[0],1);assert.ok(g.ball.vx<0);g.paused=true;const after=JSON.stringify(g);Street.step(g,.05,{x:1});assert.equal(JSON.stringify(g),after);g.paused=false;g.elapsed=119.99;Street.step(g,.02);assert.equal(g.done,true);
 });
+test("a manual Calle tackle keeps possession during recovery, then allows a normal pass",()=>{
+  const g=Street.create(roster("h").slice(1,4),roster("a").slice(1,4));g.wait=0;
+  g.players.forEach((p,i)=>Object.assign(p,{x:p.team===0?-30:30,z:i%2?20:-20,cooldown:0}));
+  const player=g.players[g.controlled],rival=g.players[4];Object.assign(player,{x:0,z:0});Object.assign(rival,{x:.4,z:0});
+  g.ball={owner:rival.index,x:rival.x,z:rival.z,vx:0,vz:0};
+  assert.equal(Street.action(g,"tackle"),true);assert.equal(g.stats[0].tackles,1);
+  for(let i=0;i<12;i++){Street.step(g,.05);assert.equal(g.ball.owner,player.index,"the dispossessed rival must not steal back during recovery");}
+  assert.equal(player.cooldown,0);assert.ok(rival.cooldown>0);
+  assert.equal(Street.action(g,"pass"),true);assert.equal(g.stats[0].passes,1);
+});
+test("manual Calle tackles respect both players' recovery and cannot be spammed",()=>{
+  for(const recovering of ["player","rival"]){
+    const g=Street.create(roster("h").slice(1,4),roster("a").slice(1,4));g.wait=0;
+    const player=g.players[g.controlled],rival=g.players[4];Object.assign(player,{x:0,z:0,cooldown:0});Object.assign(rival,{x:.4,z:0,cooldown:0});
+    g.ball.owner=rival.index;(recovering==="player"?player:rival).cooldown=.2;
+    const before=JSON.stringify(g);assert.equal(Street.action(g,"tackle"),false);assert.equal(JSON.stringify(g),before);
+    player.cooldown=rival.cooldown=0;assert.equal(Street.action(g,"tackle"),true);
+    assert.equal(Street.action(g,"tackle"),false);assert.equal(g.stats[0].tackles,1);
+  }
+});
 test("youth cups keep eligible players and explicitly identify generated fillers",()=>{
   const source=roster("c");source[2].age=19;source[3].age=20;const ps=Tour.youthRoster({id:"c"},source);assert.equal(ps.length,18);assert.ok(ps.every(p=>p.age<=21));assert.ok(ps.some(p=>p.pos==="POR"));assert.equal(new Set(ps.map(p=>p.id)).size,18);assert.ok(ps.filter(p=>p.academy).every(p=>p.real===false&&p.name.startsWith("Canterano")));
 });

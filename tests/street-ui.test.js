@@ -58,6 +58,18 @@ test('Calle touch movement cannot survive pause or be queued while paused',()=>{
  }
 });
 
+test('Calle keyboard and touch tackles retain the ball on the following frames',()=>{
+ for(const control of ['keyboard','touch']){
+  const a=boot(),g=a.game;g.players.forEach((p,i)=>Object.assign(p,{x:p.team===0?-30:30,z:i%2?20:-20,cooldown:0}));
+  const player=g.players[g.controlled],rival=g.players[4];Object.assign(player,{x:0,z:0});Object.assign(rival,{x:.4,z:0});
+  g.ball={owner:rival.index,x:rival.x,z:rival.z,vx:0,vz:0};
+  if(control==='keyboard')a.key(' ');else a.pointer('tackle','pointerdown');
+  assert.equal(g.stats[0].tackles,1);assert.equal(g.ball.owner,player.index);
+  for(let i=0;i<6;i++){a.frame();assert.equal(g.ball.owner,player.index,control+' must not immediately give the ball back');}
+  assert.equal(g.stats[0].tackles,1);assert.deepEqual(Array.from(g.score),[0,0]);a.close();
+ }
+});
+
 test('Calle reports one finished 3v3 match to the circuit and not twice on additional frames',()=>{
  let calls=0,last=null;const a=boot({goalLimit:3,seconds:60,onFinish:score=>{calls++;last=score;}});
  assert.equal(a.game.goalLimit,3);assert.equal(a.game.seconds,60);
