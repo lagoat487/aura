@@ -2,6 +2,8 @@
 
 Evento de colección disponible desde el inicio de AURA y la pestaña «Muralla» de Ultimate Team. Las nueve cartas tienen diseño de escudo oscuro, metal y turquesa; el diseño se conserva en la colección, el banquillo y el once.
 
+El botón «Reclamar 300.000 monedas» entrega un regalo de bienvenida una sola vez por club. El saldo y la marca de regalo reclamado se guardan al cobrarlo; volver a abrir el evento o el navegador no permite cobrarlo otra vez. Los clubes creados antes de esta actualización también pueden reclamarlo.
+
 | Jugador | GRL | Posición | Monedas |
 | --- | ---: | --- | ---: |
 | William Saliba | 90 | DFC | 550.000 |

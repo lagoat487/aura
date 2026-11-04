@@ -53,6 +53,30 @@ test("Muralla collection, coins and selected event tab survive closing and resto
  const old={version:1,club:U.create(pool()),tab:"squad",matchToken:2};
  assert.equal(Save.unpack(JSON.stringify(old),forms).tab,"squad");
 });
+test("Muralla grants exactly 300000 welcome coins once, independently of the other event gifts",()=>{
+ const club=U.create(pool()),before=club.coins,owned=JSON.stringify(club.owned),xi=club.xi.slice();
+ assert.equal(club.murallaGiftClaimed,false);assert.equal(U.muralla.welcome,300000);
+ assert.deepEqual(U.claimMurallaGift(club),{ok:true,coins:300000});assert.equal(club.coins,before+300000);
+ assert.equal(club.murallaGiftClaimed,true);assert.equal(club.flashbackGiftClaimed,false);assert.equal(club.sigmaGiftClaimed,false);
+ assert.equal(JSON.stringify(club.owned),owned);assert.deepEqual(club.xi,xi);
+ const restored=Save.unpack(Save.pack({version:2,club,tab:"muralla",matchToken:0},forms),forms).club;
+ const snapshot=JSON.stringify(restored);assert.match(U.claimMurallaGift(restored).error,/Ya reclamaste/);assert.equal(JSON.stringify(restored),snapshot);
+ assert.equal(U.claimFlashbackGift(restored).coins,200000);assert.equal(restored.coins,before+500000);
+ const legacy=U.create(pool());delete legacy.murallaGiftClaimed;
+ const old=Save.unpack(JSON.stringify({version:1,club:legacy,tab:"muralla",matchToken:0}),forms).club;
+ assert.equal(U.claimMurallaGift(old).coins,300000);assert.equal(old.murallaGiftClaimed,true);
+});
+test("invalid balances and malformed Muralla claim flags cannot corrupt the saved club",()=>{
+ for(const coins of [-1,NaN,Infinity,1e12-299999]){
+  const club=U.create(pool());club.coins=coins;const before=structuredClone(club);
+  assert.ok(U.claimMurallaGift(club).error);assert.deepEqual(club,before);
+ }
+ const boundary=U.create(pool());boundary.coins=1e12-300000;assert.equal(U.claimMurallaGift(boundary).ok,true);assert.equal(boundary.coins,1e12);
+ for(const flag of ["false",0,1,null]){
+  const club=U.create(pool());club.murallaGiftClaimed=flag;
+  assert.equal(Save.normalize({version:2,club,tab:"muralla",matchToken:0},forms),null);
+ }
+});
 function boot(storage=new Map()){
  let html="",modal="";const notices=[];
  const context=vm.createContext({AuraUT:U,AuraUTSave:Save,AuraSquad:Squad,AuraPortraits:Portraits,
@@ -80,9 +104,20 @@ test("Muralla UI opens through onboarding, buys all nine cards, closes Sigma and
  app.click({utTab:"muralla"});assert.match(app.html(),/EL GOL TERMINA AQUÍ/);assert.doesNotMatch(app.html(),/ELIGE A TU SIGMA/);
  assert.equal(app.notices.filter(s=>s.includes("MURALLA fichado")).length,9);
 });
+test("the Muralla gift button credits and saves once inside the event, then stays disabled after purchases and reloads",()=>{
+ const app=boot();app.click({ut:"create"});const club=app.UI.getClub(),before=club.coins;
+ app.click({ut:"muralla-gift"});assert.equal(club.coins,before,"other UT tabs cannot claim this event gift");
+ app.click({utTab:"muralla"});assert.match(app.html(),/RECLAMAR 300\.000 MONEDAS/);
+ app.click({ut:"muralla-gift"});assert.equal(club.coins,before+300000);assert.equal(club.murallaGiftClaimed,true);
+ assert.match(app.html(),/<button[^>]*data-ut="muralla-gift"[^>]*disabled/);
+ app.click({ut:"muralla-buy",player:"muralla:gerard-martin"});assert.equal(club.coins,before);assert.equal(club.purchases,1);
+ const reload=boot(app.storage),snapshot=JSON.stringify(reload.UI.getClub());
+ assert.match(reload.UI.render(),/REGALO YA RECLAMADO/);reload.click({ut:"muralla-gift"});
+ assert.equal(JSON.stringify(reload.UI.getClub()),snapshot);assert.equal(app.notices.filter(s=>s.includes("bienvenida MURALLA reclamadas")).length,1);
+});
 test("both desktop and mobile ship Muralla while keeping runtime copies identical",()=>{
  for(const entry of ["index.html","mobile.html"]){
-  const html=read(entry);assert.match(html,/muralla-event\.css\?v=8\.0/);assert.match(html,/muralla-event\.js\?v=8\.0/);
+  const html=read(entry);assert.match(html,/muralla-event\.css\?v=8\.1/);assert.match(html,/muralla-event\.js\?v=8\.1/);
   assert.ok(html.indexOf("muralla-event.js")<html.indexOf("./game.js"));
  }
  for(const file of ["ultimate-team","ultimate-ui","ultimate-save","evolution-ui"])

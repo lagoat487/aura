@@ -34,6 +34,7 @@
     for(const name of ["played","wins","draws","losses","packsOpened","purchases","sbcs","battlePoints","battleCycle","divisionPoints","serial"]){if(!integer(u[name]))return false;}
     // Flashback was added after older UT saves; missing fields stay backwards-compatible.
     if(u.flashbackGiftClaimed!==undefined&&typeof u.flashbackGiftClaimed!=="boolean")return false;
+    if(u.murallaGiftClaimed!==undefined&&typeof u.murallaGiftClaimed!=="boolean")return false;
     for(const field of ["flashbackPlayed","flashbackWins","flashbackEarned"])
       if(u[field]!==undefined&&(!integer(u[field])||u[field]>1e12))return false;
     if(u.flashbackPlayed!==undefined&&u.flashbackWins!==undefined&&u.flashbackWins>u.flashbackPlayed)return false;

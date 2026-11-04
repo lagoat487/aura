@@ -19,6 +19,11 @@ const AuraMurallaEvent=(()=>{
       '<p>Nueve defensas. Una fortaleza. Refuerza tu equipo con cartas exclusivas de centrales y laterales.</p>'+
       '<div class="mur-facts"><span><b>09</b> CARTAS</span><span><b>85–91</b> GRL</span><span><b>'+owned+'/9</b> EN TU CLUB</span></div>'+
       '<a class="btn primary" href="#muralla-collection">VER LOS DEFENSAS ↓</a></div>'+card(cards[8],true)+'</header>'+
+      '<section class="mur-welcome" aria-label="Regalo de bienvenida Muralla"><div>'+
+      '<span class="mur-kicker">REGALO DE BIENVENIDA</span><h3>+300.000 <small>MONEDAS</small></h3>'+
+      '<p>Un regalo por club de Ultimate Team. Reclámalo aquí y empieza a construir tu muralla.</p></div>'+
+      '<button class="btn primary" data-ut="muralla-gift" '+(club.murallaGiftClaimed?'disabled':'')+'>'+
+      (club.murallaGiftClaimed?'✓ REGALO YA RECLAMADO':'RECLAMAR 300.000 MONEDAS →')+'</button></section>'+
       '<div class="mur-collection-head" id="muralla-collection"><div><span class="mur-kicker">LA ÚLTIMA LÍNEA</span><h3>CONSTRUYE TU FORTALEZA.</h3></div>'+
       '<p>300.000–600.000 monedas por carta.<br>Precios fijos · Una edición por jugador</p></div>'+
       '<div class="mur-grid">'+cards.map((p,i)=>{

@@ -38,7 +38,7 @@
     {id:"flashback:keylor-navas",name:"Keylor Navas",overall:87,pos:"POR",price:200000,nationality:"Costa Rica",sourceClub:"Real Madrid"}
   ])});
   // MURALLA: defensive collector editions with fixed virtual coin prices.
-  const muralla=Object.freeze({id:"muralla",name:"MURALLA",cards:Object.freeze([
+  const muralla=Object.freeze({id:"muralla",name:"MURALLA",welcome:300000,cards:Object.freeze([
     {id:"muralla:saliba",name:"William Saliba",overall:90,pos:"DFC",price:550000,nationality:"Francia",playerId:"243715",aliases:["William Alain André Gabriel Saliba"]},
     {id:"muralla:cubarsi",name:"Pau Cubarsí",overall:89,pos:"DFC",price:450000,nationality:"España",playerId:"278046"},
     {id:"muralla:pacho",name:"Willian Pacho",overall:90,pos:"DFC",price:500000,nationality:"Ecuador",playerId:"256196",aliases:["Willian Joel Pacho Tenorio"]},
@@ -99,6 +99,13 @@
         leagueId:base?.leagueId||"reference",leagueLabel:"Flashback · AURA 27"};
     });
   }
+  function claimMurallaGift(u){
+    if(!u||u.murallaGiftClaimed)return {error:"Ya reclamaste las 300.000 monedas de bienvenida Muralla."};
+    if(!Number.isSafeInteger(u.coins)||u.coins<0||u.coins>1e12-muralla.welcome)
+      return {error:"El saldo del club no permite entregar el bono."};
+    u.coins+=muralla.welcome;u.murallaGiftClaimed=true;
+    return {ok:true,coins:muralla.welcome};
+  }
   function claimFlashbackGift(u){
     if(!u||u.flashbackGiftClaimed)return {error:"Ya reclamaste las 200.000 monedas de bienvenida Flashback."};
     if(!Number.isSafeInteger(u.coins)||u.coins<0||u.coins>1e12-flashback.welcome)
@@ -120,7 +127,7 @@
     const unique=[...new Map(ranked.map(p=>[p.id,p])).values()],xi=Squad.choose(unique.map(p=>({...p,overall:p.overall+(league(p)===preferredLeague?12:0)})),'4-3-3');if(xi.some(id=>!id))throw Error("El catálogo todavía está cargando. Vuelve a intentarlo.");
     // Choose with a small starter preference; keep a full bench and SBC reserves.
     const first=xi.map(id=>({...unique.find(p=>p.id===id),tradeable:false})),others=unique.filter(p=>!xi.includes(p.id)).sort((a,b)=>Number(league(b)===preferredLeague)-Number(league(a)===preferredLeague)||b.overall-a.overall).slice(0,12).map(p=>({...p,tradeable:false}));
-    return {version:2,name:String(name||"Mi AURA FC").trim().slice(0,24),coins:10000,owned:first.concat(others),duplicates:[],xi,formation:'4-3-3',tactic:'balanced',played:0,wins:0,draws:0,losses:0,claimed:[],lastPack:[],packsOpened:0,purchases:0,sbcs:0,objectives:[],battlePoints:0,battleCycle:0,battlesClaimed:[],division:10,divisionPoints:0,serial:0,sigmaGiftClaimed:false,flashbackGiftClaimed:false,flashbackPlayed:0,flashbackWins:0,flashbackEarned:0};
+    return {version:2,name:String(name||"Mi AURA FC").trim().slice(0,24),coins:10000,owned:first.concat(others),duplicates:[],xi,formation:'4-3-3',tactic:'balanced',played:0,wins:0,draws:0,losses:0,claimed:[],lastPack:[],packsOpened:0,purchases:0,sbcs:0,objectives:[],battlePoints:0,battleCycle:0,battlesClaimed:[],division:10,divisionPoints:0,serial:0,murallaGiftClaimed:false,sigmaGiftClaimed:false,flashbackGiftClaimed:false,flashbackPlayed:0,flashbackWins:0,flashbackEarned:0};
   }
   function rating(u){return Math.round(u.xi.reduce((n,id)=>n+(u.owned.find(p=>p.id===id)?.overall||0),0)/11);}
   function addCards(u,cards){return cards.map(p=>{const copy={...p};if(u.owned.some(q=>q.id===p.id)){copy.duplicate=true;copy.uid="duplicate:"+(++u.serial);u.duplicates.push({...copy});}else u.owned.push(copy);return copy;});}
@@ -236,5 +243,5 @@
     return coins;
   }
   function claimBattles(u){if(u.battlesClaimed.includes(u.battleCycle)||u.battlePoints<1000)return {error:"Consigue al menos 1.000 puntos en esta serie."};const reward=u.battlePoints>=5000?4000:u.battlePoints>=2500?2500:1000;u.battlesClaimed.push(u.battleCycle);u.coins+=reward;u.battleCycle++;u.battlePoints=0;return {ok:true,coins:reward};}
-  return {create,chemistry,rating,league,packs,challenges,sigma,eventCards,argentina,argentinaCards,flashback,flashbackCards,muralla,murallaCards,claimFlashbackGift,claimSigmaGift,draw,setPlayer,setFormation,auto,bench,price,marketPrice,evolutionCost,evolve,buy,quickSell,itemScore,sbcPool,sbcPreview,submitSBC,objectives,claim,reward,claimBattles};
+  return {create,chemistry,rating,league,packs,challenges,sigma,eventCards,argentina,argentinaCards,flashback,flashbackCards,muralla,murallaCards,claimMurallaGift,claimFlashbackGift,claimSigmaGift,draw,setPlayer,setFormation,auto,bench,price,marketPrice,evolutionCost,evolve,buy,quickSell,itemScore,sbcPool,sbcPreview,submitSBC,objectives,claim,reward,claimBattles};
 });

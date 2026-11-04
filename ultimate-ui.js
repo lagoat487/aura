@@ -95,6 +95,13 @@ const AuraUTUI=(()=>{
       if(action==='lobby'){goToModes();return true;}
       if(action==='create'){club=U.create(pool(),document.getElementById('ut-starter-league')?.value||'all',document.getElementById('ut-club-name')?.value||'Mi AURA FC');tab=tab==='muralla'?'muralla':'home';renderGame();}
       if(!club)return true;
+      if(action==='muralla-gift'){
+        if(tab!=='muralla')return true;
+        const result=U.claimMurallaGift(club);
+        if(result.error)notify(result.error);
+        else{renderGame();notify('¡300.000 monedas de bienvenida MURALLA reclamadas!');}
+        return true;
+      }
       if(action==='muralla-buy'){
         if(tab!=='muralla')return true;
         const candidate=U.murallaCards(pool()).find(p=>p.id===d.player);
