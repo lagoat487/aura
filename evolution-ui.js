@@ -152,10 +152,14 @@ const AuraEvolution=(()=>{
       '<span class="eyebrow">UN JUEGO · SIETE EXPERIENCIAS</span>'+
       '<h1>ELIGE CÓMO<br><em>HACER HISTORIA.</em></h1>'+
       '<p>Carrera, partidos, Draft, copas, fútbol callejero y Ultimate Team. Entra en cada uno desde su propia pantalla. Puedes iniciar nueva carrera entrando en Carrera Mánager.</p>'+
-      '<div class="aura-mode-home-actions"><button class="btn primary" data-evo="hero-start">EXPLORAR MODOS ↓</button>'+
+      '<div class="aura-mode-home-actions"><button class="btn primary" data-evo="flashback-open">✦ FLASHBACK UT · NUEVO EVENTO →</button>'+
+      '<button class="btn" data-evo="hero-start">EXPLORAR MODOS ↓</button>'+
       (recent?'<button class="btn" data-evo="mode-resume">↗ VOLVER A '+recent[2]+'</button>':'')+
       '<button class="btn" data-evo="argentina-open">🇦🇷 LIGA ARGENTINA</button>'+
       '<button class="btn" data-evo="skill-open">🎯 CENTRO DE ENTRENAMIENTO</button></div>'+
+      '<div class="flashback-hub-strip"><span>✦ NUEVO EN ULTIMATE TEAM</span><b>FLASHBACK · 5 CARTAS DORADAS Y BLANCAS</b>'+
+      '<small>Regalo de 200.000 monedas · 70.000 por partido exclusivo</small>'+
+      '<button class="btn" data-evo="flashback-open">ENTRAR A FLASHBACK →</button></div>'+
       '<div class="aura-mode-home-metrics"><span><strong>07</strong> MODOS</span>'+
       '<span><strong>'+(loaded?Number(stats.clubs||0).toLocaleString("es-ES"):'11×11')+'</strong> CLUBES O JUGADORES</span>'+
       '<span><strong>3D</strong> PARTIDOS JUGABLES</span></div></section>'+modeTabs();
@@ -492,6 +496,12 @@ const AuraEvolution=(()=>{
       const players=typeof AuraRosterSync!=="undefined"?AuraRosterSync.rosterFor(club):starterRoster(club.id,71921,club.rating);
       const status=typeof AuraRosterSync!=="undefined"?AuraRosterSync.status(club):null;
       openModal("PLANTILLA · "+club.name,'<div class="club-roster-modal"><div class="club-roster-heading">'+badge(club,50)+'<div><span class="eyebrow">'+players.length+' FUTBOLISTAS</span><h3>'+text(club.name)+'</h3></div></div>'+(status?'<p class="save-info">'+text(status.note)+' · '+text(status.verifiedAt||status.snapshot)+' <a href="'+text(status.source)+'" target="_blank" rel="noopener noreferrer">Ver fuente</a>'+'</p>':'')+'<div class="table-wrap"><table class="table"><thead><tr><th>Jugador</th><th>POS</th><th>GRL</th></tr></thead><tbody>'+players.map(p=>'<tr><td><span class="face-name">'+AuraPortraits.html(p)+text(p.name)+'</span></td><td>'+text(p.pos)+'</td><td class="accent">'+p.overall+'</td></tr>').join("")+'</tbody></table></div></div>');
+    }
+    if(d.evo==="flashback-open"){
+      chooseMode("ultimate");
+      // Use the public click handler so Sigma and other UT overlays close correctly.
+      if(AuraUTUI.getClub())AuraUTUI.handleClick({dataset:{utTab:"flashback"}});
+      return true;
     }
     if(d.evo==="argentina-open"){
       mode="ultimate";modeOpen=true;recentMode="ultimate";lobby=true;
