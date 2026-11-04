@@ -4,6 +4,17 @@
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
   const packs={silver:{name:"Sobre de plata",cost:750,count:3,min:65,max:74},gold:{name:"Sobre de oro",cost:2500,count:3,min:75,max:92},premium:{name:"Oro premium 82+",cost:7500,count:3,min:75,max:92,guaranteed:82}};
   const challenges={silver:{name:"De plata a oro",count:3,min:65,max:74,score:900,reward:"gold"},gold:{name:"Mejora 82+",count:3,min:75,max:83,score:1900,reward:"premium"},elite:{name:"Desafío élite 82+",count:4,min:82,max:90,score:4400,reward:"premium"}};
+  challenges.ecuador={name:"🇪🇨 Moisés Caicedo 87",count:11,min:1,max:99,score:0,nationality:"Ecuador",reward:"ecuador-caicedo",once:true};
+  const ecuadorSbc=Object.freeze({id:"ecuador-sbc",cardId:"sbc:ecuador-caicedo",name:"Moisés Caicedo",overall:87,pos:"MCD",nationality:"Ecuador",playerId:"256079"});
+  function ecuadorSbcCard(pool=[]){
+    const available=Array.isArray(pool)?pool:[];
+    const base=available.find(p=>p.real&&p.id==="real:"+ecuadorSbc.playerId)||
+      available.find(p=>p.real&&["moises caicedo","moises isaac caicedo corozo"].includes(normalizeName(p.name)));
+    return {...(base||{}),id:ecuadorSbc.cardId,originalId:base?.originalId||base?.id||"real:"+ecuadorSbc.playerId,
+      name:ecuadorSbc.name,overall:87,pos:"MCD",nationality:"Ecuador",real:true,tradeable:false,
+      event:ecuadorSbc.id,sourceClub:"Selección de Ecuador",leagueId:base?.leagueId||"reference",leagueLabel:"DCP Ecuador · AURA 27",
+      photo:base?.photo||"https://cdn.sofifa.net/players/256/079/26_120.png"};
+  }
 
   // Retired event. Keep its definitions only for cards already stored in UT clubs.
   const sigma=Object.freeze({id:"ultimate-sigma",name:"ULTIMATE SIGMA",version:"4.2",active:false,cards:Object.freeze([
@@ -127,7 +138,7 @@
     const unique=[...new Map(ranked.map(p=>[p.id,p])).values()],xi=Squad.choose(unique.map(p=>({...p,overall:p.overall+(league(p)===preferredLeague?12:0)})),'4-3-3');if(xi.some(id=>!id))throw Error("El catálogo todavía está cargando. Vuelve a intentarlo.");
     // Choose with a small starter preference; keep a full bench and SBC reserves.
     const first=xi.map(id=>({...unique.find(p=>p.id===id),tradeable:false})),others=unique.filter(p=>!xi.includes(p.id)).sort((a,b)=>Number(league(b)===preferredLeague)-Number(league(a)===preferredLeague)||b.overall-a.overall).slice(0,12).map(p=>({...p,tradeable:false}));
-    return {version:2,name:String(name||"Mi AURA FC").trim().slice(0,24),coins:10000,owned:first.concat(others),duplicates:[],xi,formation:'4-3-3',tactic:'balanced',played:0,wins:0,draws:0,losses:0,claimed:[],lastPack:[],packsOpened:0,purchases:0,sbcs:0,objectives:[],battlePoints:0,battleCycle:0,battlesClaimed:[],division:10,divisionPoints:0,serial:0,murallaGiftClaimed:false,sigmaGiftClaimed:false,flashbackGiftClaimed:false,flashbackPlayed:0,flashbackWins:0,flashbackEarned:0};
+    return {version:2,name:String(name||"Mi AURA FC").trim().slice(0,24),coins:10000,owned:first.concat(others),duplicates:[],xi,formation:'4-3-3',tactic:'balanced',played:0,wins:0,draws:0,losses:0,claimed:[],lastPack:[],packsOpened:0,purchases:0,sbcs:0,sbcCompleted:[],objectives:[],battlePoints:0,battleCycle:0,battlesClaimed:[],division:10,divisionPoints:0,serial:0,murallaGiftClaimed:false,sigmaGiftClaimed:false,flashbackGiftClaimed:false,flashbackPlayed:0,flashbackWins:0,flashbackEarned:0};
   }
   function rating(u){return Math.round(u.xi.reduce((n,id)=>n+(u.owned.find(p=>p.id===id)?.overall||0),0)/11);}
   function addCards(u,cards){return cards.map(p=>{const copy={...p};if(u.owned.some(q=>q.id===p.id)){copy.duplicate=true;copy.uid="duplicate:"+(++u.serial);u.duplicates.push({...copy});}else u.owned.push(copy);return copy;});}
@@ -177,7 +188,7 @@
     return Math.max(100,Math.round(base*(1+cycle*.025)/50)*50);
   }
   function evolutionCost(p){
-    if(!p||!Number.isInteger(p.overall)||(p.event===sigma.id||p.event===argentina.id||p.event===flashback.id||p.event===muralla.id)||(p.evolutionLevel||0)>=2||p.overall>90)return null;
+    if(!p||!Number.isInteger(p.overall)||(p.event===sigma.id||p.event===argentina.id||p.event===flashback.id||p.event===muralla.id||p.event===ecuadorSbc.id)||(p.evolutionLevel||0)>=2||p.overall>90)return null;
     return Math.max(1500,Math.round((p.overall-60)*400/50)*50);
   }
   function evolve(u,id){
@@ -193,6 +204,7 @@
     return {ok:true,player:p,cost,overall:p.overall,level:p.evolutionLevel};
   }
   function buy(u,player){if(!player?.real||!player.id)return {error:"Jugador no disponible."};
+    if(player.event===ecuadorSbc.id||player.id===ecuadorSbc.cardId)return {error:"Esta carta es exclusiva del DCP Ecuador."};
     if(player.event===sigma.id||String(player.id).startsWith("sigma:"))return {error:"El evento Ultimate Sigma ha finalizado."};
     if((player.event===muralla.id||String(player.id).startsWith("muralla:"))&&
       (player.event!==muralla.id||!muralla.cards.some(p=>p.id===player.id&&p.name===player.name&&p.overall===player.overall&&p.pos===player.pos)))
@@ -205,9 +217,18 @@
     const coins=Math.max(100,Math.round(price(p)*.2));list.splice(index,1);u.coins+=coins;return {ok:true,coins};
   }
   function itemScore(p){return Math.max(1,p.overall-50)**2;}
-  function sbcPool(u,type){const def=challenges[type];if(!def)return [];return u.owned.filter(p=>!u.xi.includes(p.id)).map(p=>({...p,uid:p.id})).concat(u.duplicates).filter(p=>p.overall>=def.min&&p.overall<=def.max);}
+  function sbcCompleted(u,type){return !!challenges[type]?.once&&
+    ((Array.isArray(u.sbcCompleted)&&u.sbcCompleted.includes(type))||u.owned.some(p=>type==="ecuador"&&p.id===ecuadorSbc.cardId));}
+  function sbcPool(u,type){
+    const def=challenges[type];if(!def||sbcCompleted(u,type))return [];
+    return u.owned.filter(p=>!u.xi.includes(p.id)).map(p=>({...p,uid:p.id})).concat(u.duplicates)
+      .filter(p=>p.overall>=def.min&&p.overall<=def.max&&(!def.nationality||["ecuador","ecu","ecuatoriano","ecuatoriana"].includes(normalizeName(p.nationality||p.country||p.nation))));
+  }
   function sbcPreview(u,type,ids){
-    const def=challenges[type];if(!def)return {error:"DCP no disponible."};const available=sbcPool(u,type),cards=ids.map(id=>available.find(p=>p.uid===id));
+    const def=challenges[type];if(!def)return {error:"DCP no disponible."};
+    if(sbcCompleted(u,type))return {error:"Ya completaste este DCP.",completed:true};
+    if(!Array.isArray(ids))return {error:"Selecciona las cartas de la entrega."};
+    const available=sbcPool(u,type),cards=ids.map(id=>available.find(p=>p.uid===id));
     if(new Set(ids).size!==ids.length||cards.some(p=>!p))return {error:"Alguna carta no está disponible o es titular."};
     const score=cards.reduce((n,p)=>n+itemScore(p),0);return {ok:cards.length===def.count&&score>=def.score,cards,score,needed:def.score,count:def.count,reward:def.reward};
   }
@@ -216,7 +237,13 @@
     // Stage every change, including the reward, before committing a single item.
     const staged=JSON.parse(JSON.stringify(u)),keys=new Set(ids);staged.owned=staged.owned.filter(p=>!keys.has(p.id));staged.duplicates=staged.duplicates.filter(p=>!keys.has(p.uid));
     if(staged.owned.length<11||staged.xi.some(id=>!staged.owned.some(p=>p.id===id)))return {error:"No puedes entregar el once titular."};
-    const reward=draw(staged,pool,preview.reward,rng,true);if(reward.error)return reward;staged.sbcs++;Object.assign(u,staged);return {ok:true,cards:reward.cards};
+    let reward;
+    if(type==="ecuador"){
+      const card=ecuadorSbcCard(pool);staged.lastPack=addCards(staged,[card]);
+      staged.sbcCompleted=Array.isArray(staged.sbcCompleted)?staged.sbcCompleted:[];staged.sbcCompleted.push(type);
+      reward={cards:staged.lastPack};
+    }else reward=draw(staged,pool,preview.reward,rng,true);
+    if(reward.error)return reward;staged.sbcs++;Object.assign(u,staged);return {ok:true,cards:reward.cards,kind:type==="ecuador"?"player":"pack"};
   }
   function objectives(u){return [{id:"first",name:"El viaje empieza",current:u.played,target:1,coins:1500},{id:"store",name:"Tu primer sobre",current:u.packsOpened,target:1,coins:750},{id:"market",name:"Un nuevo fichaje",current:u.purchases,target:1,coins:1000},{id:"chem",name:"Conexiones",current:chemistry(u).total,target:18,coins:1500},{id:"wins",name:"Mentalidad ganadora",current:u.wins,target:3,coins:2500},{id:"sbc",name:"Ingeniero de plantilla",current:u.sbcs,target:1,coins:1500}].map(o=>({...o,complete:o.current>=o.target,claimed:u.objectives.includes(o.id)}));}
   function claim(u,id){const o=objectives(u).find(o=>o.id===id);if(!o||!o.complete||o.claimed)return {error:"Objetivo incompleto o ya cobrado."};u.objectives.push(id);u.coins+=o.coins;return {ok:true,coins:o.coins};}
@@ -244,5 +271,5 @@
     return coins;
   }
   function claimBattles(u){if(u.battlesClaimed.includes(u.battleCycle)||u.battlePoints<1000)return {error:"Consigue al menos 1.000 puntos en esta serie."};const reward=u.battlePoints>=5000?4000:u.battlePoints>=2500?2500:1000;u.battlesClaimed.push(u.battleCycle);u.coins+=reward;u.battleCycle++;u.battlePoints=0;return {ok:true,coins:reward};}
-  return {create,chemistry,rating,league,packs,challenges,sigma,eventCards,argentina,argentinaCards,flashback,flashbackCards,muralla,murallaCards,claimMurallaGift,claimFlashbackGift,claimSigmaGift,draw,setPlayer,setFormation,auto,bench,price,marketPrice,evolutionCost,evolve,buy,quickSell,itemScore,sbcPool,sbcPreview,submitSBC,objectives,claim,reward,claimBattles};
+  return {create,chemistry,rating,league,packs,challenges,sigma,eventCards,argentina,argentinaCards,flashback,flashbackCards,muralla,murallaCards,claimMurallaGift,claimFlashbackGift,claimSigmaGift,draw,setPlayer,setFormation,auto,bench,price,marketPrice,evolutionCost,evolve,buy,quickSell,itemScore,ecuadorSbc,ecuadorSbcCard,sbcCompleted,sbcPool,sbcPreview,submitSBC,objectives,claim,reward,claimBattles};
 });
