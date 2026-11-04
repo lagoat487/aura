@@ -45,12 +45,12 @@ test("the exclusive reward and one-time completion persist in backups and older 
   const damaged=club();damaged.sbcCompleted=invalid;assert.equal(Save.normalize({version:2,club:damaged,tab:"sbc",matchToken:0},forms),null);
  }
 });
-function boot(storage=new Map()){
- let html="",modal="";const notices=[],catalogue=starter();
- const context=vm.createContext({AuraUT:U,AuraUTSave:Save,AuraSquad:Squad,AuraPortraits:Portraits,AuraEvolution:{pool:()=>catalogue,badge:()=>""},World:{getStats:()=>({players:23})},Competitions:{definitions:[]},clubs:[],
+function boot(storage=new Map(),runtime="ultimate-ui.js",catalogue=starter()){
+ let html="",modal="";const notices=[];
+ const context=vm.createContext({AuraUT:U,AuraUTSave:Save,AuraSquad:Squad,AuraPortraits:Portraits,AuraEvolution:{pool:()=>catalogue,badge:()=>""},World:{getStats:()=>({players:catalogue.length})},Competitions:{definitions:[]},clubs:[],
   localStorage:{getItem:key=>storage.get(key)||null,setItem:(key,value)=>storage.set(key,value)},document:{getElementById:()=>null},notify:s=>notices.push(s),closeModal(){modal="";},openModal:(title,body)=>{modal=title+body;},goToModes(){},
  });
- vm.runInContext(read("ultimate-ui.js")+";globalThis.UI=AuraUTUI",context);context.UI.bindRender(()=>{html=context.UI.render();});
+ vm.runInContext(read(runtime)+";globalThis.UI=AuraUTUI",context);context.UI.bindRender(()=>{html=context.UI.render();});
  return {UI:context.UI,storage,notices,html:()=>html,modal:()=>modal,click:dataset=>context.UI.handleClick({dataset})};
 }
 test("the real SBC UI previews the tricolor reward, reviews eleven exact items and saves a single player reward",()=>{
@@ -64,6 +64,33 @@ test("the real SBC UI previews the tricolor reward, reviews eleven exact items a
  const snapshot=structuredClone(earned);app.click({ut:"sbc-confirm"});assert.deepEqual(earned,snapshot);
  const reload=boot(app.storage);assert.deepEqual(reload.UI.getClub(),earned);reload.click({ut:"ecuador-sbc-open"});assert.match(reload.html(),/DCP COMPLETADO/);assert.doesNotMatch(reload.html(),/data-ut="sbc-review"/);
 });
+
+for(const runtime of ["ultimate-ui.js","ultimate-ui-flashback-v2.js"]){
+ test("the SBC player reward remains visible after a previous club search: "+runtime,()=>{
+  const app=boot(new Map(),runtime);app.click({ut:"create"});app.UI.getClub().owned.push(...ecuador());
+  app.UI.input({target:{id:"ut-club-query",value:"Starter"}});app.click({utTab:"club"});app.click({utTab:"home"});app.click({utTab:"club"});
+  assert.equal(app.html().match(/id="ut-club-query" value="([^"]*)"/)?.[1],"Starter",'ordinary navigation should preserve the search');
+  const before=structuredClone(app.UI.getClub());app.click({ut:"ecuador-sbc-open"});app.click({ut:"sbc-auto"});app.click({ut:"sbc-review"});app.click({ut:"sbc-confirm"});
+  assert.match(app.modal(),/SBC ECUADOR COMPLETADO/);app.click({ut:"sbc-reward-close"});assert.equal(app.modal(),"");
+  assert.ok(app.html().includes('data-player="'+U.ecuadorSbc.cardId+'"'),'the awarded player must be visible in Mi club');
+  assert.equal(app.html().match(/id="ut-club-query" value="([^"]*)"/)?.[1],"");assert.equal(app.UI.getClub().coins,before.coins);assert.deepEqual(app.UI.getClub().xi,before.xi);
+  const earned=structuredClone(app.UI.getClub());app.UI.input({target:{id:"ut-club-query",value:"Starter"}});app.click({utTab:"club"});
+  assert.ok(!app.html().includes('data-player="'+U.ecuadorSbc.cardId+'"'),'the club search still works after receiving the reward');assert.deepEqual(app.UI.getClub(),earned);
+ });
+ test("pack rewards remain visible after either reveal exit and a previous club search: "+runtime,()=>{
+  for(const exit of ["reveal-skip","reveal-next"]){
+   const rewards=Array.from({length:3},(_,i)=>({id:"pack-reward:"+i,name:"New reward "+i,pos:"MC",overall:84,real:true,nationality:"Ecuador"}));
+   const catalogue=starter().map(p=>({...p,overall:70})).concat(rewards),app=boot(new Map(),runtime,catalogue);app.click({ut:"create"});
+   app.UI.input({target:{id:"ut-club-query",value:"Starter"}});app.click({utTab:"club"});app.click({utTab:"store"});app.click({ut:"pack",pack:"gold"});
+   const earned=structuredClone(app.UI.getClub());assert.equal(earned.coins,7500);assert.equal(earned.owned.length,26);assert.equal(earned.duplicates.length,0);
+   for(let i=0;i<(exit==="reveal-next"?3:1);i++)app.click({ut:exit});
+   assert.equal(app.modal(),"");assert.equal(app.html().match(/id="ut-club-query" value="([^"]*)"/)?.[1],"");
+   for(const p of rewards)assert.ok(app.html().includes('data-player="'+p.id+'"'),'new pack card should appear after '+exit);
+   assert.deepEqual(app.UI.getClub(),earned,'showing rewards must not spend coins or change the received items');
+  }
+ });
+}
+
 test("both entrypoints load Ecuador card styles and all shipped Ultimate Team copies remain equal",()=>{
  for(const entry of ["index.html","mobile.html"])assert.match(read(entry),/ecuador-sbc\.css\?v=8\.3/);
  for(const file of ["ultimate-team","ultimate-save","ultimate-ui"])assert.equal(read(file+".js"),read(file+"-flashback-v2.js"));

@@ -188,8 +188,8 @@ const AuraUTUI=(()=>{
       if(action==='choose'){if(!U.setPlayer(club,pickerSlot,d.player)){notify('Ya tienes otra edición de este jugador en el once. Sustitúyela en su puesto.');return true;}closeModal();renderGame();}
       if(action==='inspect')inspect(d.player,d.duplicate==='yes');
       if(action==='pack'){const r=U.draw(club,pool(),d.pack||'gold');if(r.error)notify(r.error);else{packIndex=0;renderGame();reveal();}}
-      if(action==='reveal-next'){packIndex++;if(packIndex<club.lastPack.length)reveal();else{closeModal();tab='club';renderGame();}}
-      if(action==='reveal-skip'){closeModal();tab='club';renderGame();}
+      if(action==='reveal-next'){packIndex++;if(packIndex<club.lastPack.length)reveal();else{closeModal();tab='club';clubQuery='';renderGame();}}
+      if(action==='reveal-skip'){closeModal();tab='club';clubQuery='';renderGame();}
       if(action==='buy'){const r=U.buy(club,pool().find(p=>p.id===d.player));if(r.error)notify(r.error);else{closeModal();renderGame();notify('Jugador añadido a tu club.');}}
       if(action==='sell'){const r=U.quickSell(club,d.player,d.duplicate==='yes');if(r.error)notify(r.error);else{closeModal();renderGame();notify('Venta rápida: +'+r.coins+' monedas.');}}
       if(action==='objective'){const r=U.claim(club,d.objective);if(r.error)notify(r.error);else{renderGame();notify('Recompensa: +'+r.coins+' monedas.');}}
@@ -207,7 +207,7 @@ const AuraUTUI=(()=>{
         else{
           sbcSelection.clear();packIndex=0;
           if(r.kind==='player'){
-            tab='club';renderGame();
+            tab='club';clubQuery='';renderGame();
             openModal('SBC ECUADOR COMPLETADO','<div class="ut-shell ecuador-sbc-reward"><span class="ecuador-sbc-kicker">🇪🇨 TU NUEVO JUGADOR</span>'+card(r.cards[0])+'<h3>¡MOISÉS CAICEDO 87 ES TUYO!</h3><p>La carta se ha guardado en tu club. Puedes colocarla en tu plantilla.</p><button class="btn primary" data-ut="sbc-reward-close">Ver en mi club →</button></div>');
           }else{renderGame();reveal();}
         }
