@@ -108,7 +108,7 @@ const AuraUTUI=(()=>{
       }
       if(action==='flashback-play'){
         if(tab!=='flashback')return true;
-        const opponents=['madrid','barcelona','psg'];
+        const opponents=['guayaquil','madrid','barcelona','paris'];
         if(!opponents.includes(d.opponent)){notify('Rival Flashback no válido.');return true;}
         playMatch(U.flashback.id,d.opponent);
         return true;
