@@ -39,9 +39,10 @@ const AuraFlashbackEvent=(()=>{
        '<h3>70.000 MONEDAS <em>POR PARTIDO</em></h3>'+
        '<p>La recompensa se entrega <strong>solo aquí</strong> al terminar cada encuentro, ganes, empates o pierdas. Abandonar o repetir el resultado no entrega monedas.</p></div>'+
        '<div class="fb-opponents">'+[
+         ["guayaquil","BARCELONA SC","El regreso del Kitu","✦"],
          ["madrid","REAL MADRID","Reto galáctico","★"],
-         ["barcelona","FC BARCELONA","Clásico retro","✦"],
-         ["psg","PARIS SAINT-GERMAIN","Noche de estrellas","◆"]
+         ["barcelona","FC BARCELONA","Clásico retro","◈"],
+         ["paris","PARIS SAINT-GERMAIN","Noche de estrellas","◆"]
        ].map(([id,name,tag,symbol],i)=>
          '<article><span class="fb-match-no">FLASHBACK / '+String(i+1).padStart(2,"0")+'</span>'+
          '<div class="fb-match-symbol" aria-hidden="true">'+symbol+'</div>'+
