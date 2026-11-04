@@ -7,7 +7,7 @@ const vm = require("node:vm");
 
 // A minimal DOM surface keeps these integration tests dependency-free.
 // These checks exercise game wiring and HTML output, not browser layout.
-function boot(saved) {
+function boot(saved, utUI = "ultimate-ui.js") {
   const nodes = new Map(), events = {}, storage = new Map();
   if (saved) storage.set("aura-fc27-save-v1", saved);
   const node = id => {
@@ -21,7 +21,7 @@ function boot(saved) {
     localStorage: { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value) },
     setTimeout() {}, clearTimeout() {},
   });
-  for (const file of ["clubs.js", "competitions.js", "world.js", "real-players.js", "world-tour.js", "roster-sync.js", "club-badges.js", "portraits.js", "squad.js", "champions.js", "ultimate-team.js", "ultimate-save.js", "progression.js", "negotiations.js", "loans.js", "career-ui.js", "progression-ui.js", "match-engine.js", "match-presentation.js", "match-graphics.js", "match-ui.js", "mode-knockout.js", "quick-rivalry.js", "evolution-ui.js", "street.js", "street-circuit.js", "pro-training.js", "tour-ui.js", "ultimate-ui.js", "argentina-event.js", "career-continental.js", "game.js"]) {
+  for (const file of ["clubs.js", "competitions.js", "world.js", "real-players.js", "world-tour.js", "roster-sync.js", "club-badges.js", "portraits.js", "squad.js", "champions.js", "ultimate-team.js", "ultimate-save.js", "progression.js", "negotiations.js", "loans.js", "career-ui.js", "progression-ui.js", "match-engine.js", "match-presentation.js", "match-graphics.js", "match-ui.js", "mode-knockout.js", "quick-rivalry.js", "evolution-ui.js", "street.js", "street-circuit.js", "pro-training.js", "tour-ui.js", utUI, "argentina-event.js", "career-continental.js", "game.js"]) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, "..", file), "utf8"), context, { filename: file });
   }
   return {
@@ -421,6 +421,22 @@ test('UT market ignores surrounding search whitespace and keeps blank searches o
  const search=value=>{app.run('AuraUTUI.input({target:{id:"ut-market-query",value:'+JSON.stringify(value)+'}})');return app.node('ut-market-results').innerHTML;};
  const clean=search('Pedri');assert.match(clean,/Pedri/);assert.equal(search('  Pedri  '),clean);
  const empty=search('');assert.equal(search('   '),empty,'spaces alone must not bypass the default rating range');assert.deepEqual(app.json('AuraUTUI.getClub()'),before);
+});
+
+for(const runtime of ['ultimate-ui.js','ultimate-ui-flashback-v2.js'])test('UT explicit market ratings override the starter range without changing the club: '+runtime,async()=>{
+ const app=boot(undefined,runtime);app.run(fs.readFileSync(path.join(__dirname,'..','data/world-rosters.js'),'utf8'));await app.run('World.load(clubs,Competitions.definitions)');
+ app.click({evoMode:'ultimate'});app.click({ut:'create'});app.click({utTab:'market'});const before=app.json('AuraUTUI.getClub()');
+ const results=()=>[...app.html().matchAll(/data-ut="buy" data-player="([^"]+)"/g)].map(m=>app.json('AuraUTUI.pool().find(p=>p.id==='+JSON.stringify(m[1])+')'));
+ for(const minimum of [85,90]){
+  app.change('ut-market-min',String(minimum));const cards=results();
+  assert.ok(cards.length>0,'a blank search must offer players at '+minimum+'+');assert.ok(cards.every(p=>p.overall>=minimum));
+ }
+ app.change('ut-market-min','85');app.change('ut-market-max','50000');app.change('ut-market-position','DC');
+ const filtered=results();assert.ok(filtered.length>0);assert.ok(filtered.every(p=>p.overall>=85&&p.pos==='DC'));
+ for(const p of filtered)assert.ok(app.run('AuraUT.marketPrice(AuraUTUI.getClub(),'+JSON.stringify(p)+')')<=50000);
+ app.change('ut-market-position','all');app.change('ut-market-max','0');app.change('ut-market-min','0');
+ const defaults=results();assert.ok(defaults.length>0);assert.ok(defaults.every(p=>p.overall>=75&&p.overall<=83),'clearing the filter restores the default catalogue');
+ assert.deepEqual(app.json('AuraUTUI.getClub()'),before,'browsing must preserve coins, collection and XI');
 });
 
 test('UT calls up a stronger new signing on the displayed bench without changing the chosen XI',async()=>{
