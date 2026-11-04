@@ -14,22 +14,30 @@ function boot(options={}){
    querySelector(selector){if(selector.startsWith('#'))return node(selector.slice(1));if(!children.has(selector))children.set(selector,node());return children.get(selector);},querySelectorAll:selector=>selector==='[data-touch]'?['switch','through','pass','shoot','tackle','sprint'].map(type=>{const button=node('touch:'+type);button.dataset.touch=type;return button;}):[],
    fire:(type,event)=>events[type]?.(event),matches:()=>false,
   };
-  Object.defineProperty(n,'innerHTML',{get:()=>n.html||'',set:value=>{n.html=value;for(const m of value.matchAll(/id="([^"]+)"/g))node(m[1]);}});
+  Object.defineProperty(n,'innerHTML',{get:()=>n.html||'',set:value=>{
+   n.html=value;for(const m of value.matchAll(/id="([^"]+)"/g))node(m[1]);
+   // Native selects choose the marked option, or the first option by default.
+   for(const m of value.matchAll(/<select\b[^>]*id="([^"]+)"[^>]*>([\s\S]*?)<\/select>/g)){
+    const options=[...m[2].matchAll(/<option\b[^>]*value="([^"]*)"([^>]*)>/g)],selected=options.find(o=>/\bselected\b/.test(o[2]))||options[0];
+    node(m[1]).value=selected?.[1]||'';
+   }
+  }});
   if(id)nodes.set(id,n);return n;
  }
- const home={id:'home',name:'Home FC',players:Match.SHAPE.map((s,i)=>({id:'home'+i,name:'Local '+i,pos:s[0],overall:80})),bench:[]},away={...home,id:'away',name:'Away FC',players:home.players.map((p,i)=>({...p,id:'away'+i,name:'Rival '+i}))};
+ const home={id:'home',name:'Home FC',players:Match.SHAPE.map((s,i)=>({id:'home'+i,name:'Local '+i,pos:s[0],overall:80})),bench:options.bench||[]},away={...home,id:'away',name:'Away FC',players:home.players.map((p,i)=>({...p,id:'away'+i,name:'Rival '+i})),bench:[]};
  const graphics={kits:[['#bb2233'],['#eeeedd']],render:g=>{lastView=g;},project:()=>({visible:true,x:100,y:100}),dispose(){}};
  const context=vm.createContext({AuraMatch:Match,AuraPresentation:Presentation,AuraGraphics:{kit:()=>['#bb2233'],create:()=>graphics},AuraEvolution:{stopPreview(){},badge:()=>''},AuraBadges:{get:()=>null},
   document:{createElement:()=>node(),body:node('body'),activeElement:node('focus'),addEventListener:(name,fn)=>{docEvents[name]=fn;},removeEventListener(){}},
   window:{addEventListener:(name,fn)=>{windowEvents[name]=fn;},removeEventListener:(name)=>{delete windowEvents[name];}},navigator:{getGamepads:()=>[]},performance:{now:()=>now},
-  requestAnimationFrame:fn=>{raf.set(++nextRaf,fn);return nextRaf;},cancelAnimationFrame:id=>raf.delete(id),home,away,commit:()=>commits++,cancel:()=>cancels++,
+  requestAnimationFrame:fn=>{raf.set(++nextRaf,fn);return nextRaf;},cancelAnimationFrame:id=>raf.delete(id),home,away,playerLock:options.playerLock,commit:()=>commits++,cancel:()=>cancels++,
  });
  vm.runInContext(fs.readFileSync(path.join(__dirname,'..','match-ui.js'),'utf8'),context);
  vm.runInContext('AuraArena.settings.sound=false;AuraArena.settings.seconds=30;'+
-   (options.local?'AuraArena.settings.localTwoPlayer=true;AuraArena.start(home,away,{})':'AuraArena.start(home,away,{onFinish:commit,onCancel:cancel})'),context);
+   (options.local?'AuraArena.settings.localTwoPlayer=true;AuraArena.start(home,away,{})':'AuraArena.start(home,away,{onFinish:commit,onCancel:cancel,playerLock})'),context);
  const session=vm.runInContext('AuraArena.getSession()',context);
  return {session,node,run:code=>vm.runInContext(code,context),frame(ms=100){now+=ms;const callbacks=[...raf.values()];raf.clear();callbacks.forEach(fn=>fn(now));},
   key(type,key,target=node()){const event={key,target,defaultPrevented:false,preventDefault(){this.defaultPrevented=true;},stopImmediatePropagation(){this.stopped=true;}};windowEvents[type]?.(event);return event;},click(action){session.node.fire('click',{target:{closest:()=>({dataset:{arena:action}})}});},
+  change(id,value){const target=node(id);target.value=value;session.node.fire('change',{target});},
   commits:()=>commits,cancels:()=>cancels,view:()=>lastView,
  };
 }
@@ -115,6 +123,35 @@ test('the final match summary shows real keeper saves and parries without double
  const html=a.node('arena-layer').innerHTML;
  assert.match(html,/<span>Paradas<\/span><b>4<\/b>/);assert.match(html,/<span>Desvíos del portero<\/span><b>2<\/b>/);assert.doesNotMatch(html,/undefined|NaN/);
  a.click('complete');a.click('complete');assert.equal(a.commits(),1);
+});
+
+test('the match plan proposes legal changes and uses the displayed position rating without changing the source squad',()=>{
+ const a=boot({bench:[
+  {id:'reserve-raw',name:'Higher raw rating',pos:'MC',overall:90,slotRatings:Array(11).fill(65)},
+  {id:'reserve-fit',name:'Better fit',pos:'DC',overall:84,slotRatings:Array(11).fill(82)},
+  {id:'reserve-keeper',name:'Reserve keeper',pos:'POR',overall:77},
+ ]}),g=a.session.game,source=a.run('JSON.stringify(home)'),controlled=g.controlled;
+ a.click('pause');a.click('plan');
+ assert.equal(a.node('plan-out').value,String(controlled),'start with the controlled player, not the keeper');
+ const incoming=()=>a.node('arena-layer').innerHTML.match(/<select id="plan-in"[^>]*>([\s\S]*?)<\/select>/)[1];
+ assert.doesNotMatch(incoming(),/reserve-keeper/);assert.equal(a.node('plan-in').value,'reserve-fit');assert.match(incoming(),/82 GRL en este puesto/);
+ a.click('substitute');assert.equal(g.players[controlled].id,'reserve-fit');assert.equal(g.players[controlled].overall,82);
+ a.change('plan-out','0');assert.match(incoming(),/reserve-keeper/);assert.doesNotMatch(incoming(),/reserve-raw/);
+ a.click('substitute');assert.equal(g.players[0].id,'reserve-keeper');assert.equal(g.substitutions.length,2);
+ a.change('plan-out',String(controlled));assert.doesNotMatch(incoming(),/reserve-fit|reserve-keeper/,'used substitutes must not reappear');
+ assert.equal(a.run('JSON.stringify(home)'),source);assert.equal(g.paused,true);
+ a.click('resume');a.click('pause');a.click('exit');a.click('confirm-exit');
+});
+test('the match plan hides locked or sent-off players and disables changes without compatible cover',()=>{
+ const a=boot({bench:[{id:'reserve-mid',name:'Reserve midfielder',pos:'MC',overall:78}],playerLock:'home9'}),g=a.session.game;g.players[2].sentOff=true;
+ a.click('pause');a.click('plan');
+ const outgoing=()=>a.node('arena-layer').innerHTML.match(/<select id="plan-out">([\s\S]*?)<\/select>/)[1];
+ assert.doesNotMatch(outgoing(),/value="9"|value="2"/);assert.notEqual(a.node('plan-out').value,'9');
+ a.change('plan-out','0');const before=JSON.stringify(g),html=a.node('arena-layer').innerHTML;
+ assert.match(html,/Sin recambio compatible/);assert.match(html,/id="plan-in" disabled/);assert.match(html,/data-arena="substitute" disabled/);
+ a.click('substitute');assert.equal(JSON.stringify(g),before,'a stale activation cannot make an illegal change');
+ a.change('plan-out','1');assert.equal(a.node('plan-in').value,'reserve-mid');a.click('substitute');assert.equal(g.players[1].id,'reserve-mid');assert.equal(g.players[9].id,'home9');
+ a.click('resume');a.click('pause');a.click('exit');a.click('confirm-exit');
 });
 
 test('two-player exhibition assigns arrows to the visitor without moving the home player',()=>{
