@@ -28,9 +28,27 @@ jobs:
             seen[$file]=1
             echo "Refreshing $file"
             url="https://raw.githack.com/lagoat487/aura/main/${file}"
-            if ! curl --fail --silent --show-error --max-time 20 --retry 1 --retry-delay 8 -X DELETE "https://raw.githack.com/purge?url=$url"; then
+            if ! curl --fail --silent --show-error --max-time 20 --retry 1 --retry-delay 8 -G -X DELETE --data-urlencode "url=$url" "https://raw.githack.com/purge"; then
               echo "::warning::GitHack cache purge rate-limited for $file; GitHub main is already updated."
               break
             fi
             sleep 2
           done
+
+      - name: Verify the fixed AURA URL really serves Flashback
+        shell: bash
+        run: |
+          set -euo pipefail
+          live="https://raw.githack.com/lagoat487/aura/main/index.html"
+          for attempt in 1 2 3 4; do
+            if curl --fail --location --silent --show-error --max-time 20 -H 'Cache-Control: no-cache' "$live" -o /tmp/aura-live-index.html; then
+              if grep -q 'flashback-event-v2.js' /tmp/aura-live-index.html; then
+                echo "Verified live index.html loads the new Flashback files."
+                exit 0
+              fi
+            fi
+            echo "Fixed URL still returns an older HTML version (attempt $attempt)."
+            sleep 5
+          done
+          echo "::warning::Flashback is committed on main but the fixed GitHack URL still appears stale."
+          exit 0
