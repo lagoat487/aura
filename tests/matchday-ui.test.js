@@ -47,6 +47,20 @@ test('goal replay freezes the live game, can pause and skip, and completion comm
  for(let i=0;i<42;i++)a.frame(100);assert.equal(g.phase,'playing');assert.deepEqual(g.score,[1,0]);g.elapsed=g.seconds-.01;g.half=2;a.frame(50);assert.equal(g.phase,'finished');
  a.click('complete');a.click('complete');assert.equal(a.commits(),1);assert.equal(a.cancels(),0);assert.equal(a.run('AuraArena.isRunning()'),false);
 });
+test('restart setup explains the dead ball, discards old input and blocks queued touch shots',()=>{
+ const a=boot(),g=a.session.game;g.phase='playing';a.frame();
+ a.key('keydown','j');a.key('keydown','d');
+ const shot=a.node('touch:shoot'),stick=a.node('touch-stick'),pointer={pointerId:11,preventDefault(){},clientX:90,clientY:50};
+ Object.assign(g.ball,{owner:null,x:52.4,z:10,y:.3,vx:30,vz:0,vy:0,lastTouch:0});a.frame(40);
+ assert.equal(g.phase,'restart');assert.equal(a.session.charging,null);assert.equal(a.session.keys.size,0);
+ assert.equal(a.node('arena-power').hidden,true);a.frame(100);
+ assert.equal(a.node('arena-setpiece').hidden,false);assert.match(a.node('arena-setpiece').textContent,/SAQUE DE PORTERÍA.*BALÓN DETENIDO/);
+ const elapsed=g.elapsed,score=g.score.slice();a.key('keydown','j');shot.fire('pointerdown',pointer);stick.fire('pointerdown',pointer);
+ assert.equal(a.session.charging,null);assert.equal(a.session.stick.x,0);a.frame(100);assert.equal(g.elapsed,elapsed);assert.deepEqual(g.score,score);
+ for(let i=0;i<120&&g.phase==='restart';i++)a.frame(100);
+ assert.equal(g.phase,'playing');shot.fire('pointerup',pointer);a.key('keyup','j');assert.equal(g.stats[0].shots,0);
+ a.click('pause');a.click('exit');a.click('confirm-exit');
+});
 test('automatic replay finishes and camera selection cycles through four working views',()=>{
  const a=boot(),g=a.session.game;g.phase='playing';for(let i=0;i<10;i++)a.frame();
  const camera=a.run('AuraArena.settings.camera');for(let i=0;i<4;i++)a.click('camera');assert.equal(a.run('AuraArena.settings.camera'),camera);

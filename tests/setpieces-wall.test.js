@@ -17,6 +17,9 @@ test("a failed foul in shooting range positions a legal 9.15-metre wall",()=>{
   assert.equal(piece.kind,"free-kick");
   assert.equal(piece.team,1);
   assert.ok(piece.wall.length>=3);
+  assert.equal(g.phase,"restart");assert.equal(g.ball.owner,null);
+  for(let i=0;i<1000&&g.phase==="restart";i++)Match.step(g,.05);
+  assert.equal(g.phase,"playing");
   const taker=g.players[g.ball.owner];assert.equal(taker.team,1);
   for(const index of piece.wall){
     const p=g.players[index];

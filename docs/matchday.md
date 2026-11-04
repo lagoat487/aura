@@ -1,5 +1,11 @@
 # Matchday 4.2 — actualización de partidos
 
+## Continuidad de la IA y balón detenido
+
+Los saques de portería, banda, córners, faltas, penaltis y fueras de juego detienen el partido antes de recolocar jugadores. El sacador, los rivales cercanos y la barrera caminan a sus posiciones con el mismo movimiento gradual; nadie recibe la posesión hasta completar la preparación. El reloj, las estadísticas y el marcador quedan detenidos durante ese recorrido. Un rótulo explica la pausa y se descartan controles o tiros cargados de la jugada anterior.
+
+Los saques de portería corresponden al arquero disponible, con un jugador de campo como alternativa si fue expulsado. La regresión anterior podía trasladar un defensa 16,22 metros en un fotograma y continuar jugando inmediatamente. `tests/match-continuity.test.js` comprueba límites de desplazamiento, ambos equipos y mitades, cinco dificultades, pasos de física distintos, faltas, penaltis, barreras, fueras de juego, pausas y finalización del saque. El controlador también verifica el aviso y el descarte de controles anteriores. Los reinicios de formación tras gol o descanso siguen ocurriendo con el balón detenido.
+
 ## Porteros: salidas, reflejos y segundos balones
 
 Corrección del conteo: tocar un remate proyectado por fuera de cualquiera de los postes no suma una parada ni un desvío a puerta. La intervención y el rebote se conservan; se usa el mismo ancho de portería que decide los goles.

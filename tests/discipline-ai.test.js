@@ -33,6 +33,9 @@ test("two yellow cards dismiss a player without removing him from the match rost
  Object.assign(player,{x:10,z:0});Object.assign(rival,{x:11,z:0});
  const sequence=[.99,.05,.99,.99,.05,.99];let count=0;g.rng=()=>sequence[count++ % sequence.length];
  for(let i=0;i<2;i++){
+   for(let frame=0;frame<1000&&g.phase==="restart";frame++)M.step(g,.05);
+   assert.equal(g.phase,"playing");
+   Object.assign(player,{x:10,z:0});Object.assign(rival,{x:11,z:0});
    Object.assign(g.ball,{owner:20,x:11,z:0});player.cooldown=0;
    assert.equal(M.action(g,"slide"),true);
  }

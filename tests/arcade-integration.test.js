@@ -7,7 +7,8 @@ test("Mobile and canonical entries load practice and match preferences before de
   assert.match(html,/skill-games\.css\?v=7\.7/);
   assert.match(html,/match-preferences\.js\?v=7\.1/);
   assert.match(html,/matchday\.css\?v=7\.1/);
-  assert.match(html,/match-ui\.js\?v=7\.2-formations/);
+  assert.match(html,/match-engine\.js\?v=7\.8-continuous/);
+  assert.match(html,/match-ui\.js\?v=7\.8-continuous/);
   assert.match(html,/quick-formations\.js\?v=7\.6/);
   assert.match(html,/quick-formations\.css\?v=7\.4/);
   assert.ok(html.indexOf("skill-games.js")<html.indexOf("evolution-ui-flashback-v2.js"));

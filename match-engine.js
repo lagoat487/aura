@@ -39,7 +39,7 @@
       stats:[0,1].map(()=>({shots:0,onTarget:0,passes:0,completed:0,throughBalls:0,crosses:0,interceptions:0,fouls:0,yellows:0,reds:0,penalties:0,saves:0,parries:0,claims:0,tackles:0,possession:0,xg:0,keyPasses:0,blockedShots:0})),
       benches:sides.map(t=>(t.bench||[]).filter(p=>p&&typeof p.id==="string").map(p=>({...p}))),
       participants:sides.map(t=>t.players.map(p=>p.id)),substitutions:[],
-      difficulty:clamp(Number(options.difficulty)||1,.65,1.4),weather:options.weather==="rain"?"rain":"clear",tactic:options.tactic||"balanced",aiTactic:"balanced",setPiece:null,wallFlight:null,goals:[],playerStats:Object.create(null),assistWindow:null,shotAssist:null,rng,seed:options.seed};
+      difficulty:clamp(Number(options.difficulty)||1,.65,1.4),weather:options.weather==="rain"?"rain":"clear",tactic:options.tactic||"balanced",aiTactic:"balanced",setPiece:null,restart:null,wallFlight:null,goals:[],playerStats:Object.create(null),assistWindow:null,shotAssist:null,rng,seed:options.seed};
     if(options.playerLock){const index=players.findIndex(p=>p.team===0&&p.id===options.playerLock);if(index<1)throw Error("El jugador de carrera debe ser titular y de campo.");game.playerLock=options.playerLock;}
     for(const p of players)playerStat(game,p);
     reset(game,0);return game;
@@ -48,6 +48,7 @@
   function animate(p,kind,duration){p.action=kind;p.actionTime=p.actionDuration=duration;}
   function event(game,type,text,extra={}){const e={type,text,at:game.elapsed,minute:Math.min(90,Math.floor(game.elapsed/game.seconds*90)),...extra};game.events.push(e);if(game.events.length>80)game.events.shift();return e;}
   function reset(game,kicking){
+    game.restart=null;
     for(const p of game.players){const d=direction(game,p.team);p.x=p.sentOff?(p.team===0?-75:75):p.baseX*d;p.z=p.sentOff?0:p.baseZ*d;p.vx=p.vz=0;p.faceX=d;p.faceZ=0;p.cooldown=.3;p.skillTime=0;p.skillCooldown=0;p.action=null;p.actionTime=0;}
     const taker=game.players.find(p=>p.team===kicking&&p.index===9&&!p.sentOff)||game.players.find(p=>p.team===kicking&&p.index!==0&&!p.sentOff),support=game.players.find(p=>p.team===kicking&&p.index===7&&!p.sentOff)||taker;
     if(!taker)throw Error("No hay sacador disponible.");taker.x=-direction(game,kicking)*1.4;taker.z=0;if(support!==taker){support.x=-direction(game,kicking)*5;support.z=6;}
@@ -207,13 +208,12 @@
     if(penalty){
       game.stats[team].penalties++;
       restart(game,team,"Penalti",direction(game,team)*41.5,0);
-      const taker=game.players[game.ball.owner];
+      const taker=game.players[game.restart.index];
       for(const q of game.players){
         if(q===taker||q.sentOff)continue;
-        if(q.index===0&&q.team!==team){q.x=direction(game,team)*49;q.z=0;}
-        else if(q.index!==0&&q.x*direction(game,team)>35)q.x=direction(game,team)*33;
+        if(q.index===0&&q.team!==team)restartTarget(game,q,direction(game,team)*49,0);
+        else if(q.index!==0&&q.x*direction(game,team)>32.35)restartTarget(game,q,direction(game,team)*32,Math.abs(q.z)<3?(q.index%2?3:-3):q.z);
       }
-      game.ball.x=taker.x;game.ball.z=taker.z;
       game.setPiece={kind:"penalty",team,player:taker.id};
     }else{
       restart(game,team,"Tiro libre por falta",spot.x,spot.z);
@@ -233,7 +233,7 @@
     const cx=spot.x+ux*9.15,cz=spot.z+uz*9.15,wall=[];
     for(let n=0;n<size;n++){
       const {p,i}=defenders[n],offset=(n-(size-1)/2)*.73;
-      p.x=clamp(cx-uz*offset,-50.5,50.5);p.z=clamp(cz+ux*offset,-32,32);
+      restartTarget(game,p,clamp(cx-uz*offset,-50.5,50.5),clamp(cz+ux*offset,-32,32));
       p.vx=p.vz=0;p.faceX=-ux;p.faceZ=-uz;wall.push(i);
     }
     return wall;
@@ -471,14 +471,54 @@
     }
     move(p,tx,tz,speed,dt);
   }
-  function restart(game,team,kind,x,z){
-    const index=nearest(game,team,{x,z}),p=game.players[index];
+  function restartTarget(game,p,x,z){
+    const index=game.players.indexOf(p),targets=game.restart.targets;
+    const target={index,x:clamp(x,-51.5,51.5),z:clamp(z,-33,33)};
+    const previous=targets.findIndex(t=>t.index===index);
+    if(previous<0)targets.push(target);else targets[previous]=target;
+  }
+  function restart(game,team,kind,x,z,goalKick=false){
+    const keeper=goalKick?game.players.findIndex(p=>p.team===team&&p.index===0&&!p.sentOff):-1;
+    const index=keeper>=0?keeper:nearest(game,team,{x,z}),p=game.players[index],b=game.ball;
+    const spot={x:clamp(x,-49,49),z:clamp(z,-32,32)};
     game.setPiece=null;game.wallFlight=null;game.assistWindow=null;game.shotAssist=null;
-    p.x=clamp(x,-49,49);p.z=clamp(z,-32,32);ownBall(game,index);p.cooldown=.8;
+    game.passTarget=null;game.passRun=null;game.offsideTarget=null;
+    game.restart={team,index,kind,...spot,targets:[],settle:.35};game.phase="restart";
+    // The whistle stops play before anyone changes position. A dead ball has
+    // no owner until the taker has physically reached it and everyone is ready.
+    Object.assign(b,{...spot,y:.22,owner:null,vx:0,vy:0,vz:0,spin:0,freeTime:0,lastTouch:team,lastKicker:null,lastKickerIdentity:null});
+    for(const q of game.players){
+      if(q.sentOff)continue;q.vx=q.vz=0;
+      if(q===p)continue;
+      const radius=q.team===team?1.5:kind==="Saque de banda"?2.5:9.5;
+      const gap=dist(q,spot);
+      if(gap<radius){
+        const dx=q.x-spot.x,dz=q.z-spot.z;
+        let tx=clamp(spot.x+(gap>.01?dx/gap:-direction(game,team))*radius,-51.5,51.5);
+        let tz=clamp(spot.z+(gap>.01?dz/gap:0)*radius,-33,33);
+        if(dist({x:tx,z:tz},spot)<radius-.1){tx=spot.x-Math.sign(spot.x||1)*radius;tz=spot.z;}
+        restartTarget(game,q,tx,tz);
+      }
+      if(goalKick&&q.team!==team&&inKeeperArea(game,p,q))restartTarget(game,q,-direction(game,team)*35,q.z);
+    }
+    restartTarget(game,p,spot.x,spot.z);
     if(team===0&&!game.playerLock)game.controlled=index;
     if(team===1&&game.localTwoPlayer)game.awayControlled=index;
-    game.ball.x=p.x;game.ball.z=p.z;game.ball.y=.22;game.ball.spin=0;
     event(game,"restart",kind,{team});
+  }
+  function prepareRestart(game,dt){
+    const pending=game.restart;let ready=true;
+    for(const target of pending.targets){
+      const p=game.players[target.index];if(p.sentOff)continue;
+      move(p,target.x,target.z,6,dt);
+      if(dist(p,target)>.12||Math.hypot(p.vx,p.vz)>.2)ready=false;
+    }
+    if(!ready){pending.settle=.35;return;}
+    pending.settle-=dt;if(pending.settle>0)return;
+    const taker=game.players[pending.index];
+    taker.faceX=direction(game,taker.team);taker.faceZ=0;
+    ownBall(game,pending.index);taker.cooldown=.3;
+    game.restart=null;game.phase="playing";
   }
   function ballStep(game,dt,keeperStarts){
     const b=game.ball;
@@ -512,13 +552,11 @@
       }
       const defending=direction(game,0)===Math.sign(b.x)?1:0;
       if(b.lastTouch===defending){
-        const attacking=1-defending,side=Math.sign(z||b.z||1),index=nearest(game,attacking,{x:edge,z:side*33}),taker=game.players[index];
-        taker.x=Math.sign(edge)*49;taker.z=side*32;ownBall(game,index);
-        Object.assign(b,{x:taker.x,y:.22,z:taker.z,spin:0});
-        taker.cooldown=.45;game.setPiece={kind:"corner",team:attacking};
-        event(game,"restart","Córner",{team:attacking});return;
+        const attacking=1-defending,side=Math.sign(z||b.z||1);
+        restart(game,attacking,"Córner",Math.sign(edge)*49,side*32);
+        game.setPiece={kind:"corner",team:attacking};return;
       }
-      restart(game,defending,"Saque de portería",edge-Math.sign(edge)*4,0);return;
+      restart(game,defending,"Saque de portería",edge-Math.sign(edge)*4,0,true);return;
     }
     if(Math.abs(b.z)>34){restart(game,1-b.lastTouch,"Saque de banda",b.x,Math.sign(b.z)*32);return;}
     if(b.y>2.5)return;
@@ -538,6 +576,7 @@
     if(game.phase==="finished"||game.paused)return game;
     const dt=clamp(Number(delta)||0,0,.05);if(!dt)return game;
     game.visualTime+=dt;for(const p of game.players)p.actionTime=Math.max(0,p.actionTime-dt);
+    if(game.phase==="restart"){prepareRestart(game,dt);return game;}
     if(game.phase!=="playing"){
       game.phaseTime-=dt;
       if(game.phaseTime<=0){
