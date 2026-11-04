@@ -64,7 +64,7 @@
  margin:10px 0;color:#fff7e6}
 .fb-section-head h3 em{font-style:normal;color:#f4c56b}
 .fb-section-head p{font-size:13px;line-height:1.65;color:#d6c6ac;max-width:800px}
-.fb-opponents{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.fb-opponents{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .fb-opponents article{position:relative;display:flex;flex-direction:column;min-height:206px;
  padding:23px 18px;overflow:hidden;border:1px solid #dcaf6d99;border-radius:13px;
  background:linear-gradient(135deg,#392e28,#171b28)}
