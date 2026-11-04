@@ -90,7 +90,7 @@ function boot(storage=new Map()){
  context.UI.bindRender(()=>{html=context.UI.render();});
  return {UI:context.UI,storage,notices,html:()=>html,modal:()=>modal,click:dataset=>context.UI.handleClick({dataset})};
 }
-test("Muralla UI opens through onboarding, buys all nine cards, closes Sigma and restores the selected event",()=>{
+test("Muralla UI opens through onboarding, buys all nine cards and restores the selected event after retired Sigma actions",()=>{
  const app=boot();app.click({utTab:"muralla"});assert.match(app.html(),/CREA TU CLUB/);
  app.click({ut:"create"});assert.match(app.html(),/EL GOL TERMINA AQUÍ/);
  assert.equal((app.html().match(/data-ut="muralla-buy"/g)||[]).length,9);
@@ -100,7 +100,7 @@ test("Muralla UI opens through onboarding, buys all nine cards, closes Sigma and
  const saved=boot(app.storage);assert.match(saved.UI.render(),/EL GOL TERMINA AQUÍ/);assert.equal(saved.UI.getClub().coins,club.coins);
  app.click({utTab:"club"});assert.match(app.html(),/ut-card muralla/);
  const before=JSON.stringify(club);app.click({ut:"muralla-buy",player:"muralla:saliba"});assert.equal(JSON.stringify(club),before);
- app.click({sigmaOpen:"yes"});assert.match(app.html(),/ELIGE A TU SIGMA/);
+ const beforeRetired=app.UI.render();app.click({sigmaOpen:"yes"});assert.equal(app.UI.render(),beforeRetired);
  app.click({utTab:"muralla"});assert.match(app.html(),/EL GOL TERMINA AQUÍ/);assert.doesNotMatch(app.html(),/ELIGE A TU SIGMA/);
  assert.equal(app.notices.filter(s=>s.includes("MURALLA fichado")).length,9);
 });
@@ -114,6 +114,15 @@ test("the Muralla gift button credits and saves once inside the event, then stay
  const reload=boot(app.storage),snapshot=JSON.stringify(reload.UI.getClub());
  assert.match(reload.UI.render(),/REGALO YA RECLAMADO/);reload.click({ut:"muralla-gift"});
  assert.equal(JSON.stringify(reload.UI.getClub()),snapshot);assert.equal(app.notices.filter(s=>s.includes("bienvenida MURALLA reclamadas")).length,1);
+});
+test("retired Sigma buttons never appear and stale clicks leave the active Muralla view and club unchanged",()=>{
+ const app=boot();app.click({utTab:"muralla"});app.click({ut:"create"});
+ const html=app.UI.render(),before=JSON.stringify(app.UI.getClub());
+ assert.doesNotMatch(html,/data-sigma-|Ultimate Sigma|ELIGE A TU SIGMA/);
+ for(const dataset of [{sigmaOpen:"yes"},{sigmaGift:""},{sigmaBuy:"sigma:espart"},{sigmaInspect:"sigma:mbappe"}]){
+  assert.equal(app.click(dataset),true);assert.equal(app.UI.render(),html);assert.equal(JSON.stringify(app.UI.getClub()),before);
+ }
+ assert.match(html,/EL GOL TERMINA AQUÍ/);assert.match(html,/RECLAMAR 300\.000 MONEDAS/);
 });
 test("both desktop and mobile ship Muralla while keeping runtime copies identical",()=>{
  for(const entry of ["index.html","mobile.html"]){

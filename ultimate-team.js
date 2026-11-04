@@ -5,8 +5,8 @@
   const packs={silver:{name:"Sobre de plata",cost:750,count:3,min:65,max:74},gold:{name:"Sobre de oro",cost:2500,count:3,min:75,max:92},premium:{name:"Oro premium 82+",cost:7500,count:3,min:75,max:92,guaranteed:82}};
   const challenges={silver:{name:"De plata a oro",count:3,min:65,max:74,score:900,reward:"gold"},gold:{name:"Mejora 82+",count:3,min:75,max:83,score:1900,reward:"premium"},elite:{name:"Desafío élite 82+",count:4,min:82,max:90,score:4400,reward:"premium"}};
 
-  // AURA 4.2: limited-edition fantasy boosts. These cards exist only in Ultimate Team.
-  const sigma=Object.freeze({id:"ultimate-sigma",name:"ULTIMATE SIGMA",version:"4.2",cards:Object.freeze([
+  // Retired event. Keep its definitions only for cards already stored in UT clubs.
+  const sigma=Object.freeze({id:"ultimate-sigma",name:"ULTIMATE SIGMA",version:"4.2",active:false,cards:Object.freeze([
     {id:"sigma:rashford",name:"Marcus Rashford",overall:88,pos:"EI",price:450000,nationality:"Inglaterra",sourceClub:"FC Barcelona"},
     {id:"sigma:espart",name:"Xavi Espart",overall:87,pos:"LD",price:150000,nationality:"España",sourceClub:"FC Barcelona"},
     {id:"sigma:yamal",name:"Lamine Yamal",overall:91,pos:"ED",price:900000,nationality:"España",sourceClub:"FC Barcelona"},
@@ -113,7 +113,7 @@
     u.coins+=flashback.welcome;u.flashbackGiftClaimed=true;
     return {ok:true,coins:flashback.welcome};
   }
-  function claimSigmaGift(u){if(u.sigmaGiftClaimed)return {error:"Ya reclamaste el bono Ultimate Sigma."};u.coins+=150000;u.sigmaGiftClaimed=true;return {ok:true,coins:150000};}
+  function claimSigmaGift(){return {error:"El evento Ultimate Sigma ha finalizado."};}
   function league(p){if(p.leagueId==='reference')return '';return p.leagueId||p.league||String(p.catalogClub||p.club||"").replace(/-[^-]+$/,'');}
   function chemistry(u){
     const formation=Squad.formations[u.formation]||Squad.formations['4-3-3'],ps=u.xi.map(id=>u.owned.find(p=>p.id===id)),valid=ps.filter((p,i)=>p&&Squad.positionPenalty(p,formation[i][0])<=1),counts={club:new Map(),nation:new Map(),league:new Map()};
@@ -193,6 +193,7 @@
     return {ok:true,player:p,cost,overall:p.overall,level:p.evolutionLevel};
   }
   function buy(u,player){if(!player?.real||!player.id)return {error:"Jugador no disponible."};
+    if(player.event===sigma.id||String(player.id).startsWith("sigma:"))return {error:"El evento Ultimate Sigma ha finalizado."};
     if((player.event===muralla.id||String(player.id).startsWith("muralla:"))&&
       (player.event!==muralla.id||!muralla.cards.some(p=>p.id===player.id&&p.name===player.name&&p.overall===player.overall&&p.pos===player.pos)))
       return {error:"Carta Muralla no disponible."};

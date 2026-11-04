@@ -442,19 +442,20 @@ for(const runtime of ['ultimate-ui.js','ultimate-ui-flashback-v2.js'])test('UT e
 test('UT calls up a stronger new signing on the displayed bench without changing the chosen XI',async()=>{
  const app=boot();app.run(fs.readFileSync(path.join(__dirname,'..','data/world-rosters.js'),'utf8'));await app.run('World.load(clubs,Competitions.definitions)');
  app.run(fs.readFileSync(path.join(__dirname,'..','ultimate-sigma.js'),'utf8'));
+ app.run(fs.readFileSync(path.join(__dirname,'..','muralla-event.js'),'utf8'));
  app.click({evoMode:'ultimate'});app.click({ut:'create'});
  const xi=app.json('AuraUTUI.getClub().xi');
- app.click({sigmaOpen:'yes'});app.click({sigmaGift:''});app.click({sigmaBuy:'sigma:espart'});
- assert.ok(app.run('AuraUTUI.getClub().owned.some(p=>p.id==="sigma:espart")'),'the existing event purchase must succeed');
+ app.run('AuraUTUI.getClub().coins=600000');app.click({utTab:'muralla'});app.click({ut:'muralla-buy',player:'muralla:hakimi'});
+ assert.ok(app.run('AuraUTUI.getClub().owned.some(p=>p.id==="muralla:hakimi")'),'the active Muralla event purchase must succeed');
  const club=app.json('AuraUTUI.getClub()');app.click({utTab:'squad'});
  const bench=app.html().match(/<div class="ut-bench">([\s\S]*?)<\/section>/)[1];
- assert.match(bench,/data-player="sigma:espart"/,'a stronger signing must be available on the bench');
+ assert.match(bench,/data-player="muralla:hakimi"/,'a stronger signing must be available on the bench');
  app.run('AuraArena.preMatch=(home,away)=>{globalThis.preparedUT=home;globalThis.preparedOpponent=away}');app.click({ut:'play',opponent:'madrid'});
  const benchIds=app.json('preparedUT.bench.map(p=>p.id)'),displayedIds=[...bench.matchAll(/data-player="([^"]+)"/g)].map(m=>m[1]);
- assert.ok(benchIds.includes('sigma:espart'));assert.deepEqual(benchIds,displayedIds,'the displayed bench must match the match call-up');
+ assert.ok(benchIds.includes('muralla:hakimi'));assert.deepEqual(benchIds,displayedIds,'the displayed bench must match the match call-up');
  app.run('globalThis.matchWithSigning=AuraMatch.create({home:preparedUT,away:preparedOpponent,seconds:30,seed:9});matchWithSigning.paused=true');
- assert.equal(app.run('AuraMatch.substitute(matchWithSigning,4,matchWithSigning.benches[0].find(p=>p.id==="sigma:espart"))'),true,'the signing can enter from the bench');
- assert.equal(app.run('matchWithSigning.players[4].id'),'sigma:espart');
+ assert.equal(app.run('AuraMatch.substitute(matchWithSigning,4,matchWithSigning.benches[0].find(p=>p.id==="muralla:hakimi"))'),true,'the signing can enter from the bench');
+ assert.equal(app.run('matchWithSigning.players[4].id'),'muralla:hakimi');
  assert.equal(benchIds.length,9);assert.deepEqual(app.json('AuraUTUI.getClub().xi'),xi);assert.deepEqual(app.json('AuraUTUI.getClub()'),club,'preparing the bench must not spend coins or change the collection');
 });
 
@@ -915,3 +916,4 @@ test("Mode return to career, VOLTA, UT and back to Pro does not reset individual
  assert.match(app.html(),/Visión y pase/);
  assert.deepEqual(app.json("AuraUTUI.getClub().owned.map(p=>p.id)"),owned);
 });
+
