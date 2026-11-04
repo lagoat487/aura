@@ -2,7 +2,7 @@
 (function(root,factory){const api=factory();if(typeof module==="object"&&module.exports)module.exports=api;else root.AuraUTSave=api;})(typeof globalThis!=="undefined"?globalThis:this,function(){
   "use strict";
   const KEY="aura-ultimate-team-v1",BACKUP_KEY="aura-ultimate-team-backup-v1",FORMAT="aura-ut-backup",MAX_BYTES=3_000_000;
-  const allowedTabs=new Set(["home","squad","play","store","market","sbc","objectives","club","argentina","evolutions","backup"]);
+  const allowedTabs=new Set(["home","squad","play","store","market","sbc","objectives","club","argentina","flashback","evolutions","backup"]);
   const formations=new Set(["4-3-3","4-4-2","4-2-3-1","4-3-2-1","4-1-2-1-2","3-5-2","5-3-2","4-5-1"]);
   const array=a=>Array.isArray(a);
   const integer=n=>Number.isSafeInteger(n)&&n>=0;
@@ -32,6 +32,11 @@
     }
     for(const name of ["objectives","claimed","lastPack","battlesClaimed"]){if(!array(u[name])||u[name].length>10000)return false;}
     for(const name of ["played","wins","draws","losses","packsOpened","purchases","sbcs","battlePoints","battleCycle","divisionPoints","serial"]){if(!integer(u[name]))return false;}
+    // Flashback was added after older UT saves; missing fields stay backwards-compatible.
+    if(u.flashbackGiftClaimed!==undefined&&typeof u.flashbackGiftClaimed!=="boolean")return false;
+    for(const field of ["flashbackPlayed","flashbackWins","flashbackEarned"])
+      if(u[field]!==undefined&&(!integer(u[field])||u[field]>1e12))return false;
+    if(u.flashbackPlayed!==undefined&&u.flashbackWins!==undefined&&u.flashbackWins>u.flashbackPlayed)return false;
     if(!Number.isInteger(u.division)||u.division<1||u.division>10)return false;
     return true;
   }
