@@ -27,7 +27,7 @@ function boot(options={}){
  return {game,
   frame(ms=25){now+=ms;const callbacks=[...frames.values()];frames.clear();callbacks.forEach(fn=>fn(now));},
   pointer(button,type,id=1){buttons.get(button)['on'+type]?.({pointerId:id,preventDefault(){}});},
-  key(key){events.get('keydown')?.({key,target:root,preventDefault(){},stopImmediatePropagation(){}});},
+  key(key,extra={}){const event={key,target:root,defaultPrevented:false,preventDefault(){this.defaultPrevented=true;},stopImmediatePropagation(){this.stopped=true;},...extra};events.get('keydown')?.(event);return event;},
   pauseButton:()=>root.querySelector('[data-street="pause"]').onclick(),blur:()=>events.get('blur')?.(),
   close:()=>root.querySelector('[data-street="close"]').onclick(),
   report:()=>root.querySelector(".street-finish"),
@@ -68,6 +68,25 @@ test('Calle keyboard and touch tackles retain the ball on the following frames',
   for(let i=0;i<6;i++){a.frame();assert.equal(g.ball.owner,player.index,control+' must not immediately give the ball back');}
   assert.equal(g.stats[0].tackles,1);assert.deepEqual(Array.from(g.score),[0,0]);a.close();
  }
+});
+
+test('Calle browser shortcuts do not move players, pause or consume the browser event',()=>{
+ const a=boot(),g=a.game,p=g.players[g.controlled];a.frame();const before=JSON.stringify(g),start={x:p.x,z:p.z};
+ for(const modifier of ['ctrlKey','metaKey','altKey'])for(const key of ['w','s','p','j',' ']){
+  const e=a.key(key,{[modifier]:true});assert.equal(e.defaultPrevented,false,modifier+' + '+key+' must remain available to the browser');assert.equal(e.stopped,undefined);
+ }
+ assert.equal(JSON.stringify(g),before);a.frame();assert.equal(p.x,start.x);assert.equal(p.z,start.z,'shortcut movement must not remain held');
+ assert.equal(a.key('d').defaultPrevented,true);a.frame();assert.ok(p.x>start.x,'plain movement keys still work');a.close();
+});
+
+test('Calle preserves Space on focused buttons during play, pause and results while retaining the field tackle',()=>{
+ const a=boot(),g=a.game,button={closest:selector=>selector==='button'?{}:null};a.frame();
+ const player=g.players[g.controlled],rival=g.players[4];Object.assign(player,{x:0,z:0,cooldown:0});Object.assign(rival,{x:.4,z:0,cooldown:0});g.ball.owner=rival.index;
+ let before=JSON.stringify(g);assert.equal(a.key(' ',{target:button}).defaultPrevented,false);assert.equal(JSON.stringify(g),before,'button activation must not tackle');
+ a.pauseButton();before=JSON.stringify(g);assert.equal(a.key(' ',{target:button}).defaultPrevented,false);assert.equal(JSON.stringify(g),before);
+ a.key('p');assert.equal(a.key(' ').defaultPrevented,true);assert.equal(g.stats[0].tackles,1,'Space on the field still tackles');
+ g.elapsed=g.seconds-.01;a.frame();assert.equal(g.done,true);assert.equal(a.report().hidden,false);
+ before=JSON.stringify(g);assert.equal(a.key(' ',{target:button}).defaultPrevented,false);assert.equal(JSON.stringify(g),before);a.close();
 });
 
 test('Calle reports one finished 3v3 match to the circuit and not twice on additional frames',()=>{
