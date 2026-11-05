@@ -59,6 +59,19 @@ test("UT uses the selected XI, opening a pack spends session coins, and abandoni
  app.run('AuraArena.preMatch=(home,away,options)=>{globalThis.pendingUT=options;globalThis.utTeam=home}');const before=app.run('AuraTourUI.getUltimate().coins');app.click({tour:"ut-play"});assert.equal(app.run('AuraTourUI.getUltimate().coins'),before);assert.deepEqual(app.json('utTeam.players.map(p=>p.id)'),app.json('AuraTourUI.getUltimate().xi'));
  app.run('pendingUT.onFinish({home:1,away:0})');assert.equal(app.run('AuraTourUI.getUltimate().coins'),before+1200);app.run('pendingUT.onFinish({home:1,away:0})');assert.equal(app.run('AuraTourUI.getUltimate().coins'),before+1200);
 });
+for(const runtime of ['ultimate-ui.js','ultimate-ui-6.js'])test('UT onboarding accepts whitespace names and prepares a match with a valid named club: '+runtime,()=>{
+ for(const name of ['   ','\u00a0 \t']){
+  const app=boot(undefined,runtime);app.click({evoMode:'ultimate'});app.node('ut-club-name').value=name;app.click({ut:'create'});
+  const club=app.json('AuraUTUI.getClub()');assert.equal(club.name,'Mi AURA FC');assert.equal(club.owned.length,23);assert.equal(club.coins,10000);
+  assert.equal(app.run('AuraUTSave.validClub(AuraUTUI.getClub(),new Set(Object.keys(AuraSquad.formations)))'),true);
+  assert.match(app.html(),/<h1>Mi AURA FC<\/h1>/);
+  app.run('AuraArena.preMatch=(home,away,options)=>{globalThis.namedUTHome=home;globalThis.namedUTMatch=options}');
+  app.click({utTab:'play'});app.click({ut:'play',opponent:'betis'});
+  assert.equal(app.run('namedUTHome.name'),'Mi AURA FC');assert.deepEqual(app.json('namedUTHome.players.map(p=>p.id)'),club.xi);
+  assert.deepEqual(app.json('AuraUTUI.getClub()'),club,'preparing a match must preserve the new club and its balance');
+ }
+});
+
 test("Kitu is in Barcelona SC and the market finds his nickname; retirees stay retired after a roster refresh",()=>{
  const app=boot();app.click({competition:"exhibition"});app.click({pick:"boca"});app.click({action:"start"});app.run('marketSearch="Kitu"');assert.match(app.run('marketResults()'),/Kitu/);
  assert.equal(app.run('clubPlayers("guayaquil").find(p=>p.id===AuraTour.kitu.id).name'),"Damián ‘Kitu’ Díaz");

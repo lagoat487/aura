@@ -5,6 +5,21 @@ function pool(){return ['a','b','c','d'].flatMap((cid,n)=>Array.from({length:23}
 test('UT starts with 23 unique real footballers, a complete XI and a preferred starter league',()=>{
  const u=U.create(pool(),'liga-a');assert.equal(u.owned.length,23);assert.equal(new Set(u.owned.map(p=>p.id)).size,23);assert.equal(new Set(u.xi).size,11);assert.ok(u.xi.every(id=>u.owned.find(p=>p.id===id)));assert.equal(u.owned.find(p=>p.id===u.xi[0]).pos,'POR');assert.ok(u.xi.map(id=>u.owned.find(p=>p.id===id)).filter(p=>p.leagueId==='liga-a').length>=8);
 });
+test('UT creation gives whitespace-only names a valid default while preserving custom names and starter contents',()=>{
+ const Save=require('../ultimate-save'),formations=new Set(Object.keys(require('../squad').formations));
+ for(const model of [U,require('../ultimate-team-6')]){
+  const baseline=model.create(pool(),'liga-a','Mi AURA FC');
+  for(const name of [undefined,null,'','   ','\t\r\n','\u00a0','\u2003']){
+   const u=model.create(pool(),'liga-a',name);
+   assert.equal(u.name,'Mi AURA FC','blank input must not create an unnamed club');assert.equal(Save.validClub(u,formations),true);
+   assert.deepEqual(u,baseline,'using the default name must preserve coins, cards and the selected starter league');
+  }
+  for(const name of ['  Costa FC  ','  Peñarol & Ñandú  ','  Un nombre de club mucho más largo de veinticuatro letras  ']){
+   const u=model.create(pool(),'liga-a',name);assert.equal(u.name,name.trim().slice(0,24));assert.equal(Save.validClub(u,formations),true);
+   assert.deepEqual({...u,name:baseline.name},baseline,'custom names must not alter the starter club');
+  }
+ }
+});
 test('chemistry is 0–33, rewards compatible links and never rewards an out-of-position card',()=>{
  const ps=positions.slice(0,11).map((pos,i)=>({id:'p'+i,name:'Player '+i,pos,overall:78,real:true,club:'same',leagueId:'same',nationality:'Spain'})),u={owned:ps,xi:ps.map(p=>p.id),formation:'4-3-3'};assert.equal(U.chemistry(u).total,33);[u.xi[0],u.xi[9]]=[u.xi[9],u.xi[0]];assert.equal(U.chemistry(u).players[0],0);assert.equal(U.chemistry(u).players[9],0);
 });
