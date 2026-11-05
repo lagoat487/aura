@@ -423,6 +423,19 @@ test('UT market ignores surrounding search whitespace and keeps blank searches o
  const empty=search('');assert.equal(search('   '),empty,'spaces alone must not bypass the default rating range');assert.deepEqual(app.json('AuraUTUI.getClub()'),before);
 });
 
+for(const runtime of ['ultimate-ui.js','ultimate-ui-flashback-v2.js'])test('UT club search ignores surrounding and whitespace-only input without changing the collection: '+runtime,()=>{
+ const app=boot(undefined,runtime);app.click({evoMode:'ultimate'});app.click({ut:'create'});app.click({utTab:'club'});
+ const before=app.json('AuraUTUI.getClub()'),player=before.owned[0];
+ const search=value=>{
+  app.run('AuraUTUI.input({target:{id:"ut-club-query",value:'+JSON.stringify(value)+'}})');
+  return [...app.node('ut-club-results').innerHTML.matchAll(/data-player="([^"]+)"/g)].map(m=>m[1]);
+ };
+ const clean=search(player.name);assert.ok(clean.includes(player.id));
+ for(const value of ['  '+player.name+'  ','\u00a0'+player.name+'\t'])assert.deepEqual(search(value),clean,'pasted names must find the same owned cards');
+ const all=search('');assert.equal(all.length,before.owned.length);assert.deepEqual(search(' \t\u00a0 '),all,'spaces alone must show the full collection');
+ assert.deepEqual(app.json('AuraUTUI.getClub()'),before,'searching must preserve the XI, coins and cards');
+});
+
 for(const runtime of ['ultimate-ui.js','ultimate-ui-flashback-v2.js'])test('UT explicit market ratings override the starter range without changing the club: '+runtime,async()=>{
  const app=boot(undefined,runtime);app.run(fs.readFileSync(path.join(__dirname,'..','data/world-rosters.js'),'utf8'));await app.run('World.load(clubs,Competitions.definitions)');
  app.click({evoMode:'ultimate'});app.click({ut:'create'});app.click({utTab:'market'});const before=app.json('AuraUTUI.getClub()');
