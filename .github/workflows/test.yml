@@ -1,14 +1,53 @@
-name: Competition tests
-on: [push, pull_request]
+name: Verify published AURA files
+on:
+  push:
+    branches: [fix/verify-aura-0438d66d]
 permissions:
   contents: read
 jobs:
-  test:
+  verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-      - run: npm test
-      - run: npm run build
+          ref: 0438d66d44cd23af69e282e7d16e26346ce5c1a1
+      - name: Purge the changed canonical controller
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --max-time 20 -G -X DELETE --data-urlencode 'url=https://raw.githack.com/lagoat487/aura/main/ultimate-ui.js' 'https://raw.githack.com/purge'
+      - name: Purge the exact runtime URL used by both entrypoints
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          sleep 2
+          curl --fail --silent --show-error --max-time 20 -G -X DELETE --data-urlencode 'url=https://raw.githack.com/lagoat487/aura/main/ultimate-ui-61.js?v=6.1-magia' 'https://raw.githack.com/purge'
+      - name: Compare served files with the published revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
+            verified=1
+            for asset in 'index.html' 'ultimate-ui.js' 'ultimate-ui-61.js?v=6.1-magia' 'ultimate-ui-61.js'; do
+              file="${asset%%\?*}"
+              if curl --fail --location --silent --show-error --max-time 10 -H 'Cache-Control: no-cache' "https://raw.githack.com/lagoat487/aura/main/$asset" -o /tmp/aura-live-asset; then
+                if cmp -s "$file" /tmp/aura-live-asset; then
+                  echo "MATCH: $asset equals 0438d66d44cd23af69e282e7d16e26346ce5c1a1 (attempt $attempt)"
+                  continue
+                fi
+                echo "STALE: $asset differs from 0438d66d44cd23af69e282e7d16e26346ce5c1a1 (attempt $attempt)"
+                sha256sum "$file" /tmp/aura-live-asset
+              fi
+              verified=0
+            done
+            if [[ "$verified" == 1 ]]; then
+              echo "VERIFIED: all served files match 0438d66d44cd23af69e282e7d16e26346ce5c1a1."
+              exit 0
+            fi
+            if [[ "$attempt" != 12 ]]; then sleep 15; fi
+          done
+          echo "::error::Cache still does not serve the complete published revision 0438d66d44cd23af69e282e7d16e26346ce5c1a1."
+          exit 1
