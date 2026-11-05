@@ -209,8 +209,9 @@ const AuraArena=(()=>{
     node.addEventListener("change",e=>{if(e.target.id==='plan-out'&&game.paused&&!s.done){s.planOut=Number(e.target.value);matchPlan('',false);find('plan-out')?.focus();}});
     const stick=find("touch-stick"),knob=stick.querySelector("span");let pointer=null;
     function stickMove(e){if(e.pointerId!==pointer||game.paused||s.done||s.replay||game.phase!=="playing")return;const r=stick.getBoundingClientRect(),dx=(e.clientX-r.left-r.width/2)/(r.width*.38),dz=(e.clientY-r.top-r.height/2)/(r.height*.38),len=Math.max(1,Math.hypot(dx,dz));s.stick={x:dx/len,z:dz/len};knob.style.transform='translate('+s.stick.x*30+'px,'+s.stick.z*30+'px)';}
-    stick.addEventListener("pointerdown",e=>{if(game.paused||s.done||s.replay||game.phase!=="playing")return;pointer=e.pointerId;stick.setPointerCapture(pointer);stickMove(e);});stick.addEventListener("pointermove",stickMove);
-    const releaseStick=()=>{pointer=null;s.stick={x:0,z:0};knob.style.transform="";};stick.addEventListener("pointerup",releaseStick);stick.addEventListener("pointercancel",releaseStick);stick.addEventListener("lostpointercapture",releaseStick);
+    // Keep the joystick with its first active finger until that pointer releases it.
+    stick.addEventListener("pointerdown",e=>{if(pointer!==null||game.paused||s.done||s.replay||game.phase!=="playing")return;pointer=e.pointerId;stick.setPointerCapture(pointer);stickMove(e);});stick.addEventListener("pointermove",stickMove);
+    const releaseStick=e=>{if(e&&e.pointerId!==pointer)return;pointer=null;s.stick={x:0,z:0};knob.style.transform="";};stick.addEventListener("pointerup",releaseStick);stick.addEventListener("pointercancel",releaseStick);stick.addEventListener("lostpointercapture",releaseStick);
     node.querySelectorAll("[data-touch]").forEach(button=>{
       button.addEventListener("pointerdown",e=>{e.preventDefault();button.setPointerCapture(e.pointerId);if(s.replay||game.paused||s.done||game.phase!=="playing")return;const type=button.dataset.touch;if(type==="sprint")s.touchSprint=true;else if(type==="shoot"){s.charging=performance.now();find("arena-power").hidden=false;}else AuraMatch.action(game,type,controls());});
       button.addEventListener("pointerup",()=>{if(button.dataset.touch==="sprint")s.touchSprint=false;if(button.dataset.touch==="shoot")shoot();});

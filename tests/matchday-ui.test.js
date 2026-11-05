@@ -135,6 +135,32 @@ test('losing joystick capture releases movement and paused or replayed touches c
  a.click('pause');a.click('exit');a.click('confirm-exit');
 });
 
+test('the joystick keeps its active finger when another finger touches, moves or releases on the pad',()=>{
+ const a=boot(),g=a.session.game;g.phase='playing';
+ const stick=a.node('touch-stick'),knob=stick.querySelector('span'),first={pointerId:11,clientX:90,clientY:50},second={pointerId:12,clientX:10,clientY:50};
+ const position=()=>JSON.stringify(a.session.stick);
+ stick.fire('pointerdown',first);assert.ok(a.session.stick.x>.5);const held=position(),transform=knob.style.transform;
+ stick.fire('pointerdown',second);assert.equal(position(),held,'a second finger must not replace the active direction');
+ stick.fire('pointermove',{...second,clientX:50,clientY:90});assert.equal(position(),held);
+ for(const release of ['pointerup','pointercancel','lostpointercapture']){stick.fire(release,second);assert.equal(position(),held,release+' from another finger must not stop movement');assert.equal(knob.style.transform,transform);}
+ stick.fire('pointermove',{...first,clientX:50,clientY:90});assert.ok(a.session.stick.z>.5,'the original finger must remain responsive');
+ stick.fire('pointerup',first);assert.equal(a.session.stick.x,0);assert.equal(a.session.stick.z,0);assert.equal(knob.style.transform,'');
+ a.click('pause');a.click('exit');a.click('confirm-exit');
+});
+
+test('an older joystick release cannot cancel a new touch, and pause still clears the active pointer',()=>{
+ for(const release of ['pointerup','pointercancel','lostpointercapture']){
+  const a=boot(),g=a.session.game;g.phase='playing';
+  const stick=a.node('touch-stick'),first={pointerId:21,clientX:90,clientY:50},second={pointerId:22,clientX:10,clientY:50};
+  stick.fire('pointerdown',first);stick.fire('pointerup',first);stick.fire('pointerdown',second);assert.ok(a.session.stick.x<-.5);
+  const held=JSON.stringify(a.session.stick);stick.fire(release,first);assert.equal(JSON.stringify(a.session.stick),held,'a stale '+release+' must leave the new finger in control');
+  a.click('pause');assert.equal(a.session.stick.x,0);assert.equal(a.session.stick.z,0);assert.equal(stick.querySelector('span').style.transform,'');
+  a.click('resume');stick.fire('pointermove',second);assert.equal(a.session.stick.x,0,'the old finger cannot queue movement after pause');
+  stick.fire('pointerdown',second);assert.ok(a.session.stick.x<-.5);stick.fire(release,second);assert.equal(a.session.stick.x,0,'the matching release still stops movement');
+  a.click('pause');a.click('exit');a.click('confirm-exit');
+ }
+});
+
 test('losing touch action capture stops sprinting and discards shots without breaking normal release',()=>{
  const a=boot(),g=a.session.game;g.phase='playing';g.players[g.controlled].cooldown=0;
  const pointer={pointerId:7,preventDefault(){}},sprint=a.node('touch:sprint'),shot=a.node('touch:shoot');
