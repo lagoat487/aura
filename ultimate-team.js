@@ -300,7 +300,15 @@
   function itemScore(p){return Math.max(1,p.overall-50)**2;}
   function sbcCompleted(u,type){return !!challenges[type]?.once&&
     ((Array.isArray(u.sbcCompleted)&&u.sbcCompleted.includes(type))||u.owned.concat(u.duplicates).some(p=>p.id===sbcRewards[type]?.cardId));}
-  const nationAliases={ecuador:["ecuador","ecu","ecuatoriano","ecuatoriana"],espana:["espana","spain","esp"],brasil:["brasil","brazil","bra"],argentina:["argentina","arg"]};
+  // Match country labels across catalogue and event languages without rewriting cards.
+  const nationAliases={
+    ecuador:["ecuador","ecu","ecuatoriano","ecuatoriana"],espana:["espana","spain","esp"],brasil:["brasil","brazil","bra"],argentina:["argentina","arg"],
+    francia:["francia","france"],alemania:["alemania","germany"],
+    "paises bajos":["paises bajos","holland","netherlands"],inglaterra:["inglaterra","england"],
+    polonia:["polonia","poland"],croacia:["croacia","croatia"],dinamarca:["dinamarca","denmark"],
+    suecia:["suecia","sweden"],belgica:["belgica","belgium"],egipto:["egipto","egypt"],
+    marruecos:["marruecos","morocco"],noruega:["noruega","norway"]
+  };
   function nationKey(value){const key=normalizeName(value);return Object.keys(nationAliases).find(nation=>nationAliases[nation].includes(key))||key;}
   function sameNation(value,required){return (nationAliases[normalizeName(required)]||[normalizeName(required)]).includes(normalizeName(value));}
   function sbcPool(u,type){

@@ -472,6 +472,23 @@ test('the new Gavi SBC links with catalogue Pedri by club and country on the UT 
  assert.deepEqual(app.json('utChem'),before,'rendering chemistry must preserve card data, coins and XI');
 });
 
+for(const runtime of ['ultimate-ui.js','ultimate-ui-flashback-v2.js'])test('UT event country links match the real catalogue for French and Dutch cards without mutating the club: '+runtime,async()=>{
+ const app=boot(undefined,runtime);app.run(fs.readFileSync(path.join(__dirname,'..','data/world-rosters.js'),'utf8'));await app.run('World.load(clubs,Competitions.definitions)');
+ app.click({evoMode:'ultimate'});app.click({ut:'create'});
+ for(const [eventId,baseId,slot,eventNation,baseNation] of [
+  ['barcelona:kounde','real:243715',4,'Francia','France'],
+  ['barcelona:de-jong','real:203376',6,'Países Bajos','Holland'],
+ ]){
+  app.run('globalThis.utCountryClub=AuraUTUI.getClub();utCountryClub.owned=AuraSquad.formations[utCountryClub.formation].map(([pos],i)=>({id:"country-fixture:"+i,name:"Fixture "+i,pos,overall:75,real:false,club:"fixture:"+i,leagueId:"fixture:"+i,nationality:"Fixture "+i}));utCountryClub.owned['+slot+']=AuraUT.barcelonaCards(AuraUTUI.pool()).find(p=>p.id==='+JSON.stringify(eventId)+');utCountryClub.owned[2]={...AuraUTUI.pool().find(p=>p.id==='+JSON.stringify(baseId)+')};utCountryClub.xi=utCountryClub.owned.map(p=>p.id)');
+  const before=app.json('utCountryClub');assert.equal(before.owned[slot].nationality,eventNation);assert.equal(before.owned[2].nationality,baseNation);
+  app.click({utTab:'squad'});
+  assert.equal(app.run('AuraUT.chemistry(utCountryClub).players['+slot+']'),1,eventId+' must share its nation link with the catalogue card');
+  assert.equal(app.run('AuraUT.chemistry(utCountryClub).players[2]'),1);
+  assert.match(app.html(),/QUÍMICA<b>2<small>\/33/);assert.equal((app.html().match(/aria-label="Química 1 de 3"/g)||[]).length,2);
+  assert.deepEqual(app.json('utCountryClub'),before,'rendering the links must preserve original country labels, portraits, ratings, coins and XI');
+ }
+});
+
 for(const runtime of ['ultimate-ui.js','ultimate-ui-flashback-v2.js'])test('UT club search ignores surrounding and whitespace-only input without changing the collection: '+runtime,()=>{
  const app=boot(undefined,runtime);app.click({evoMode:'ultimate'});app.click({ut:'create'});app.click({utTab:'club'});
  const before=app.json('AuraUTUI.getClub()'),player=before.owned[0];

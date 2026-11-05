@@ -8,8 +8,14 @@ test('UT starts with 23 unique real footballers, a complete XI and a preferred s
 test('chemistry is 0–33, rewards compatible links and never rewards an out-of-position card',()=>{
  const ps=positions.slice(0,11).map((pos,i)=>({id:'p'+i,name:'Player '+i,pos,overall:78,real:true,club:'same',leagueId:'same',nationality:'Spain'})),u={owned:ps,xi:ps.map(p=>p.id),formation:'4-3-3'};assert.equal(U.chemistry(u).total,33);[u.xi[0],u.xi[9]]=[u.xi[9],u.xi[0]];assert.equal(U.chemistry(u).players[0],0);assert.equal(U.chemistry(u).players[9],0);
 });
-test('chemistry shares the existing SBC nationality aliases and excludes out-of-position cards from their links',()=>{
- const countries=[['España','Spain','ESP',' españa ','SPAIN'],['Brasil','Brazil','BRA',' brasil ','BRAZIL'],['Ecuador','ECU','ecuatoriano','ecuatoriana',' ecuador '],['Argentina','ARG','argentina',' arg ','ARGENTINA']];
+test('chemistry recognizes event and catalogue nationality aliases and excludes out-of-position cards from their links',()=>{
+ const countries=[['España','Spain','ESP',' españa ','SPAIN'],['Brasil','Brazil','BRA',' brasil ','BRAZIL'],['Ecuador','ECU','ecuatoriano','ecuatoriana',' ecuador '],['Argentina','ARG','argentina',' arg ','ARGENTINA'],
+  ['Francia','France','france',' francia ','FRANCE'],['Alemania','Germany','germany',' alemania ','GERMANY'],
+  ['Países Bajos','Holland','Netherlands',' paises bajos ','HOLLAND'],['Inglaterra','England','england',' inglaterra ','ENGLAND'],
+  ['Polonia','Poland','poland',' polonia ','POLAND'],['Croacia','Croatia','croatia',' croacia ','CROATIA'],
+  ['Dinamarca','Denmark','denmark',' dinamarca ','DENMARK'],['Suecia','Sweden','sweden',' suecia ','SWEDEN'],
+  ['Bélgica','Belgium','belgium',' belgica ','BELGIUM'],['Egipto','Egypt','egypt',' egipto ','EGYPT'],
+  ['Marruecos','Morocco','morocco',' marruecos ','MOROCCO'],['Noruega','Norway','norway',' noruega ','NORWAY']];
  for(const aliases of countries){
   const owned=positions.slice(0,11).map((pos,i)=>({id:'nation:'+i,name:'Player '+i,pos,overall:78,club:'club:'+i,leagueId:'league:'+i,nationality:i<5?aliases[i]:'Other '+i}));
   const u={owned,xi:owned.map(p=>p.id),formation:'4-3-3'},before=structuredClone(u);
