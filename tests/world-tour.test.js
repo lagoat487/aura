@@ -22,7 +22,7 @@ test("league awards cover the whole league, monthly awards require four rounds, 
   }
   assert.equal(g.tour.monthly.length,2);assert.equal(g.tour.annual.length,1);assert.equal(g.tour.annual[0].shortlist.length,10);assert.equal(g.playerCareer.appearances,10);assert.ok(g.playerCareer.goals>0);assert.ok(g.rosters.a[9].overall>75);
 });
-test("award portraits keep a real missing-photo fallback and never give a generated player a real face",()=>{
+test("award portraits preserve Kitu's real identity and never give a generated player a real face",()=>{
   const g=career(),known={...Tour.kitu,club:g.club};g.rosters.a[9]=known;Squad.ensure(g).xi[9]=known.id;
   for(let i=0;i<g.competition.fixtures.length;i++){
     Comp.simulateNextRound(g.competition,(home,away)=>({home:home===g.club?8:0,away:away===g.club?8:0}));g.round=i+1;
@@ -30,8 +30,9 @@ test("award portraits keep a real missing-photo fallback and never give a genera
   }
   const weekly=g.tour.weekly[0].players.find(p=>p.id===known.id),monthly=g.tour.monthly[0],annual=g.tour.annual[0].winner;
   for(const award of [weekly,monthly,annual]){
-    assert.equal(award.id,known.id);assert.equal(award.real,true);assert.deepEqual(Portraits.sources(award),[]);
-    assert.match(Portraits.html(award),/Sin foto/);assert.doesNotMatch(Portraits.html(award),/Jugador creado|<img|<svg/);
+    assert.equal(award.id,known.id);assert.equal(award.real,true);assert.equal(Portraits.identity(award),"189454");
+    assert.deepEqual(Portraits.sources(award),Portraits.sources(known));
+    assert.match(Portraits.html(award),/Retrato de Damián/);assert.doesNotMatch(Portraits.html(award),/Jugador creado|<svg/);
   }
   assert.equal(annual.appearances,10);assert.equal(annual.goals,80);
   const created=g.tour.weekly[0].players.find(p=>p.id!==known.id);

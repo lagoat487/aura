@@ -1,12 +1,55 @@
-/* Real portraits by the footballer's numeric identity. No invented faces for real people.
-   Official EA image URL pattern verified on its ratings/player-ratings pages. */
-(function(root,factory){const api=factory();if(typeof module==="object"&&module.exports)module.exports=api;else root.AuraPortraits=api;})(typeof globalThis!=="undefined"?globalThis:this,function(){
+/* FC 27 portraits, shared by normal, event, SBC and previously saved cards.
+   See docs/portraits.md for verified image sources and legacy identity rules. */
+(function(root,factory){const api=factory(root);if(typeof module==="object"&&module.exports)module.exports=api;else root.AuraPortraits=api;})(typeof globalThis!=="undefined"?globalThis:this,function(root){
   "use strict";
   const escape=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-  function identity(p){const n=/^real:(\d{3,9})$/.exec(String(p?.id||""))?.[1]||/^real:(\d{3,9})$/.exec(String(p?.originalId||""))?.[1]||/^https:\/\/cdn\.sofifa\.net\/players\/(\d+)\/(\d+)\//.exec(p?.photo||"")?.slice(1).join("");return n?String(Number(n)):null;}
+  const normalize=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[‘’]/g,"'").replace(/\s+/g," ").trim();
+  // Missing/shortened names in the bundled catalogue. These are player IDs,
+  // never item IDs or another footballer's photograph.
+  const aliases=new Map([
+    ["Kitu Díaz","189454"],["Damián Díaz","189454"],["Damián ‘Kitu’ Díaz","189454"],
+    ["Jamie Vardy","208830"],["Neymar","190871"],["Neymar Jr","190871"],
+    ["Neymar Júnior","190871"],["Neymar Junior","190871"],
+    ["Vinícius Júnior","238794"],["Vinicius Junior","238794"]
+  ].map(([name,id])=>[normalize(name),id]));
+  let catalog=null,names=new Map();
+  function catalogueIdentity(name){
+    const bundled=root.AuraBundledWorld;
+    if(bundled&&bundled!==catalog){
+      catalog=bundled;names=new Map();
+      const columns=bundled.columns||[],at=key=>columns.indexOf(key);
+      const idAt=at("player_id"),commonAt=at("common_name"),firstAt=at("first_name"),lastAt=at("last_name");
+      for(const row of bundled.rows||[]){
+        const id=String(row[idAt]||"");if(!/^\d{3,9}$/.test(id))continue;
+        for(const candidate of [row[commonAt],[row[firstAt],row[lastAt]].filter(Boolean).join(" ")]){
+          const key=normalize(candidate);if(!key)continue;
+          if(!names.has(key))names.set(key,id);else if(names.get(key)!==id)names.set(key,null);
+        }
+      }
+    }
+    return aliases.get(normalize(name))||names.get(normalize(name))||null;
+  }
+  const numeric=id=>/^real:(\d{3,9})$/.exec(String(id||""))?.[1];
+  function identity(p){
+    const n=numeric(p?.id)||numeric(p?.originalId)||/^https:\/\/cdn\.sofifa\.net\/players\/(\d{3})\/(\d{3})\/\d{2}_\d+\.png$/.exec(p?.photo||"")?.slice(1).join("");
+    if(n)return String(Number(n));
+    // Old event saves used World Cup IDs, or had no originalId at all.
+    // Only those recognized formats may resolve by a unique exact full name.
+    const id=String(p?.id||""),original=String(p?.originalId||"");
+    const legacy=s=>/^wc26:\d+$/.test(s)||s==="verified:kitu-diaz";
+    if(original&&!legacy(original))return null;
+    if(!legacy(original||id)&&!/^(sigma|argentina|flashback|muralla|barcelona|magia|sbc):[a-z0-9-]+$/.test(id))return null;
+    const linked=legacy(original||id)?root.AuraRosterSync?.getPlayer(original||id):null;
+    return numeric(linked?.id)||catalogueIdentity(p?.name);
+  }
   function sources(p){
     if(!p?.real)return [];const id=identity(p),urls=[];
-    if(id){urls.push('https://ratings-images-prod.pulse.ea.com/FC25/full/player-portraits/p'+id+'.png?padding=0.7');const padded=id.padStart(6,'0');for(const year of [26,25,24])urls.push('https://cdn.sofifa.net/players/'+padded.slice(0,-3)+'/'+padded.slice(-3)+'/'+year+'_120.png');}
+    if(id){
+      const padded=id.padStart(6,'0'),sofifa=year=>'https://cdn.sofifa.net/players/'+padded.slice(0,-3)+'/'+padded.slice(-3)+'/'+year+'_120.png';
+      urls.push('https://cdn.fifacm.com/content/media/imgs/fc27/players/p'+id+'.png?v=32',sofifa(27),
+        'https://cdn.fifacm.com/content/media/imgs/fc26/players/p'+id+'.png?v=32',sofifa(26),
+        'https://ratings-images-prod.pulse.ea.com/FC25/full/player-portraits/p'+id+'.png?padding=0.7',sofifa(25),sofifa(24));
+    }
     if(/^https:\/\/(www\.)?barcelonasc\.com\.ec\/wp-content\/uploads\/[a-zA-Z0-9/_.-]+\.(webp|png|jpe?g)$/.test(p.photo||''))urls.unshift(p.photo);
     // Exact official Brian Fariñas portrait, verified with the 2026/27 roster.
     if(p.photo==="https://www.fcbarcelona.com/photo-resources/2026/09/03/b05e6b1b-fe32-4420-b981-36507d7dfeb0/04-Brian_Farinas.png?height=790&width=670")urls.unshift(p.photo);
