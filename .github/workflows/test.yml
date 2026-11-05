@@ -1,14 +1,46 @@
-name: Competition tests
-on: [push, pull_request]
+name: Verify published AURA files
+on:
+  push:
+    branches: [fix/match-touch-b6eb9f43]
 permissions:
   contents: read
 jobs:
-  test:
+  verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-      - run: npm test
-      - run: npm run build
+          ref: b619626089a20d6e1b747321e9737d04e95966a4
+      - name: Purge the exact changed runtime URL used by both entrypoints
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --max-time 20 -G -X DELETE --data-urlencode 'url=https://raw.githack.com/lagoat487/aura/main/match-ui.js?v=7.8-continuous' 'https://raw.githack.com/purge'
+      - name: Compare the fixed entrypoint and changed runtime with the published revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          failed=0
+          for asset in 'index.html' 'match-ui.js?v=7.8-continuous' 'match-ui.js'; do
+            file="${asset%%\?*}"
+            matched=0
+            for attempt in 1 2 3 4; do
+              if curl --fail --location --silent --show-error --max-time 15 -H 'Cache-Control: no-cache' "https://raw.githack.com/lagoat487/aura/main/$asset" -o /tmp/aura-live-asset; then
+                if cmp -s "$file" /tmp/aura-live-asset; then
+                  echo "MATCH: $asset equals published b619626089a20d6e1b747321e9737d04e95966a4"
+                  matched=1
+                  break
+                fi
+                echo "STALE: $asset differs from published b619626089a20d6e1b747321e9737d04e95966a4 (attempt $attempt)"
+                sha256sum "$file" /tmp/aura-live-asset
+              fi
+              if [[ "$attempt" != 4 ]]; then sleep 10; fi
+            done
+            if [[ "$matched" != 1 ]]; then
+              echo "::error::Could not verify the served $asset against published b619626089a20d6e1b747321e9737d04e95966a4."
+              failed=1
+            fi
+          done
+          exit "$failed"
