@@ -65,7 +65,7 @@ test("the real SBC UI previews the tricolor reward, reviews eleven exact items a
  const reload=boot(app.storage);assert.deepEqual(reload.UI.getClub(),earned);reload.click({ut:"ecuador-sbc-open"});assert.match(reload.html(),/DCP COMPLETADO/);assert.doesNotMatch(reload.html(),/data-ut="sbc-review"/);
 });
 
-for(const runtime of ["ultimate-ui.js","ultimate-ui-flashback-v2.js"]){
+for(const runtime of ["ultimate-ui.js","ultimate-ui-6.js"]){
  test("the SBC player reward remains visible after a previous club search: "+runtime,()=>{
   const app=boot(new Map(),runtime);app.click({ut:"create"});app.UI.getClub().owned.push(...ecuador());
   app.UI.input({target:{id:"ut-club-query",value:"Starter"}});app.click({utTab:"club"});app.click({utTab:"home"});app.click({utTab:"club"});
@@ -93,5 +93,5 @@ for(const runtime of ["ultimate-ui.js","ultimate-ui-flashback-v2.js"]){
 
 test("both entrypoints load Ecuador card styles and all shipped Ultimate Team copies remain equal",()=>{
  for(const entry of ["index.html","mobile.html"])assert.match(read(entry),/ecuador-sbc\.css\?v=8\.3/);
- for(const file of ["ultimate-team","ultimate-save","ultimate-ui"])assert.equal(read(file+".js"),read(file+"-flashback-v2.js"));
+ for(const file of ["ultimate-team","ultimate-save","ultimate-ui"])assert.equal(read(file+".js"),read(file+"-6.js"));
 });

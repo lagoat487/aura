@@ -127,9 +127,9 @@ test("retired Sigma buttons never appear and stale clicks leave the active Mural
 test("both desktop and mobile ship Muralla while keeping runtime copies identical",()=>{
  for(const entry of ["index.html","mobile.html"]){
   const html=read(entry);assert.match(html,/muralla-event\.css\?v=8\.1/);assert.match(html,/muralla-event\.js\?v=8\.1/);
-  assert.ok(html.indexOf("muralla-event.js")<html.indexOf("./game.js"));
+  assert.ok(html.indexOf("muralla-event.js")<html.indexOf("./game-6.js"));
  }
  for(const file of ["ultimate-team","ultimate-ui","ultimate-save","evolution-ui"])
-  assert.equal(read(file+".js"),read(file+"-flashback-v2.js"));
+  assert.equal(read(file+".js"),read(file+"-6.js"));
  assert.match(read("evolution-ui.js"),/data-evo="muralla-open"/);
 });

@@ -29,7 +29,7 @@ function boot(runtime,storage=new Map()){
  vm.runInContext(read(runtime)+";globalThis.UI=AuraUTUI",context);context.UI.bindRender(()=>{html=context.UI.render();});
  return {UI:context.UI,storage,html:()=>html,notices,click:dataset=>context.UI.handleClick({dataset})};
 }
-for(const runtime of ["ultimate-ui.js","ultimate-ui-flashback-v2.js"]){
+for(const runtime of ["ultimate-ui.js","ultimate-ui-6.js"]){
  test(runtime+": the hub survives onboarding and opens every live event with a working return route",()=>{
   const app=boot(runtime);app.click({utTab:"events"});app.click({ut:"create"});const u=app.UI.getClub(),before=structuredClone(u);
   assert.match(app.html(),/EVENTOS<br><em>ACTUALES/);assert.match(app.html(),/data-ut-tab="events" aria-current="page"/);
@@ -59,6 +59,7 @@ test("new and legacy saved event tabs keep club inventory, gift and SBC progress
  assert.deepEqual(legacy.club,old);assert.equal(legacy.tab,"barcelona");
 });
 test("both production entries ship the new theme last and the hub before its controller",()=>{
- for(const file of ["index.html","mobile.html"]){const html=read(file);assert.match(html,/<title>AURA 6\.0/);assert.ok(html.lastIndexOf('<link rel="stylesheet"')===html.indexOf('<link rel="stylesheet" href="./aura-6.css'));assert.ok(html.indexOf("current-events.js")<html.indexOf("ultimate-ui-flashback-v2.js"));}
- for(const name of ["ultimate-ui","ultimate-save","evolution-ui"])assert.equal(read(name+".js"),read(name+"-flashback-v2.js"));
+ for(const file of ["index.html","mobile.html"]){const html=read(file);assert.match(html,/<title>AURA 6\.0/);assert.ok(html.lastIndexOf('<link rel="stylesheet"')===html.indexOf('<link rel="stylesheet" href="./aura-6.css'));assert.ok(html.indexOf("current-events.js")<html.indexOf("ultimate-ui-6.js"));}
+ for(const ext of ["js","css"])assert.equal(read("barcelona-event."+ext),read("barcelona-event-6."+ext));
+ for(const name of ["ultimate-team","ultimate-ui","ultimate-save","evolution-ui","game"])assert.equal(read(name+".js"),read(name+"-6.js"));
 });

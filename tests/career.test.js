@@ -370,7 +370,7 @@ test('UT DCP drops a sold selected card without changing the remaining club on r
  app.click({utTab:'sbc'});assert.match(app.html(),/1\/3 cartas/,'the remaining eligible card stays selected');assert.deepEqual(app.json('utClub'),after);assert.ok(app.run('!AuraUT.sbcPool(utClub,"gold").some(p=>p.uid===selectedCard.uid)'));
 });
 
-for(const runtime of ['ultimate-ui.js','ultimate-ui-flashback-v2.js'])test('UT DCP shows selected cards, disables full-capacity additions and allows replacement before delivery: '+runtime,()=>{
+for(const runtime of ['ultimate-ui.js','ultimate-ui-6.js'])test('UT DCP shows selected cards, disables full-capacity additions and allows replacement before delivery: '+runtime,()=>{
  const app=boot(undefined,runtime);app.click({evoMode:'ultimate'});app.click({ut:'create'});app.click({utSbc:'gold'});app.click({utTab:'sbc'});
  const before=app.json('AuraUTUI.getClub()'),cards=app.json('AuraUT.sbcPool(AuraUTUI.getClub(),"gold").sort((a,b)=>b.overall-a.overall).slice(0,4)');assert.equal(cards.length,4);
  const tag=uid=>[...app.html().matchAll(/<button\b[^>]*data-ut="sbc-pick"[^>]*>/g)].map(m=>m[0]).find(t=>t.includes('data-uid="'+uid+'"'));
@@ -504,7 +504,7 @@ test('UT market ignores surrounding search whitespace and keeps blank searches o
  const empty=search('');assert.equal(search('   '),empty,'spaces alone must not bypass the default rating range');assert.deepEqual(app.json('AuraUTUI.getClub()'),before);
 });
 
-for(const runtime of ['ultimate-ui.js','ultimate-ui-flashback-v2.js'])test('UT player search tolerates quote styles and repeated spaces in the market and owned cards: '+runtime,async()=>{
+for(const runtime of ['ultimate-ui.js','ultimate-ui-6.js'])test('UT player search tolerates quote styles and repeated spaces in the market and owned cards: '+runtime,async()=>{
  const app=boot(undefined,runtime);app.run(fs.readFileSync(path.join(__dirname,'..','data/world-rosters.js'),'utf8'));await app.run('World.load(clubs,Competitions.definitions)');
  app.click({evoMode:'ultimate'});app.click({ut:'create'});app.run('AuraUTUI.getClub().coins=100000');
  const initial=app.json('AuraUTUI.getClub()'),cases=[
@@ -540,7 +540,7 @@ test('the new Gavi SBC links with catalogue Pedri by club and country on the UT 
  assert.deepEqual(app.json('utChem'),before,'rendering chemistry must preserve card data, coins and XI');
 });
 
-for(const runtime of ['ultimate-ui.js','ultimate-ui-flashback-v2.js'])test('UT event country links match the real catalogue for French and Dutch cards without mutating the club: '+runtime,async()=>{
+for(const runtime of ['ultimate-ui.js','ultimate-ui-6.js'])test('UT event country links match the real catalogue for French and Dutch cards without mutating the club: '+runtime,async()=>{
  const app=boot(undefined,runtime);app.run(fs.readFileSync(path.join(__dirname,'..','data/world-rosters.js'),'utf8'));await app.run('World.load(clubs,Competitions.definitions)');
  app.click({evoMode:'ultimate'});app.click({ut:'create'});
  for(const [eventId,baseId,slot,eventNation,baseNation] of [
@@ -557,7 +557,7 @@ for(const runtime of ['ultimate-ui.js','ultimate-ui-flashback-v2.js'])test('UT e
  }
 });
 
-for(const runtime of ['ultimate-ui.js','ultimate-ui-flashback-v2.js'])test('UT club search ignores surrounding and whitespace-only input without changing the collection: '+runtime,()=>{
+for(const runtime of ['ultimate-ui.js','ultimate-ui-6.js'])test('UT club search ignores surrounding and whitespace-only input without changing the collection: '+runtime,()=>{
  const app=boot(undefined,runtime);app.click({evoMode:'ultimate'});app.click({ut:'create'});app.click({utTab:'club'});
  const before=app.json('AuraUTUI.getClub()'),player=before.owned[0];
  const search=value=>{
@@ -570,7 +570,7 @@ for(const runtime of ['ultimate-ui.js','ultimate-ui-flashback-v2.js'])test('UT c
  assert.deepEqual(app.json('AuraUTUI.getClub()'),before,'searching must preserve the XI, coins and cards');
 });
 
-for(const runtime of ['ultimate-ui.js','ultimate-ui-flashback-v2.js'])test('UT explicit market ratings override the starter range without changing the club: '+runtime,async()=>{
+for(const runtime of ['ultimate-ui.js','ultimate-ui-6.js'])test('UT explicit market ratings override the starter range without changing the club: '+runtime,async()=>{
  const app=boot(undefined,runtime);app.run(fs.readFileSync(path.join(__dirname,'..','data/world-rosters.js'),'utf8'));await app.run('World.load(clubs,Competitions.definitions)');
  app.click({evoMode:'ultimate'});app.click({ut:'create'});app.click({utTab:'market'});const before=app.json('AuraUTUI.getClub()');
  const results=()=>[...app.html().matchAll(/data-ut="buy" data-player="([^"]+)"/g)].map(m=>app.json('AuraUTUI.pool().find(p=>p.id==='+JSON.stringify(m[1])+')'));
@@ -586,7 +586,7 @@ for(const runtime of ['ultimate-ui.js','ultimate-ui-flashback-v2.js'])test('UT e
  assert.deepEqual(app.json('AuraUTUI.getClub()'),before,'browsing must preserve coins, collection and XI');
 });
 
-for(const runtime of ['ultimate-ui.js','ultimate-ui-flashback-v2.js'])test('UT select changes restore focus after rendering while preserving the club and formation choices: '+runtime,()=>{
+for(const runtime of ['ultimate-ui.js','ultimate-ui-6.js'])test('UT select changes restore focus after rendering while preserving the club and formation choices: '+runtime,()=>{
  const app=boot(undefined,runtime);app.click({evoMode:'ultimate'});app.click({ut:'create'});app.click({utTab:'market'});
  const before=app.json('AuraUTUI.getClub()'),focused=[];
  const change=(id,value,selected)=>{
@@ -603,7 +603,7 @@ for(const runtime of ['ultimate-ui.js','ultimate-ui-flashback-v2.js'])test('UT s
  app.run('AuraUTUI.change({target:{id:"unrelated-control",value:"ignored"}})');assert.equal(focused.length,5);assert.deepEqual(app.json('AuraUTUI.getClub()'),after);
 });
 
-for(const runtime of ['ultimate-ui.js','ultimate-ui-flashback-v2.js'])test('UT highest-rating market order includes elite cards and respects the remaining filters: '+runtime,async()=>{
+for(const runtime of ['ultimate-ui.js','ultimate-ui-6.js'])test('UT highest-rating market order includes elite cards and respects the remaining filters: '+runtime,async()=>{
  const app=boot(undefined,runtime);app.run(fs.readFileSync(path.join(__dirname,'..','data/world-rosters.js'),'utf8'));await app.run('World.load(clubs,Competitions.definitions)');
  app.click({evoMode:'ultimate'});app.click({ut:'create'});app.click({utTab:'market'});const before=app.json('AuraUTUI.getClub()');
  const results=()=>[...app.html().matchAll(/data-ut="buy" data-player="([^"]+)"/g)].map(m=>app.json('AuraUTUI.pool().find(p=>p.id==='+JSON.stringify(m[1])+')'));

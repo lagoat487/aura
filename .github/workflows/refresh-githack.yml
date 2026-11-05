@@ -19,9 +19,13 @@ jobs:
           files=()
           while IFS= read -r file; do
             case "$file" in
-              *.js|*.css) files+=("$file") ;;
+              *.js|*.css)
+                # New versioned files have no old cache entry. Only refresh existing
+                # assets used by the current page; tests and legacy copies are not served.
+                if grep -Fq "\"./$file" index.html; then files+=("$file"); fi
+                ;;
             esac
-          done < <(git diff --name-only HEAD^ HEAD || true)
+          done < <(git diff --name-only --diff-filter=M HEAD^ HEAD || true)
           # Refresh scripts and styles before the HTML exposes their new cache keys.
           files+=(mobile.html index.html)
           declare -A seen=()
