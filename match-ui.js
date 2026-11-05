@@ -216,6 +216,13 @@ const AuraArena=(()=>{
       button.addEventListener("pointerup",()=>{if(button.dataset.touch==="sprint")s.touchSprint=false;if(button.dataset.touch==="shoot")shoot();});
       const cancelTouch=()=>{if(button.dataset.touch==="sprint")s.touchSprint=false;if(button.dataset.touch==="shoot"){s.charging=null;find("arena-power").hidden=true;}};
       button.addEventListener("pointercancel",cancelTouch);button.addEventListener("lostpointercapture",cancelTouch);
+      button.addEventListener("click",e=>{
+        // Enter/Space and assistive clicks have no pointerdown. Pointer actions already ran.
+        const type=button.dataset.touch;
+        if(e.detail!==0||type==="sprint"||s.replay||game.paused||s.done||game.phase!=="playing")return;
+        if(type==="shoot"){if(s.charging===null)s.charging=performance.now();shoot();}
+        else AuraMatch.action(game,type,controls());
+      });
     });
     const radar=find("arena-minimap"),radarCtx=radar.getContext("2d");
     function hud(now){

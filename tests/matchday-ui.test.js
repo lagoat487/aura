@@ -11,7 +11,8 @@ function boot(options={}){
   if(id&&nodes.has(id))return nodes.get(id);
   const events={},children=new Map();const n={id,style:{},dataset:{},classList,hidden:false,tabIndex:0,
    addEventListener:(name,fn)=>{events[name]=fn;},removeEventListener(){},setPointerCapture(){},setAttribute(){},appendChild(){},remove(){},focus(){},getClientRects:()=>[{}],getBoundingClientRect:()=>({left:0,top:0,width:100,height:100}),getContext:()=>context2d,
-   querySelector(selector){if(selector.startsWith('#'))return node(selector.slice(1));if(!children.has(selector))children.set(selector,node());return children.get(selector);},querySelectorAll:selector=>selector==='[data-touch]'?['switch','through','pass','shoot','tackle','sprint'].map(type=>{const button=node('touch:'+type);button.dataset.touch=type;return button;}):[],
+   querySelector(selector){if(selector.startsWith('#'))return node(selector.slice(1));if(!children.has(selector))children.set(selector,node());return children.get(selector);},querySelectorAll:selector=>selector==='[data-touch]'?['switch','through','lob','cross','skill','pass','shoot','tackle','slide','sprint'].map(type=>{const button=node('touch:'+type);button.dataset.touch=type;return button;}):[],
+   closest(selector){return selector==='button'&&this.dataset.touch?this:null;},
    fire:(type,event)=>events[type]?.(event),matches:()=>false,
   };
   Object.defineProperty(n,'innerHTML',{get:()=>n.html||'',set:value=>{
@@ -85,6 +86,43 @@ test('cancelled touch shots discard their charge; normal releases still shoot an
  shot.fire('pointerdown',pointer);shot.fire('pointerup',pointer);assert.equal(g.stats[0].shots,1,'normal touch release keeps working');
  const sprint=a.node('touch:sprint');sprint.fire('pointerdown',pointer);assert.equal(a.session.touchSprint,true);sprint.fire('pointercancel',pointer);assert.equal(a.session.touchSprint,false);
  a.click('pause');a.click('exit');a.click('confirm-exit');assert.equal(a.commits(),0);
+});
+
+test('on-screen match actions accept native Enter and Space clicks without a field shortcut or duplicate action',()=>{
+ for(const key of ['Enter',' '])for(const type of ['switch','through','lob','cross','skill','pass','shoot','tackle','slide']){
+  const a=boot(),g=a.session.game;g.phase='playing';g.players[g.controlled].cooldown=0;
+  a.run('const actualAction=AuraMatch.action;globalThis.actionCalls=[];globalThis.AuraMatch={...AuraMatch,action:(...args)=>{actionCalls.push(args[1]);return actualAction(...args)}}');
+  const button=a.node('touch:'+type);assert.ok(a.session.node.innerHTML.includes('data-touch="'+type+'"'));
+  const event=a.key('keydown',key,button);assert.equal(event.defaultPrevented,false,'native button activation must remain available');assert.equal(a.run('actionCalls.length'),0);
+  button.fire('click',{detail:0});assert.equal(a.run('actionCalls.length'),1);assert.equal(a.run('actionCalls[0]'),type);
+  if(type==='shoot'){assert.equal(g.stats[0].shots,1);assert.equal(a.session.charging,null);assert.equal(a.node('arena-power').hidden,true);}
+  if(type==='pass')assert.equal(g.stats[0].passes,1);
+  a.click('pause');a.click('exit');a.click('confirm-exit');
+ }
+});
+
+test('on-screen pointer clicks cannot repeat a touch pass or shot even when another action is legal',()=>{
+ for(const type of ['pass','shoot']){
+  const a=boot(),g=a.session.game;g.phase='playing';g.players[g.controlled].cooldown=0;
+  const button=a.node('touch:'+type),pointer={pointerId:4,preventDefault(){}},stat=type==='shoot'?'shots':'passes';
+  button.fire('pointerdown',pointer);button.fire('pointerup',pointer);assert.equal(g.stats[0][stat],1);
+  const player=g.players[g.controlled];player.cooldown=0;Object.assign(g.ball,{owner:player.index,x:player.x,z:player.z});
+  button.fire('click',{detail:1});button.fire('click',{detail:2});assert.equal(g.stats[0][stat],1);
+  button.fire('click',{detail:0});assert.equal(g.stats[0][stat],2,'a separate native activation must still work');
+  a.click('pause');a.click('exit');a.click('confirm-exit');
+ }
+});
+
+test('native match action clicks cannot queue a shot while paused, replaying, restarting or finished',()=>{
+ for(const blocked of ['paused','replay','restart','finished']){
+  const a=boot(),g=a.session.game;g.phase='playing';
+  if(blocked==='paused')a.click('pause');if(blocked==='replay')a.session.replay={};if(blocked==='restart')g.phase='restart';if(blocked==='finished')a.session.done=true;
+  const before=JSON.stringify(g);a.node('touch:shoot').fire('click',{detail:0});a.node('touch:pass').fire('click',{detail:0});
+  assert.equal(JSON.stringify(g),before,blocked+' must reject native actions');assert.equal(a.session.charging,null);
+  a.session.replay=null;a.session.done=false;g.phase='playing';if(g.paused)a.click('resume');
+  a.node('touch:sprint').fire('click',{detail:0});assert.equal(a.session.touchSprint,false,'a single click must not leave the hold-to-sprint control stuck');
+  a.click('pause');a.click('exit');a.click('confirm-exit');
+ }
 });
 
 test('losing joystick capture releases movement and paused or replayed touches cannot queue movement',()=>{
