@@ -103,6 +103,26 @@ test('Champions preparation excludes injured substitutes without changing the ca
  assert.deepEqual(app.json('state'),before,'preparing the match must not delete a player, advance recovery or change the calendar');
 });
 
+test('career bench keeps the strongest healthy reserve keeper and allows a match-only keeper substitution',()=>{
+ const app=boot();app.click({action:'start'});
+ app.run('globalThis.keptXI=AuraSquad.ensure(state).xi.slice();state.rosters[state.club]=keptXI.map(id=>clubPlayers(state.club).find(p=>p.id===id)).concat(Array.from({length:10},(_,i)=>({id:"reserve:field:"+i,name:"Reserve field "+i,pos:"MC",overall:80+i,real:false})),[{id:"reserve:keeper",name:"Healthy keeper",pos:"POR",overall:70,real:false},{id:"reserve:second-keeper",name:"Second keeper",pos:"POR",overall:65,real:false},{id:"reserve:injured-keeper",name:"Injured keeper",pos:"POR",overall:99,injuryRounds:2,real:false}]);AuraSquad.ensure(state);globalThis.beforeKeeperCall=JSON.stringify(state);globalThis.keeperCall=AuraArena.team(getClub(state.club),state)');
+ const bench=app.json('keeperCall.bench');assert.equal(bench.length,9);assert.equal(bench.filter(p=>p.pos==='POR').length,1,'a full bench must keep keeper cover');
+ assert.ok(bench.some(p=>p.id==='reserve:keeper'));assert.ok(!bench.some(p=>p.id==='reserve:injured-keeper'||p.id==='reserve:second-keeper'));
+ assert.equal(bench.filter(p=>p.pos!=='POR').length,8);assert.ok(bench.filter(p=>p.pos!=='POR').every(p=>p.overall>=82),'retain the eight strongest outfield reserves');
+ app.run('globalThis.keeperGame=AuraMatch.create({home:keeperCall,away:{...keeperCall,id:"opponent",players:keeperCall.players.map(p=>({...p,id:"opponent:"+p.id})),bench:[]},seconds:30,seed:31});keeperGame.paused=true');
+ assert.equal(app.run('AuraMatch.substitute(keeperGame,0,keeperGame.benches[0].find(p=>p.id==="reserve:keeper"))'),true);assert.equal(app.run('keeperGame.players[0].id'),'reserve:keeper');
+ assert.deepEqual(app.json('state.squad.xi'),app.json('keptXI'));assert.equal(app.run('JSON.stringify(state)'),app.run('beforeKeeperCall'),'the source career squad must not change');
+});
+
+test('arena call-ups keep empty and short benches and never invent an unavailable reserve keeper',()=>{
+ const app=boot();
+ app.run('globalThis.shortXI=AuraSquad.formations["4-3-3"].map(([pos],i)=>({id:"short:"+i,name:"Short "+i,pos,overall:80,real:false}))');
+ for(const [extras,count,keepers] of [[[],0,0],[[{id:'short:keeper',name:'Reserve keeper',pos:'POR',overall:65,real:false}],1,1],[Array.from({length:10},(_,i)=>({id:'short:extra:'+i,name:'Extra '+i,pos:'MC',overall:81+i,real:false})),9,0]]){
+  app.run('globalThis.shortRoster=shortXI.concat('+JSON.stringify(extras)+');globalThis.beforeShort=JSON.stringify(shortRoster);globalThis.shortCall=AuraArena.team(getClub("barcelona"),null,shortRoster)');
+  assert.equal(app.run('shortCall.bench.length'),count);assert.equal(app.run('shortCall.bench.filter(p=>p.pos==="POR").length'),keepers);assert.equal(app.run('JSON.stringify(shortRoster)'),app.run('beforeShort'));
+ }
+});
+
 test("player career can be created at a club with 28 real players without deleting a footballer",()=>{
  const app=boot();app.click({action:'start'});app.run('while(clubPlayers(state.club).length<28){const p={...clubPlayers(state.club)[1],id:"extra:"+clubPlayers(state.club).length};clubPlayers(state.club).push(p);}globalThis.initialIds=clubPlayers(state.club).map(p=>p.id);AuraTour.startPlayer(state,"new","Mi delantero","DC");AuraTourUI.ensurePro()');
  assert.equal(app.run('clubPlayers(state.club).length'),29);assert.ok(app.run('initialIds.every(id=>clubPlayers(state.club).some(p=>p.id===id))'));assert.ok(app.run('AuraSquad.ensure(state).xi.includes(state.playerCareer.playerId)'));assert.equal(app.run('state.squadLimit'),29);
