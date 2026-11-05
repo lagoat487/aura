@@ -5,6 +5,7 @@
   const coins=n=>n.toLocaleString("es-ES");
   function catalogue(pool=[]){
     return [
+      ...(U.magia&&typeof U.magiaCards==="function"?[{tab:"magia",name:U.magia.name,tag:"CREATIVIDAD SIN LÍMITES",description:"Olise, Nico Paz, Messi y Yan Diomande. El talento que cambia un partido.",cards:U.magiaCards(pool),gift:U.magia.welcome,flag:"magiaGiftClaimed",star:"magia:messi"}]:[]),
       {tab:"barcelona",name:U.barcelona.name,tag:"AZULGRANA",description:"La plantilla culé. Lamine Yamal 93 lidera la colección.",cards:U.barcelonaCards(pool),gift:U.barcelona.welcome,flag:"barcelonaGiftClaimed",star:"barcelona:lamine-yamal"},
       {tab:"muralla",name:U.muralla.name,tag:"DEFENSA DE ÉLITE",description:"Centrales y laterales para construir tu fortaleza.",cards:U.murallaCards(pool),gift:U.muralla.welcome,flag:"murallaGiftClaimed",star:"muralla:van-dijk"},
       {tab:"flashback",name:U.flashback.name,tag:"REGRESAN LAS LEYENDAS",description:"Kitu Díaz, Vardy, Kanté, Neymar y Keylor Navas.",cards:U.flashbackCards(pool),gift:U.flashback.welcome,flag:"flashbackGiftClaimed",reward:U.flashback.reward,star:"flashback:neymar-junior"},

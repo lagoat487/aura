@@ -7,7 +7,7 @@ test('UT starts with 23 unique real footballers, a complete XI and a preferred s
 });
 test('UT creation gives whitespace-only names a valid default while preserving custom names and starter contents',()=>{
  const Save=require('../ultimate-save'),formations=new Set(Object.keys(require('../squad').formations));
- for(const model of [U,require('../ultimate-team-6')]){
+ for(const model of [U,require('../ultimate-team-61')]){
   const baseline=model.create(pool(),'liga-a','Mi AURA FC');
   for(const name of [undefined,null,'','   ','\t\r\n','\u00a0','\u2003']){
    const u=model.create(pool(),'liga-a',name);

@@ -111,12 +111,12 @@ test("Flashback is only launched from its own UT screen, on both desktop and mob
  assert.match(css,/\.fb-card\{/);
  assert.match(css,/\.ut-shell \.ut-card\.flashback/);
  for(const html of [read("index.html"),read("mobile.html")]){
-  assert.match(html,/ultimate-team-6\.js/);
-  assert.match(html,/ultimate-ui-6\.js/);
+  assert.match(html,/ultimate-team-61\.js/);
+  assert.match(html,/ultimate-ui-61\.js/);
   assert.match(html,/flashback-event-v2\.js/);
   assert.match(html,/flashback-event-v2\.css/);
-  assert.ok(html.indexOf("ultimate-team-6.js")<html.indexOf("ultimate-ui-6.js"));
-  assert.ok(html.indexOf("ultimate-ui-6.js")<html.indexOf("flashback-event-v2.js"));
+  assert.ok(html.indexOf("ultimate-team-61.js")<html.indexOf("ultimate-ui-61.js"));
+  assert.ok(html.indexOf("ultimate-ui-61.js")<html.indexOf("flashback-event-v2.js"));
  }
  const context={AuraUT:U,AuraPortraits:{html:()=>'[RETRATO]'}};
  vm.createContext(context);vm.runInContext(read("flashback-event.js")+";globalThis.Flashback=AuraFlashbackEvent",context);

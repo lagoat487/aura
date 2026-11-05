@@ -108,7 +108,7 @@ function boot(runtime="ultimate-ui.js",storage=new Map()){
  vm.runInContext(read("barcelona-event.js"),context);vm.runInContext(read(runtime)+";globalThis.UI=AuraUTUI",context);
  context.UI.bindRender(()=>{html=context.UI.render();});return {UI:context.UI,storage,notices,html:()=>html,modal:()=>modal,click:dataset=>context.UI.handleClick({dataset})};
 }
-for(const runtime of ["ultimate-ui.js","ultimate-ui-6.js"]){
+for(const runtime of ["ultimate-ui.js","ultimate-ui-61.js"]){
  test(runtime+": welcome gift can only be claimed in the Barcelona event, stays disabled after buying and survives reload",()=>{
   const app=boot(runtime);app.click({ut:"create"});const u=app.UI.getClub(),before=structuredClone(u);
   app.click({ut:"barcelona-gift"});assert.deepEqual(u,before);assert.doesNotMatch(app.html(),/data-ut="barcelona-gift"/);
@@ -144,8 +144,8 @@ for(const runtime of ["ultimate-ui.js","ultimate-ui-6.js"]){
  });
 }
 test("desktop and mobile load the new event and styles in the same order, with synchronized runtime copies",()=>{
- for(const file of ["ultimate-team","ultimate-save","ultimate-ui","evolution-ui"])assert.equal(read(file+".js"),read(file+"-6.js"));
- for(const entry of ["index.html","mobile.html"]){const html=read(entry);assert.match(html,/barcelona-event-6\.css\?v=6\.0/);assert.match(html,/barcelona-event-6\.js\?v=6\.0/);assert.match(html,/ultimate-team-6\.js\?v=6\.0/);}
+ for(const file of ["ultimate-team","ultimate-save","ultimate-ui","evolution-ui"])assert.equal(read(file+".js"),read(file+"-61.js"));
+ for(const entry of ["index.html","mobile.html"]){const html=read(entry);assert.match(html,/barcelona-event-6\.css\?v=6\.0/);assert.match(html,/barcelona-event-6\.js\?v=6\.0/);assert.match(html,/ultimate-team-61\.js\?v=6\.1-magia/);}
  assert.match(read("evolution-ui.js"),/data-evo="barcelona-open"/);
  assert.deepEqual([...read("index.html").matchAll(/(?:src|href)="\.\/([^"?]+)/g)].map(m=>m[1]),[...read("mobile.html").matchAll(/(?:src|href)="\.\/([^"?]+)/g)].map(m=>m[1]));
 });

@@ -130,6 +130,6 @@ test("both desktop and mobile ship Muralla while keeping runtime copies identica
   assert.ok(html.indexOf("muralla-event.js")<html.indexOf("./game-6.js"));
  }
  for(const file of ["ultimate-team","ultimate-ui","ultimate-save","evolution-ui"])
-  assert.equal(read(file+".js"),read(file+"-6.js"));
+  assert.equal(read(file+".js"),read(file+"-61.js"));
  assert.match(read("evolution-ui.js"),/data-evo="muralla-open"/);
 });

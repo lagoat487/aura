@@ -156,7 +156,7 @@ const AuraEvolution=(()=>{
       '<button class="btn" data-evo="hero-start">EXPLORAR MODOS ↓</button>'+
       (recent?'<button class="btn" data-evo="mode-resume">↗ VOLVER A '+recent[2]+'</button>':'')+
       '<button class="btn" data-evo="skill-open">🎯 CENTRO DE ENTRENAMIENTO</button></div>'+
-      '<div class="aura60-live-strip"><div><span>EN ULTIMATE TEAM</span><strong>CUATRO EVENTOS. TUS COLORES.</strong></div><div class="aura60-event-shortcuts"><button data-evo="barcelona-open">🔵🔴 BARÇA</button><button data-evo="muralla-open">◈ MURALLA</button><button data-evo="flashback-open">✦ FLASHBACK</button><button data-evo="argentina-open">🇦🇷 LIGA ARGENTINA</button></div></div>'+
+      '<div class="aura60-live-strip"><div><span>EN ULTIMATE TEAM</span><strong>EVENTOS ACTUALES. TUS COLORES.</strong></div><div class="aura60-event-shortcuts"><button data-evo="magia-open">✧ MAGIA</button><button data-evo="barcelona-open">🔵🔴 BARÇA</button><button data-evo="muralla-open">◈ MURALLA</button><button data-evo="flashback-open">✦ FLASHBACK</button><button data-evo="argentina-open">🇦🇷 LIGA ARGENTINA</button></div></div>'+
       '<div class="aura-mode-home-metrics"><span><strong>07</strong> MODOS</span>'+
       '<span><strong>'+(loaded?Number(stats.clubs||0).toLocaleString("es-ES"):'11×11')+'</strong> CLUBES O JUGADORES</span>'+
       '<span><strong>3D</strong> PARTIDOS JUGABLES</span></div></section>'+modeTabs();
@@ -497,6 +497,11 @@ const AuraEvolution=(()=>{
     if(d.evo==="events-open"){
       chooseMode("ultimate");
       AuraUTUI.handleClick({dataset:{utTab:"events"}});
+      return true;
+    }
+    if(d.evo==="magia-open"){
+      chooseMode("ultimate");
+      AuraUTUI.handleClick({dataset:{utTab:"magia"}});
       return true;
     }
     if(d.evo==="barcelona-open"){
