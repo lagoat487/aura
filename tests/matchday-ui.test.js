@@ -47,6 +47,9 @@ function arenaGamepads(a){
   "navigator.getGamepads=()=>arenaPads;globalThis.arenaInput=null;const actualStep=AuraMatch.step;"+
   "globalThis.AuraMatch={...AuraMatch,step:(game,dt,input)=>{arenaInput={...input,away:{...input.away}};return actualStep(game,dt,input)}};arenaPads;");
 }
+function watchPadActions(a){
+ a.run("globalThis.padActions=[];const actualAction=AuraMatch.action;globalThis.AuraMatch={...AuraMatch,action:(game,type,input)=>{padActions.push({type,team:input?.team??0,sprint:!!input?.sprint});return actualAction(game,type,input)}};");
+}
 test('keyboard input moves the controlled player, release brakes, and pause freezes the arena',()=>{
  const a=boot(),g=a.session.game;g.phase='playing';a.frame();const p=g.players[g.controlled],start=p.x;
  a.key('keydown','d');for(let i=0;i<8;i++)a.frame(50);assert.ok(p.x>start+1);a.key('keyup','d');const speed=p.vx;a.frame(50);assert.ok(p.vx<speed);
@@ -284,6 +287,39 @@ test('single-player matches still accept any connected gamepad when browser slot
  available.connected=true;available.buttons[1].pressed=false;a.frame(50);available.buttons[1].pressed=true;home.cooldown=0;Object.assign(g.ball,{owner:home.index,x:home.x+.65,z:home.z,y:.22});a.frame(50);
  assert.equal(g.stats[0].shots,2,'a new press after reconnection must still work');
  a.click('pause');a.click('exit');a.click('confirm-exit');assert.equal(a.commits(),0);assert.equal(a.cancels(),1);
+});
+test('the right trigger sprints without centering or performing a skill for either local player',()=>{
+ for(const [local,team] of [[false,0],[true,0],[true,1]]){
+  const a=boot({local}),g=a.session.game;g.phase='playing';const pads=arenaGamepads(a),pad=pads[team],sprint=team?'arenaInput.away.sprint':'arenaInput.sprint';watchPadActions(a);a.frame();
+  const index=team?g.awayControlled:g.controlled,p=g.players[index];p.cooldown=0;Object.assign(g.ball,{owner:index,x:p.x+(team?-.65:.65),z:p.z,y:.22});
+  pad.buttons[7].pressed=true;a.frame(50);assert.equal(a.run(sprint),true,'RT/R2 must sprint for the selected player');assert.equal(a.run('padActions.length'),0,'sprinting must not request a cross or skill');
+  a.frame(50);assert.equal(a.run(sprint),true);assert.equal(a.run('padActions.length'),0);
+  pad.buttons[7].pressed=false;a.frame(50);assert.equal(a.run(sprint),false,'releasing RT/R2 must stop the held sprint');
+  const key=team?'5':'Shift';a.key('keydown',key);a.frame(50);assert.equal(a.run(sprint),true,'existing keyboard sprint must remain available');a.key('keyup',key);a.frame(50);assert.equal(a.run(sprint),false);
+  a.click('pause');a.click('exit');a.click('confirm-exit');assert.equal(a.commits(),0);
+ }
+});
+test('the right bumper remains a single cross without also activating sprint for either local player',()=>{
+ for(const [local,team] of [[false,0],[true,0],[true,1]]){
+  const a=boot({local}),g=a.session.game;g.phase='playing';const pads=arenaGamepads(a),pad=pads[team],sprint=team?'arenaInput.away.sprint':'arenaInput.sprint';watchPadActions(a);a.frame();
+  const index=team?g.awayControlled:g.controlled,p=g.players[index];p.cooldown=0;Object.assign(g.ball,{owner:index,x:p.x+(team?-.65:.65),z:p.z,y:.22});
+  pad.buttons[5].pressed=true;a.frame(50);assert.equal(a.run('padActions.length'),1);assert.deepEqual(JSON.parse(a.run('JSON.stringify(padActions[0])')),{type:'cross',team,sprint:false});assert.equal(a.run(sprint),false);
+  a.frame(50);assert.equal(a.run('padActions.length'),1,'holding RB/R1 must not repeat the cross');
+  pad.buttons[5].pressed=false;a.frame(50);p.cooldown=0;Object.assign(g.ball,{owner:index,x:p.x+(team?-.65:.65),z:p.z,y:.22});pad.buttons[5].pressed=true;a.frame(50);
+  assert.equal(a.run('padActions.length'),2,'a new bumper press must still request a new cross');
+  a.click('pause');a.click('exit');a.click('confirm-exit');assert.equal(a.commits(),0);
+ }
+});
+test('the right-stick button performs a skill without sprinting and only once per press for either local player',()=>{
+ for(const [local,team] of [[false,0],[true,0],[true,1]]){
+  const a=boot({local}),g=a.session.game;g.phase='playing';const pads=arenaGamepads(a),pad=pads[team],sprint=team?'arenaInput.away.sprint':'arenaInput.sprint';watchPadActions(a);a.frame();
+  const index=team?g.awayControlled:g.controlled,p=g.players[index];p.cooldown=0;p.skillCooldown=0;p.stamina=100;Object.assign(g.ball,{owner:index,x:p.x+(team?-.65:.65),z:p.z,y:.22});
+  pad.buttons[11].pressed=true;a.frame(50);assert.equal(a.run('padActions.length'),1);assert.deepEqual(JSON.parse(a.run('JSON.stringify(padActions[0])')),{type:'skill',team,sprint:false});assert.ok(p.skillCooldown>0,'the real engine must accept the skill');assert.equal(a.run(sprint),false);
+  a.frame(50);assert.equal(a.run('padActions.length'),1,'holding R3 must not repeat the skill');
+  pad.buttons[11].pressed=false;a.frame(50);p.cooldown=0;p.skillCooldown=0;Object.assign(g.ball,{owner:index,x:p.x+(team?-.65:.65),z:p.z,y:.22});pad.buttons[11].pressed=true;a.frame(50);
+  assert.equal(a.run('padActions.length'),2,'a new R3 press must still perform a skill');
+  a.click('pause');a.click('exit');a.click('confirm-exit');assert.equal(a.commits(),0);
+ }
 });
 test('visitor shooting shortcut works only for the away-controlled player in local mode',()=>{
  const a=boot({local:true}),g=a.session.game;g.phase='playing';const away=g.players[g.awayControlled];
