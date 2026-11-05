@@ -12,24 +12,29 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: 8fbc5a545efe5f61402dc0c37984f4753858da40
-      - name: Purge the exact runtime URL used by both entrypoints
-        continue-on-error: true
+      - name: Recheck the exact runtime after the accepted cache purge
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error --max-time 20 -G -X DELETE --data-urlencode 'url=https://raw.githack.com/lagoat487/aura/main/ultimate-ui-6.js?v=6.0' 'https://raw.githack.com/purge'
-      - name: Compare the fixed entrypoint and its changed runtime with the published revision
-        shell: bash
-        run: |
-          set -euo pipefail
-          for asset in 'index.html' 'ultimate-ui-6.js' 'ultimate-ui-6.js?v=6.0'; do
+          failed=0
+          for asset in 'index.html' 'ultimate-ui-6.js?v=6.0' 'ultimate-ui-6.js'; do
             file="${asset%%\?*}"
-            curl --fail --location --silent --show-error --max-time 20 -H 'Cache-Control: no-cache' "https://raw.githack.com/lagoat487/aura/main/$asset" -o /tmp/aura-live-asset
-            if cmp -s "$file" /tmp/aura-live-asset; then
-              echo "MATCH: $asset equals published 8fbc5a545efe5f61402dc0c37984f4753858da40"
-            else
-              echo "::error::The served $asset does not match published 8fbc5a545efe5f61402dc0c37984f4753858da40."
-              sha256sum "$file" /tmp/aura-live-asset
-              exit 1
+            matched=0
+            for attempt in 1 2 3 4; do
+              if curl --fail --location --silent --show-error --max-time 15 -H 'Cache-Control: no-cache' "https://raw.githack.com/lagoat487/aura/main/$asset" -o /tmp/aura-live-asset; then
+                if cmp -s "$file" /tmp/aura-live-asset; then
+                  echo "MATCH: $asset equals published 8fbc5a545efe5f61402dc0c37984f4753858da40"
+                  matched=1
+                  break
+                fi
+                echo "STALE: $asset differs from published 8fbc5a545efe5f61402dc0c37984f4753858da40 (attempt $attempt)"
+                sha256sum "$file" /tmp/aura-live-asset
+              fi
+              if [[ "$attempt" != 4 ]]; then sleep 10; fi
+            done
+            if [[ "$matched" != 1 ]]; then
+              echo "::error::Could not verify the served $asset against published 8fbc5a545efe5f61402dc0c37984f4753858da40."
+              failed=1
             fi
           done
+          exit "$failed"
