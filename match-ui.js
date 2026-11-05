@@ -71,6 +71,7 @@ const AuraArena=(()=>{
     const s=session={node,home,away,game,graphics,options,keys:new Set(),stick:{x:0,z:0},touchSprint:false,charging:null,shotStyle:"normal",raf:0,last:0,hudTime:0,lastEvent:null,done:false,gamepadButtons:[],awayPadButtons:[],audio:null,voice:null,disposed:false,replay:null,replayFrames:[],recordTime:0,seenGoals:0,portraitId:null,cameraNotice:0};
     const find=id=>node.querySelector("#"+id),layer=find("arena-layer"),previousFocus=document.activeElement;
     const touchPointers=new Map();
+    const padSlots=[null,null];
     function ensureAudio(){
       if(!settings.sound)return null;
       try{
@@ -99,7 +100,21 @@ const AuraArena=(()=>{
         sprint:key.has("shift")||s.touchSprint};
       const away={x:(key.has("arrowright")?1:0)-(key.has("arrowleft")?1:0),
         z:(key.has("arrowdown")?1:0)-(key.has("arrowup")?1:0),sprint:key.has("5")};
-      let pads=[];try{if(typeof navigator.getGamepads==="function")pads=Array.from(navigator.getGamepads()||[]).filter(p=>p?.connected);}catch{}
+      let pads=[];
+      try{
+        if(typeof navigator.getGamepads==="function"){
+          const available=Array.from(navigator.getGamepads()||[]);
+          if(local){
+            // Bind each local player once; a missing browser slot must not swap teams.
+            for(let i=0;i<available.length;i++){
+              if(!available[i]?.connected||padSlots.includes(i))continue;
+              const slot=padSlots.indexOf(null);if(slot<0)break;
+              padSlots[slot]=i;
+            }
+            pads=padSlots.map(i=>i!==null&&available[i]?.connected?available[i]:null);
+          }else pads=available.filter(p=>p?.connected);
+        }
+      }catch{}
       const map=[[0,"pass"],[1,"shoot"],[2,"tackle"],[3,"through"],[4,"switch"],[5,"cross"],[6,"lob"],[7,"skill"],[8,"slide"]];
       const first=pads[0];
       if(first){

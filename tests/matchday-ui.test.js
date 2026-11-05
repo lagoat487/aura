@@ -42,6 +42,11 @@ function boot(options={}){
   commits:()=>commits,cancels:()=>cancels,view:()=>lastView,
  };
 }
+function arenaGamepads(a){
+ return a.run("globalThis.arenaPads=[0,1].map(index=>({index,connected:true,mapping:'standard',axes:[0,0,0,0],buttons:Array.from({length:17},()=>({pressed:false}))}));"+
+  "navigator.getGamepads=()=>arenaPads;globalThis.arenaInput=null;const actualStep=AuraMatch.step;"+
+  "globalThis.AuraMatch={...AuraMatch,step:(game,dt,input)=>{arenaInput={...input,away:{...input.away}};return actualStep(game,dt,input)}};arenaPads;");
+}
 test('keyboard input moves the controlled player, release brakes, and pause freezes the arena',()=>{
  const a=boot(),g=a.session.game;g.phase='playing';a.frame();const p=g.players[g.controlled],start=p.x;
  a.key('keydown','d');for(let i=0;i<8;i++)a.frame(50);assert.ok(p.x>start+1);a.key('keyup','d');const speed=p.vx;a.frame(50);assert.ok(p.vx<speed);
@@ -246,6 +251,39 @@ test('two-player exhibition assigns arrows to the visitor without moving the hom
  a.key('keydown','d');for(let i=0;i<9;i++)a.frame(50);a.key('keyup','d');
  assert.ok(home.x>xHome+.4,'Player 1 continues to move with WASD');
  a.click('pause');a.click('exit');a.click('confirm-exit');
+});
+test('local gamepads keep their teams through disconnects and reconnections',()=>{
+ for(const missing of ['null','disconnected']){
+  const a=boot({local:true}),g=a.session.game;g.phase='playing';const pads=arenaGamepads(a),first=pads[0],rosters=a.run('JSON.stringify([home,away])');a.frame();
+  pads[0]=missing==='null'?null:{...first,connected:false};pads[1].axes[0]=1;pads[1].buttons[1].pressed=true;
+  const away=g.players[g.awayControlled];away.cooldown=0;Object.assign(g.ball,{owner:g.awayControlled,x:away.x-.65,z:away.z,y:.22});a.frame(50);
+  assert.equal(g.stats[1].shots,1,'the remaining J2 controller must still shoot for the visitor');assert.equal(g.stats[0].shots,0);
+  assert.equal(a.run('arenaInput.x'),0);assert.equal(a.run('arenaInput.away.x'),1,'J2 movement must not transfer to the home team');
+  a.frame(50);assert.equal(g.stats[1].shots,1,'holding the shot button must not repeat the action');
+  pads[1].buttons[1].pressed=false;a.frame(50);pads[0]=first;first.axes[0]=-1;a.frame(50);
+  assert.equal(a.run('arenaInput.x'),-1,'the reconnected J1 controller must regain its own team');assert.equal(a.run('arenaInput.away.x'),1);
+  pads[1]=missing==='null'?null:{...pads[1],connected:false};first.buttons[1].pressed=true;
+  const home=g.players[g.controlled];home.cooldown=0;Object.assign(g.ball,{owner:home.index,x:home.x+.65,z:home.z,y:.22});a.frame(50);
+  assert.equal(g.stats[0].shots,1);assert.equal(g.stats[1].shots,1);assert.equal(a.run('arenaInput.away.x'),0);
+  assert.equal(a.run('JSON.stringify([home,away])'),rosters,'controller changes must preserve the source teams');
+  a.click('pause');a.click('exit');a.click('confirm-exit');
+ }
+});
+test('local gamepads keep initial assignments when a lower browser slot connects later',()=>{
+ const a=boot({local:true}),g=a.session.game;g.phase='playing';const pads=arenaGamepads(a),late=pads[0],early=pads[1];pads[0]=null;early.axes[0]=1;
+ a.frame();a.frame(50);assert.equal(a.run('arenaInput.x'),1,'the first available controller must still join J1');assert.equal(a.run('arenaInput.away.x'),0);
+ pads[0]=late;late.axes[0]=-1;a.frame(50);
+ assert.equal(a.run('arenaInput.x'),1,'connecting an earlier browser slot must not swap the existing player');assert.equal(a.run('arenaInput.away.x'),-1);
+ a.click('pause');a.click('exit');a.click('confirm-exit');
+});
+test('single-player matches still accept any connected gamepad when browser slots have gaps',()=>{
+ const a=boot(),g=a.session.game;g.phase='playing';const pads=arenaGamepads(a),available=pads[1];pads[0]=null;available.axes[0]=1;available.buttons[1].pressed=true;
+ const home=g.players[g.controlled];home.cooldown=0;Object.assign(g.ball,{owner:home.index,x:home.x+.65,z:home.z,y:.22});a.frame();a.frame(50);
+ assert.equal(g.stats[0].shots,1);assert.equal(g.stats[1].shots,0);assert.equal(a.run('arenaInput.x'),1);
+ available.connected=false;a.frame(50);assert.equal(a.run('arenaInput.x'),0,'disconnecting the only pad must release movement');
+ available.connected=true;available.buttons[1].pressed=false;a.frame(50);available.buttons[1].pressed=true;home.cooldown=0;Object.assign(g.ball,{owner:home.index,x:home.x+.65,z:home.z,y:.22});a.frame(50);
+ assert.equal(g.stats[0].shots,2,'a new press after reconnection must still work');
+ a.click('pause');a.click('exit');a.click('confirm-exit');assert.equal(a.commits(),0);assert.equal(a.cancels(),1);
 });
 test('visitor shooting shortcut works only for the away-controlled player in local mode',()=>{
  const a=boot({local:true}),g=a.session.game;g.phase='playing';const away=g.players[g.awayControlled];
