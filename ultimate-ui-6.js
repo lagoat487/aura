@@ -56,7 +56,7 @@ const AuraUTUI=(()=>{
     const progress=sbcSelection.size+'/'+def.count+' cartas'+(ecuador?' de Ecuador':def.score?' · '+(preview.score||0)+'/'+def.score+' puntos':' seleccionadas');
     const full=sbcSelection.size>=def.count,choices=eligible.map(p=>{
       const selected=sbcSelection.has(p.uid);
-      return '<div class="ut-sbc-card '+(selected?'selected':'')+'">'+card(p,'sbc-pick','data-uid="'+esc(p.uid)+'" aria-pressed="'+selected+'"'+(full&&!selected?' disabled':''))+'<span>'+(selected?'Seleccionada · ':'')+(ecuador?'Ecuador · ':def.score?U.itemScore(p)+' puntos · ':esc(p.nationality||p.pos)+' · ')+(p.duplicate?'Repetido':'Reserva')+'</span></div>';
+      return '<div class="ut-sbc-card '+(selected?'selected':'')+'">'+card(p,'sbc-pick','id="ut-sbc-card-'+esc(p.uid)+'" data-uid="'+esc(p.uid)+'" aria-pressed="'+selected+'"'+(full&&!selected?' disabled':''))+'<span>'+(selected?'Seleccionada · ':'')+(ecuador?'Ecuador · ':def.score?U.itemScore(p)+' puntos · ':esc(p.nationality||p.pos)+' · ')+(p.duplicate?'Repetido':'Reserva')+'</span></div>';
     }).join('');
     return heading+tabs+hero+'<section class="ut-sbc-status"><div><h3>'+def.name+'</h3><p>'+requirements+'</p><b>'+progress+'</b></div><div class="ecuador-sbc-actions">'+
       (rewardCard?'<button class="btn" data-ut="sbc-auto" '+(eligible.length<def.count?'disabled':'')+'>Elegir los '+def.count+' de menor GRL</button>':'')+
@@ -218,7 +218,12 @@ const AuraUTUI=(()=>{
       if(action==='buy'){const r=U.buy(club,pool().find(p=>p.id===d.player));if(r.error)notify(r.error);else{closeModal();renderGame();notify('Jugador añadido a tu club.');}}
       if(action==='sell'){const r=U.quickSell(club,d.player,d.duplicate==='yes');if(r.error)notify(r.error);else{closeModal();renderGame();notify('Venta rápida: +'+r.coins+' monedas.');}}
       if(action==='objective'){const r=U.claim(club,d.objective);if(r.error)notify(r.error);else{renderGame();notify('Recompensa: +'+r.coins+' monedas.');}}
-      if(action==='sbc-pick'){if(sbcSelection.has(d.uid))sbcSelection.delete(d.uid);else if(sbcSelection.size<U.challenges[sbcType].count)sbcSelection.add(d.uid);renderGame();}
+      if(action==='sbc-pick'){
+        const focused=document.activeElement===t;
+        if(sbcSelection.has(d.uid))sbcSelection.delete(d.uid);else if(sbcSelection.size<U.challenges[sbcType].count)sbcSelection.add(d.uid);
+        renderGame();
+        if(focused)document.getElementById('ut-sbc-card-'+d.uid)?.focus?.({preventScroll:true});
+      }
       if(action==='stars-sbc-open'){tab='sbc';sbcType='cantera';sbcSelection.clear();renderGame();return true;}
       if(action==='ecuador-sbc-open'){tab='sbc';sbcType='ecuador';sbcSelection.clear();renderGame();return true;}
       if(action==='sbc-auto'){
