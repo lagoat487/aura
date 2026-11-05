@@ -8,6 +8,16 @@ test('UT starts with 23 unique real footballers, a complete XI and a preferred s
 test('chemistry is 0–33, rewards compatible links and never rewards an out-of-position card',()=>{
  const ps=positions.slice(0,11).map((pos,i)=>({id:'p'+i,name:'Player '+i,pos,overall:78,real:true,club:'same',leagueId:'same',nationality:'Spain'})),u={owned:ps,xi:ps.map(p=>p.id),formation:'4-3-3'};assert.equal(U.chemistry(u).total,33);[u.xi[0],u.xi[9]]=[u.xi[9],u.xi[0]];assert.equal(U.chemistry(u).players[0],0);assert.equal(U.chemistry(u).players[9],0);
 });
+test('chemistry shares the existing SBC nationality aliases and excludes out-of-position cards from their links',()=>{
+ const countries=[['España','Spain','ESP',' españa ','SPAIN'],['Brasil','Brazil','BRA',' brasil ','BRAZIL'],['Ecuador','ECU','ecuatoriano','ecuatoriana',' ecuador '],['Argentina','ARG','argentina',' arg ','ARGENTINA']];
+ for(const aliases of countries){
+  const owned=positions.slice(0,11).map((pos,i)=>({id:'nation:'+i,name:'Player '+i,pos,overall:78,club:'club:'+i,leagueId:'league:'+i,nationality:i<5?aliases[i]:'Other '+i}));
+  const u={owned,xi:owned.map(p=>p.id),formation:'4-3-3'},before=structuredClone(u);
+  assert.deepEqual(U.chemistry(u).players,[2,2,2,2,2,0,0,0,0,0,0],aliases[0]+' variants must reach the five-player nation threshold together');assert.deepEqual(u,before);
+  [u.xi[0],u.xi[9]]=[u.xi[9],u.xi[0]];
+  assert.deepEqual(U.chemistry(u).players,[0,1,1,1,1,0,0,0,0,0,0],'an incompatible player cannot count toward the nation threshold');
+ }
+});
 test('pack guarantees are real, repeats go into storage and failed purchases cannot debit coins',()=>{
  const u=U.create(pool()),result=U.draw(u,pool(),'premium',()=>.2);assert.equal(result.ok,true);assert.ok(result.cards.some(p=>p.overall>=82));assert.equal(new Set(result.cards.map(p=>p.id)).size,3);assert.equal(u.coins,2500);const old=JSON.stringify(u);assert.ok(U.draw(u,pool(),'premium').error);assert.equal(JSON.stringify(u),old);
  const before=u.owned.length;U.draw(u,[...u.owned], 'silver',()=>.3,true);assert.equal(u.owned.length,before);assert.ok(u.duplicates.length>0);

@@ -203,9 +203,9 @@
   function league(p){if(p.leagueId==='reference')return '';return p.leagueId||p.league||String(p.catalogClub||p.club||"").replace(/-[^-]+$/,'');}
   function chemistry(u){
     const formation=Squad.formations[u.formation]||Squad.formations['4-3-3'],ps=u.xi.map(id=>u.owned.find(p=>p.id===id)),valid=ps.filter((p,i)=>p&&Squad.positionPenalty(p,formation[i][0])<=1),counts={club:new Map(),nation:new Map(),league:new Map()};
-    for(const p of valid)for(const [kind,key] of [['club',p.catalogClub||p.club],['nation',p.nationality],['league',league(p)]])if(key)counts[kind].set(key,(counts[kind].get(key)||0)+1);
+    for(const p of valid)for(const [kind,key] of [['club',p.catalogClub||p.club],['nation',nationKey(p.nationality)],['league',league(p)]])if(key)counts[kind].set(key,(counts[kind].get(key)||0)+1);
     const thresholds={club:[2,4,7],nation:[2,5,8],league:[3,5,8]};
-    const players=ps.map((p,i)=>{if(!p||!valid.includes(p))return 0;return Math.min(3,[['club',p.catalogClub||p.club],['nation',p.nationality],['league',league(p)]].reduce((n,[kind,key])=>n+thresholds[kind].filter(t=>(counts[kind].get(key)||0)>=t).length,0));});
+    const players=ps.map((p,i)=>{if(!p||!valid.includes(p))return 0;return Math.min(3,[['club',p.catalogClub||p.club],['nation',nationKey(p.nationality)],['league',league(p)]].reduce((n,[kind,key])=>n+thresholds[kind].filter(t=>(counts[kind].get(key)||0)>=t).length,0));});
     return {players,total:players.reduce((a,b)=>a+b,0)};
   }
   function create(pool,preferredLeague="all",name="Mi AURA FC"){
@@ -300,10 +300,9 @@
   function itemScore(p){return Math.max(1,p.overall-50)**2;}
   function sbcCompleted(u,type){return !!challenges[type]?.once&&
     ((Array.isArray(u.sbcCompleted)&&u.sbcCompleted.includes(type))||u.owned.concat(u.duplicates).some(p=>p.id===sbcRewards[type]?.cardId));}
-  function sameNation(value,required){
-    const aliases={ecuador:["ecuador","ecu","ecuatoriano","ecuatoriana"],espana:["espana","spain","esp"],brasil:["brasil","brazil","bra"],argentina:["argentina","arg"]};
-    return (aliases[normalizeName(required)]||[normalizeName(required)]).includes(normalizeName(value));
-  }
+  const nationAliases={ecuador:["ecuador","ecu","ecuatoriano","ecuatoriana"],espana:["espana","spain","esp"],brasil:["brasil","brazil","bra"],argentina:["argentina","arg"]};
+  function nationKey(value){const key=normalizeName(value);return Object.keys(nationAliases).find(nation=>nationAliases[nation].includes(key))||key;}
+  function sameNation(value,required){return (nationAliases[normalizeName(required)]||[normalizeName(required)]).includes(normalizeName(value));}
   function sbcPool(u,type){
     const def=challenges[type];if(!def||sbcCompleted(u,type))return [];
     return u.owned.filter(p=>!u.xi.includes(p.id)).map(p=>({...p,uid:p.id})).concat(u.duplicates)

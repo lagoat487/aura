@@ -423,6 +423,16 @@ test('UT market ignores surrounding search whitespace and keeps blank searches o
  const empty=search('');assert.equal(search('   '),empty,'spaces alone must not bypass the default rating range');assert.deepEqual(app.json('AuraUTUI.getClub()'),before);
 });
 
+test('the new Gavi SBC links with catalogue Pedri by club and country on the UT squad screen',async()=>{
+ const app=boot();app.run(fs.readFileSync(path.join(__dirname,'..','data/world-rosters.js'),'utf8'));await app.run('World.load(clubs,Competitions.definitions)');
+ app.click({evoMode:'ultimate'});app.click({ut:'create'});
+ app.run('globalThis.utChem=AuraUTUI.getClub();utChem.owned=AuraSquad.formations[utChem.formation].map(([pos],i)=>({id:"chem-fixture:"+i,name:"Fixture "+i,pos,overall:75,real:false,club:"fixture:"+i,leagueId:"fixture:"+i,nationality:"Fixture "+i}));utChem.owned[6]=AuraUT.sbcRewardCard("cantera",AuraUTUI.pool());utChem.owned[7]={...AuraUTUI.pool().find(p=>p.id==="real:251854")};utChem.xi=utChem.owned.map(p=>p.id)');
+ const before=app.json('utChem');app.click({utTab:'squad'});
+ assert.equal(app.run('AuraUT.chemistry(utChem).players[6]'),2,'Gavi should share Pedri\'s club and nationality links');assert.equal(app.run('AuraUT.chemistry(utChem).players[7]'),2);
+ assert.match(app.html(),/QUÍMICA<b>4<small>\/33/);assert.equal((app.html().match(/aria-label="Química 2 de 3"/g)||[]).length,2);
+ assert.deepEqual(app.json('utChem'),before,'rendering chemistry must preserve card data, coins and XI');
+});
+
 for(const runtime of ['ultimate-ui.js','ultimate-ui-flashback-v2.js'])test('UT club search ignores surrounding and whitespace-only input without changing the collection: '+runtime,()=>{
  const app=boot(undefined,runtime);app.click({evoMode:'ultimate'});app.click({ut:'create'});app.click({utTab:'club'});
  const before=app.json('AuraUTUI.getClub()'),player=before.owned[0];
