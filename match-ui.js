@@ -70,6 +70,7 @@ const AuraArena=(()=>{
     catch(error){graphics=AuraGraphics.fallback(node.querySelector("#arena-view"),{home,away,...settings});const badge=document.createElement("span");badge.className="arena-fallback";badge.textContent="3D compatible · sin aceleración gráfica";node.appendChild(badge);}
     const s=session={node,home,away,game,graphics,options,keys:new Set(),stick:{x:0,z:0},touchSprint:false,charging:null,shotStyle:"normal",raf:0,last:0,hudTime:0,lastEvent:null,done:false,gamepadButtons:[],awayPadButtons:[],audio:null,voice:null,disposed:false,replay:null,replayFrames:[],recordTime:0,seenGoals:0,portraitId:null,cameraNotice:0};
     const find=id=>node.querySelector("#"+id),layer=find("arena-layer"),previousFocus=document.activeElement;
+    const touchPointers=new Map();
     function ensureAudio(){
       if(!settings.sound)return null;
       try{
@@ -138,7 +139,7 @@ const AuraArena=(()=>{
         '<button class="btn primary" data-arena="report-back">← Volver '+(s.done?'al resultado':'a la pausa')+'</button></div>';
     }
     function pause(){
-      if(s.done)return;game.paused=!game.paused;s.keys.clear();releaseStick();s.touchSprint=false;s.charging=null;find("arena-power").hidden=true;layer.hidden=!game.paused;
+      if(s.done)return;game.paused=!game.paused;s.keys.clear();touchPointers.clear();releaseStick();s.touchSprint=false;s.charging=null;find("arena-power").hidden=true;layer.hidden=!game.paused;
       if(game.paused)layer.innerHTML='<div class="pause-card"><span class="eyebrow">RESPIRA. REPLANTEA. VUELVE.</span><h2>EL PARTIDO<br>ES TUYO.</h2><p>'+escape(home.name)+' <b>'+game.score[0]+' — '+game.score[1]+'</b> '+escape(away.name)+'</p><button class="btn primary" data-arena="resume">Seguir jugando →</button><button class="btn" data-arena="plan">Tácticas y sustituciones →</button><button class="btn" data-arena="report">⭐ Estadísticas de jugadores →</button><button class="btn" data-arena="camera">Cambiar cámara</button><button class="btn subtle" data-arena="exit">Salir sin resultado</button></div>';
       if(!game.paused)ensureAudio();node.focus();
     }
@@ -187,7 +188,7 @@ const AuraArena=(()=>{
     function blur(){if(!game.paused&&!s.done)pause();}
     function visibility(){if(document.hidden){blur();s.audio?.suspend();}}
     function changeCamera(){const cameras=Object.keys(cameraNames);settings.camera=cameras[(cameras.indexOf(settings.camera)+1)%cameras.length];persistPreferences();find('arena-camera-label').textContent=cameraNames[settings.camera];s.cameraNotice=performance.now()+2200;find('arena-camera-label').classList.add('visible');}
-    function skipReplay(){s.replay=null;find('arena-replay').hidden=true;s.keys.clear();s.charging=null;find('arena-power').hidden=true;}
+    function skipReplay(){s.replay=null;find('arena-replay').hidden=true;s.keys.clear();touchPointers.clear();s.charging=null;find('arena-power').hidden=true;}
     window.addEventListener("keydown",keydown,true);window.addEventListener("keyup",keyup,true);window.addEventListener("blur",blur);document.addEventListener("visibilitychange",visibility);
     node.addEventListener("click",e=>{
       const a=e.target.closest("[data-arena]")?.dataset.arena;
@@ -213,9 +214,24 @@ const AuraArena=(()=>{
     stick.addEventListener("pointerdown",e=>{if(pointer!==null||game.paused||s.done||s.replay||game.phase!=="playing")return;pointer=e.pointerId;stick.setPointerCapture(pointer);stickMove(e);});stick.addEventListener("pointermove",stickMove);
     const releaseStick=e=>{if(e&&e.pointerId!==pointer)return;pointer=null;s.stick={x:0,z:0};knob.style.transform="";};stick.addEventListener("pointerup",releaseStick);stick.addEventListener("pointercancel",releaseStick);stick.addEventListener("lostpointercapture",releaseStick);
     node.querySelectorAll("[data-touch]").forEach(button=>{
-      button.addEventListener("pointerdown",e=>{e.preventDefault();button.setPointerCapture(e.pointerId);if(s.replay||game.paused||s.done||game.phase!=="playing")return;const type=button.dataset.touch;if(type==="sprint")s.touchSprint=true;else if(type==="shoot"){s.charging=performance.now();find("arena-power").hidden=false;}else AuraMatch.action(game,type,controls());});
-      button.addEventListener("pointerup",()=>{if(button.dataset.touch==="sprint")s.touchSprint=false;if(button.dataset.touch==="shoot")shoot();});
-      const cancelTouch=()=>{if(button.dataset.touch==="sprint")s.touchSprint=false;if(button.dataset.touch==="shoot"){s.charging=null;find("arena-power").hidden=true;}};
+      const type=button.dataset.touch,held=type==="shoot"||type==="sprint";
+      button.addEventListener("pointerdown",e=>{
+        e.preventDefault();
+        if(s.replay||game.paused||s.done||game.phase!=="playing"||(held&&touchPointers.has(button)))return;
+        button.setPointerCapture(e.pointerId);
+        if(held)touchPointers.set(button,e.pointerId);
+        if(type==="sprint")s.touchSprint=true;else if(type==="shoot"){s.charging=performance.now();find("arena-power").hidden=false;}else AuraMatch.action(game,type,controls());
+      });
+      button.addEventListener("pointerup",e=>{
+        if(!held||touchPointers.get(button)!==e.pointerId)return;
+        touchPointers.delete(button);
+        if(type==="sprint")s.touchSprint=false;if(type==="shoot")shoot();
+      });
+      const cancelTouch=e=>{
+        if(!held||touchPointers.get(button)!==e.pointerId)return;
+        touchPointers.delete(button);
+        if(type==="sprint")s.touchSprint=false;if(type==="shoot"){s.charging=null;find("arena-power").hidden=true;}
+      };
       button.addEventListener("pointercancel",cancelTouch);button.addEventListener("lostpointercapture",cancelTouch);
       button.addEventListener("click",e=>{
         // Enter/Space and assistive clicks have no pointerdown. Pointer actions already ran.
@@ -266,13 +282,13 @@ const AuraArena=(()=>{
         let remaining=dt;
         while(remaining>0){const tick=Math.min(remaining,1/60);AuraMatch.step(game,tick,input);remaining-=tick;}
         if(game.phase==='restart'&&s.lastRestart!==game.restart){
-          s.lastRestart=game.restart;s.keys.clear();releaseStick();s.touchSprint=false;
+          s.lastRestart=game.restart;s.keys.clear();touchPointers.clear();releaseStick();s.touchSprint=false;
           s.charging=null;find('arena-power').hidden=true;s.replayFrames=[];
         }
         if(!game.paused&&!s.done&&game.phase==='playing'&&now-s.recordTime>50){s.replayFrames.push(AuraPresentation.capture(game));if(s.replayFrames.length>62)s.replayFrames.shift();s.recordTime=now;}
         if(game.goals.length>s.seenGoals){
           s.seenGoals=game.goals.length;s.replayFrames.push(AuraPresentation.capture(game));
-          if(s.replayFrames.length>5){s.replay={frames:s.replayFrames.slice(),time:0};find('arena-replay').hidden=false;s.keys.clear();releaseStick();s.touchSprint=false;s.charging=null;find('arena-power').hidden=true;}
+          if(s.replayFrames.length>5){s.replay={frames:s.replayFrames.slice(),time:0};find('arena-replay').hidden=false;s.keys.clear();touchPointers.clear();releaseStick();s.touchSprint=false;s.charging=null;find('arena-power').hidden=true;}
           s.replayFrames=[];
         }
       }
