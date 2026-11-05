@@ -26,6 +26,11 @@ jobs:
                 ;;
             esac
           done < <(git diff --name-only --diff-filter=M HEAD^ HEAD || true)
+          # Older cached entrypoints still request this exact portrait URL.
+          # Refresh its query-specific edge cache too while the new HTML propagates.
+          if grep -Fq './portraits-fc27.js' index.html; then
+            files+=("portraits.js?v=8.4-portrait-r2")
+          fi
           # Refresh scripts and styles before the HTML exposes their new cache keys.
           files+=(mobile.html index.html)
           declare -A seen=()

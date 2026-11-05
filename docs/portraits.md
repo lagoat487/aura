@@ -10,4 +10,4 @@ Fuentes comprobadas el 5 de noviembre de 2026:
 
 Las identidades numéricas tienen prioridad sobre el nombre. Las cartas antiguas con ID del Mundial o de evento pueden resolverse con el reconciliador existente o una coincidencia exacta y única en el catálogo incluido. No se usan coincidencias parciales de apellidos. Los alias puntuales de Neymar, Vardy, Kitu Díaz y Vinícius conservan las identidades de sus fichas: `190871`, `208830`, `189454` y `238794`. Las identidades creadas no reciben la cara de una persona real.
 
-`portraits-fc27.js` es la copia de producción con ruta nueva para evitar que GitHack reutilice el antiguo cargador de FC 25. `portraits.js` sigue siendo la fuente canónica para pruebas e integraciones.
+`portraits-fc27.js` es la copia de producción con ruta nueva para evitar que GitHack reutilice el antiguo cargador de FC 25. `portraits.js` sigue siendo la fuente canónica para pruebas e integraciones. La actualización de caché también invalida la URL exacta del cargador anterior, incluido su parámetro de versión, para atender a las páginas antiguas mientras se propaga el HTML nuevo.
