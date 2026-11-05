@@ -467,6 +467,28 @@ test('career Champions calendar labels the final as a single match before and af
  assert.equal(app.run('state.champions.rounds.filter(r=>r.stage==="final").length'),1);
 });
 
+test('career Champions calendar retains shootout results for a return leg and the single final without changing career state',async()=>{
+ const app=boot();app.run(fs.readFileSync(path.join(__dirname,'..','data/world-rosters.js'),'utf8'));await app.run('World.load(clubs,Competitions.definitions)');app.click({action:'start'});
+ app.run('globalThis.europeBase=JSON.stringify(state);globalThis.europeWinnerSim=(h,a)=>({home:a===state.club?0:3,away:a===state.club?3:0})');
+ for(const stage of ['semi','final']){
+  app.run('state=JSON.parse(europeBase);for(let guard=0;guard<20;guard++){const r=AuraChampions.next(state.champions);if(r?.stage==='+JSON.stringify(stage)+'&&(r.stage==="final"||r.leg===2))break;AuraChampions.advance(state.champions,europeWinnerSim)}');
+  assert.equal(app.run('AuraChampions.next(state.champions).stage'),stage);
+  app.run('state.round=Math.floor(AuraChampions.next(state.champions).due*totalRounds()/38);globalThis.shootoutFixture={...AuraChampions.fixture(state.champions)}');
+  app.click({nav:'champions'});assert.doesNotMatch(app.html(),/Penaltis:/,'pending fixtures must not invent a shootout');
+  const score=stage==='final'?{home:1,away:1}:app.run('shootoutFixture.home===state.club')?{home:0,away:3}:{home:3,away:0};
+  app.run('AuraContinental.advance('+JSON.stringify(score)+')');
+  const played=app.json('state.champions.rounds.flatMap(r=>r.matches).find(m=>m.id===shootoutFixture.id)');assert.ok(played.penalties);assert.notEqual(played.penalties.home,played.penalties.away);
+  const text='Penaltis: '+played.penalties.home+' — '+played.penalties.away;
+  assert.ok(app.node('modal').innerHTML.includes(text),'the result dialog already records the shootout');app.node('continue').onclick();
+  const before=app.json('state');app.click({nav:'champions'});
+  const label=stage==='final'?'Final · Partido único':'Semifinal · Vuelta',start=app.html().indexOf('<div class="statline"><span>'+label+'</span>');assert.ok(start>=0);
+  const row=app.html().slice(start,app.html().indexOf('</div>',start)+6);
+  assert.ok(row.includes('<small>'+text+'</small>'),'the career calendar must preserve the same home-away shootout score');
+  assert.ok(row.includes(played.score.home+' — '+played.score.away));assert.ok(row.includes('Global '+played.aggregate.home+' — '+played.aggregate.away));
+  app.click({nav:'champions'});assert.deepEqual(app.json('state'),before,'viewing shootouts must not change budgets, fixtures, rewards or the XI');
+ }
+});
+
 test('UT match preparation does not put another edition of a starter on the bench',()=>{
  const app=boot();app.click({evoMode:'ultimate'});app.click({ut:'create'});
  app.run('globalThis.utClub=AuraUTUI.getClub();globalThis.starter=utClub.owned.find(p=>p.id===utClub.xi[9]);utClub.owned.unshift({...starter,id:"event:starter",originalId:starter.id,overall:90});globalThis.reserve=utClub.owned.find(p=>!utClub.xi.includes(p.id)&&!p.originalId);utClub.owned.unshift({...reserve,id:"event:reserve",originalId:reserve.id,overall:89});AuraArena.preMatch=(home,away,options)=>{globalThis.preparedUT=home}');
