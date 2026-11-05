@@ -501,6 +501,26 @@ for(const runtime of ['ultimate-ui.js','ultimate-ui-flashback-v2.js'])test('UT e
  assert.deepEqual(app.json('AuraUTUI.getClub()'),before,'browsing must preserve coins, collection and XI');
 });
 
+for(const runtime of ['ultimate-ui.js','ultimate-ui-flashback-v2.js'])test('UT highest-rating market order includes elite cards and respects the remaining filters: '+runtime,async()=>{
+ const app=boot(undefined,runtime);app.run(fs.readFileSync(path.join(__dirname,'..','data/world-rosters.js'),'utf8'));await app.run('World.load(clubs,Competitions.definitions)');
+ app.click({evoMode:'ultimate'});app.click({ut:'create'});app.click({utTab:'market'});const before=app.json('AuraUTUI.getClub()');
+ const results=()=>[...app.html().matchAll(/data-ut="buy" data-player="([^"]+)"/g)].map(m=>app.json('AuraUTUI.pool().find(p=>p.id==='+JSON.stringify(m[1])+')'));
+ const defaults=results();assert.ok(defaults.length>0);assert.ok(defaults.every(p=>p.overall>=75&&p.overall<=83));
+ app.change('ut-market-order','overall');assert.match(app.html(),/value="overall" selected/);
+ const cards=results(),available=app.json('AuraUTUI.pool().filter(p=>!AuraUTUI.getClub().owned.some(q=>q.id===p.id))');
+ assert.ok(cards.length>0&&cards.length<=24);assert.ok(cards[0].overall>=90,'highest GRL must include elite cards without requiring a name or minimum rating');
+ assert.equal(cards[0].overall,Math.max(...available.map(p=>p.overall)));
+ assert.ok(cards.every((p,i)=>!i||cards[i-1].overall>=p.overall));assert.ok(cards.every(p=>!before.owned.some(q=>q.id===p.id)));
+ app.change('ut-market-position','POR');app.change('ut-market-max','50000');
+ const filtered=results();assert.ok(filtered.length>0);assert.ok(filtered.every(p=>p.pos==='POR'));
+ for(const p of filtered)assert.ok(app.run('AuraUT.marketPrice(AuraUTUI.getClub(),'+JSON.stringify(p)+')')<=50000);
+ const keepers=available.filter(p=>p.pos==='POR'&&app.run('AuraUT.marketPrice(AuraUTUI.getClub(),'+JSON.stringify(p)+')')<=50000);
+ assert.equal(filtered[0].overall,Math.max(...keepers.map(p=>p.overall)));
+ app.change('ut-market-position','all');app.change('ut-market-max','0');app.change('ut-market-order','price');
+ assert.deepEqual(results().map(p=>p.id),defaults.map(p=>p.id),'returning to price order must restore the starter catalogue');
+ assert.deepEqual(app.json('AuraUTUI.getClub()'),before,'sorting and filtering must preserve coins, cards and XI');
+});
+
 test('UT calls up a stronger new signing on the displayed bench without changing the chosen XI',async()=>{
  const app=boot();app.run(fs.readFileSync(path.join(__dirname,'..','data/world-rosters.js'),'utf8'));await app.run('World.load(clubs,Competitions.definitions)');
  app.run(fs.readFileSync(path.join(__dirname,'..','ultimate-sigma.js'),'utf8'));
