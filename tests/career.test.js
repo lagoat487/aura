@@ -564,6 +564,23 @@ for(const runtime of ['ultimate-ui.js','ultimate-ui-flashback-v2.js'])test('UT e
  assert.deepEqual(app.json('AuraUTUI.getClub()'),before,'browsing must preserve coins, collection and XI');
 });
 
+for(const runtime of ['ultimate-ui.js','ultimate-ui-flashback-v2.js'])test('UT select changes restore focus after rendering while preserving the club and formation choices: '+runtime,()=>{
+ const app=boot(undefined,runtime);app.click({evoMode:'ultimate'});app.click({ut:'create'});app.click({utTab:'market'});
+ const before=app.json('AuraUTUI.getClub()'),focused=[];
+ const change=(id,value,selected)=>{
+  app.node(id).focus=options=>{assert.match(app.html(),selected,'focus must return after the new selected value is rendered');focused.push({id,preventScroll:options?.preventScroll});};
+  app.change(id,value);assert.deepEqual(focused.at(-1),{id,preventScroll:true},'the rebuilt selector must retain keyboard focus without scrolling');
+ };
+ change('ut-market-position','DC',/<option value="DC" selected>/);
+ change('ut-market-min','85',/<option value="85" selected>/);
+ change('ut-market-max','50000',/<option value="50000" selected>/);
+ change('ut-market-order','overall',/<option value="overall" selected>/);
+ assert.deepEqual(app.json('AuraUTUI.getClub()'),before,'market filtering must not change coins, cards or XI');
+ app.click({utTab:'squad'});change('ut-formation','4-4-2',/<option selected>4-4-2<\/option>/);
+ const after=app.json('AuraUTUI.getClub()');assert.equal(after.formation,'4-4-2');assert.deepEqual(after.xi.slice().sort(),before.xi.slice().sort());assert.deepEqual(after.owned,before.owned);assert.equal(after.coins,before.coins);assert.equal(focused.length,5);
+ app.run('AuraUTUI.change({target:{id:"unrelated-control",value:"ignored"}})');assert.equal(focused.length,5);assert.deepEqual(app.json('AuraUTUI.getClub()'),after);
+});
+
 for(const runtime of ['ultimate-ui.js','ultimate-ui-flashback-v2.js'])test('UT highest-rating market order includes elite cards and respects the remaining filters: '+runtime,async()=>{
  const app=boot(undefined,runtime);app.run(fs.readFileSync(path.join(__dirname,'..','data/world-rosters.js'),'utf8'));await app.run('World.load(clubs,Competitions.definitions)');
  app.click({evoMode:'ultimate'});app.click({ut:'create'});app.click({utTab:'market'});const before=app.json('AuraUTUI.getClub()');

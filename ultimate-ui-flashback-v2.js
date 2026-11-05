@@ -241,10 +241,17 @@ const AuraUTUI=(()=>{
       if(action==='play'){playMatch.opponent=d.opponent||'madrid';playMatch();}
     }catch(error){notify(error.message);}return true;
   }
-  function change(e){if(e.target.id==='ut-formation'&&club){U.setFormation(club,e.target.value);renderGame();}if(e.target.id==='ut-market-position'){position=e.target.value;renderGame();}
-    if(e.target.id==='ut-market-min'){marketMin=Number(e.target.value)||0;renderGame();}
-    if(e.target.id==='ut-market-max'){marketMax=Number(e.target.value)||0;renderGame();}
-    if(e.target.id==='ut-market-order'){marketOrder=e.target.value==='overall'?'overall':'price';renderGame();}}
+  function change(e){
+    const {id,value}=e.target;
+    if(id==='ut-formation'&&club)U.setFormation(club,value);
+    else if(id==='ut-market-position')position=value;
+    else if(id==='ut-market-min')marketMin=Number(value)||0;
+    else if(id==='ut-market-max')marketMax=Number(value)||0;
+    else if(id==='ut-market-order')marketOrder=value==='overall'?'overall':'price';
+    else return;
+    renderGame();
+    document.getElementById(id)?.focus?.({preventScroll:true});
+  }
   function input(e){if(e.target.id==='ut-market-query'){marketQuery=e.target.value.slice(0,70);const results=document.getElementById('ut-market-results');if(results)results.innerHTML=marketResults();}if(e.target.id==='ut-club-query'){clubQuery=e.target.value.slice(0,70);const results=document.getElementById('ut-club-results');if(results)results.innerHTML=collection();}}
   function openArgentinaEvent(){if(!club)return false;tab='argentina';renderGame();return true;}
   return {render,bindRender,handleClick,change,input,getClub:()=>club,pool,saveClub:persistClub,openArgentinaEvent};
