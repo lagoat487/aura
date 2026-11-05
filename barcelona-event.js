@@ -31,6 +31,8 @@ const AuraBarcelonaEvent=(()=>{
       '<p>Los colores que nos unen. Toda la primera plantilla en una colección de cartas azulgranas, con Lamine Yamal como la gran estrella.</p>'+
       '<div class="barca-facts"><span><b>27</b> JUGADORES</span><span><b>85–93</b> GRL</span><span><b>'+owned+'/27</b> EN TU CLUB</span></div>'+
       '<div class="barca-feature-price"><b>LAMINE YAMAL 93</b><span>1.000.000 de monedas</span></div><a class="btn primary" href="#barca-collection">VER LA PLANTILLA ↓</a></div>'+card(cards[0],true)+'</header>'+
+      '<section class="barca-welcome" aria-label="Regalo de bienvenida FC Barcelona"><div><span class="barca-kicker">REGALO EXCLUSIVO DEL EVENTO</span><h3>+500.000 <small>MONEDAS</small></h3><p>Una sola vez por club. Reclama tu regalo aquí y ficha tus primeras cartas azulgranas.</p></div>'+
+      '<button class="btn primary" data-ut="barcelona-gift" '+(club.barcelonaGiftClaimed?'disabled':'')+'>'+(club.barcelonaGiftClaimed?'✓ REGALO YA RECLAMADO':'RECLAMAR 500.000 MONEDAS →')+'</button></section>'+
       '<div class="barca-collection-head" id="barca-collection"><div><span class="barca-kicker">UNA PLANTILLA. TUS COLORES.</span><h3>CONSTRUYE TU BARÇA.</h3></div><p>Yamal: 1.000.000 · Resto: 300.000–900.000<br>Precios fijos · Cartas desde 85 GRL</p></div>'+
       '<nav class="barca-position-links" aria-label="Posiciones FC Barcelona">'+groups.map(g=>'<a href="#barca-'+g.id+'">'+g.name+' <b>'+cards.filter(p=>g.positions.includes(p.pos)).length+'</b></a>').join('')+'</nav>'+
       groups.map(g=>'<section class="barca-position-group" id="barca-'+g.id+'"><h3>'+g.name.toUpperCase()+'</h3><div class="barca-grid">'+cards.filter(p=>g.positions.includes(p.pos)).map(p=>product(p,club)).join('')+'</div></section>').join('')+

@@ -49,6 +49,25 @@ test("unavailable, forged and unaffordable Barcelona cards cannot mutate the clu
   const snapshot=structuredClone(u);assert.match(U.buy(u,{...p,...changes}).error,/FC Barcelona/);assert.deepEqual(u,snapshot);
  }
 });
+test("Barcelona welcome gift credits exactly 500000 once and persists independently of other event gifts",()=>{
+ const u=U.create(starter()),before=structuredClone(u);assert.equal(U.barcelona.welcome,500000);assert.equal(u.barcelonaGiftClaimed,false);
+ assert.deepEqual(U.claimBarcelonaGift(u),{ok:true,coins:500000});assert.equal(u.coins,before.coins+500000);assert.equal(u.barcelonaGiftClaimed,true);
+ assert.deepEqual(u.owned,before.owned);assert.deepEqual(u.duplicates,before.duplicates);assert.deepEqual(u.xi,before.xi);assert.equal(u.purchases,before.purchases);
+ assert.equal(u.murallaGiftClaimed,false);assert.equal(u.flashbackGiftClaimed,false);
+ const restored=Save.unpack(Save.pack({version:2,club:u,tab:"barcelona",matchToken:0},forms),forms).club,snapshot=structuredClone(restored);
+ assert.match(U.claimBarcelonaGift(restored).error,/Ya reclamaste/);assert.deepEqual(restored,snapshot);
+ assert.equal(U.claimMurallaGift(restored).coins,300000);assert.equal(U.claimFlashbackGift(restored).coins,200000);assert.equal(restored.coins,before.coins+1000000);
+});
+test("pre-event clubs can claim the Barcelona gift and corrupt claim flags are refused by the save validator",()=>{
+ const u=U.create(starter());delete u.barcelonaGiftClaimed;
+ const restored=Save.unpack(JSON.stringify({version:1,club:u,tab:"barcelona",matchToken:0}),forms).club;
+ assert.equal(U.claimBarcelonaGift(restored).ok,true);assert.equal(restored.coins,510000);assert.equal(restored.barcelonaGiftClaimed,true);
+ for(const flag of ["false",0,1,null]){const invalid=U.create(starter());invalid.barcelonaGiftClaimed=flag;assert.equal(Save.normalize({version:2,club:invalid,tab:"barcelona",matchToken:0},forms),null);}
+});
+test("invalid balances cannot partially claim or overflow the Barcelona welcome gift",()=>{
+ for(const coins of [-1,NaN,Infinity,1e12-499999]){const u=U.create(starter());u.coins=coins;const before=structuredClone(u);assert.ok(U.claimBarcelonaGift(u).error);assert.deepEqual(u,before);}
+ const u=U.create(starter());u.coins=1e12-500000;assert.equal(U.claimBarcelonaGift(u).ok,true);assert.equal(u.coins,1e12);
+});
 for(const t of tasks){
  test(t.key+" SBC delivers its exact exclusive player once and consumes only selected cards",()=>{
   const u=U.create(starter());u.owned.push(...reserves(t));
@@ -90,6 +109,18 @@ function boot(runtime="ultimate-ui.js",storage=new Map()){
  context.UI.bindRender(()=>{html=context.UI.render();});return {UI:context.UI,storage,notices,html:()=>html,modal:()=>modal,click:dataset=>context.UI.handleClick({dataset})};
 }
 for(const runtime of ["ultimate-ui.js","ultimate-ui-flashback-v2.js"]){
+ test(runtime+": welcome gift can only be claimed in the Barcelona event, stays disabled after buying and survives reload",()=>{
+  const app=boot(runtime);app.click({ut:"create"});const u=app.UI.getClub(),before=structuredClone(u);
+  app.click({ut:"barcelona-gift"});assert.deepEqual(u,before);assert.doesNotMatch(app.html(),/data-ut="barcelona-gift"/);
+  app.click({utTab:"barcelona"});assert.match(app.html(),/RECLAMAR 500.000 MONEDAS/);assert.match(app.html(),/Una sola vez por club/);
+  app.click({ut:"barcelona-gift"});assert.equal(u.coins,510000);assert.equal(u.barcelonaGiftClaimed,true);assert.deepEqual(u.xi,before.xi);assert.deepEqual(u.owned,before.owned);
+  assert.match(app.html(),/data-ut="barcelona-gift" disabled/);assert.match(app.html(),/REGALO YA RECLAMADO/);
+  const claimed=structuredClone(u);app.click({ut:"barcelona-gift"});assert.deepEqual(u,claimed);
+  app.click({ut:"barcelona-buy",player:"barcelona:eric-garcia"});assert.equal(u.coins,10000);assert.ok(u.owned.some(p=>p.id==="barcelona:eric-garcia"));assert.equal(u.barcelonaGiftClaimed,true);
+  const reload=boot(runtime,app.storage),snapshot=structuredClone(reload.UI.getClub());assert.deepEqual(snapshot,u);assert.match(reload.UI.render(),/data-ut="barcelona-gift" disabled/);
+  reload.click({ut:"barcelona-gift"});assert.deepEqual(reload.UI.getClub(),snapshot);
+  reload.click({utTab:"home"});reload.click({ut:"barcelona-gift"});assert.deepEqual(reload.UI.getClub(),snapshot);
+ });
  test(runtime+": event opens through onboarding, buys into the collection and restores the selected tab",()=>{
   const app=boot(runtime);app.click({utTab:"barcelona"});assert.match(app.html(),/NUEVO EVENTO: FC BARCELONA/);app.click({ut:"create"});
   assert.equal((app.html().match(/class="barca-product"/g)||[]).length,27);assert.match(app.html(),/LAMINE YAMAL 93/);assert.match(app.html(),/1.000.000 de monedas/);
@@ -114,7 +145,7 @@ for(const runtime of ["ultimate-ui.js","ultimate-ui-flashback-v2.js"]){
 }
 test("desktop and mobile load the new event and styles in the same order, with synchronized runtime copies",()=>{
  for(const file of ["ultimate-team","ultimate-save","ultimate-ui","evolution-ui"])assert.equal(read(file+".js"),read(file+"-flashback-v2.js"));
- for(const entry of ["index.html","mobile.html"]){const html=read(entry);assert.match(html,/barcelona-event\.css\?v=8\.4/);assert.match(html,/barcelona-event\.js\?v=8\.4/);assert.match(html,/ultimate-team-flashback-v2\.js\?v=8\.4-barcelona-sbcs/);}
+ for(const entry of ["index.html","mobile.html"]){const html=read(entry);assert.match(html,/barcelona-event\.css\?v=8\.4-gift-v1/);assert.match(html,/barcelona-event\.js\?v=8\.4-gift-v1/);assert.match(html,/ultimate-team-flashback-v2\.js\?v=8\.4-barcelona-gift-v1/);}
  assert.match(read("evolution-ui.js"),/data-evo="barcelona-open"/);
  assert.deepEqual([...read("index.html").matchAll(/(?:src|href)="\.\/([^"?]+)/g)].map(m=>m[1]),[...read("mobile.html").matchAll(/(?:src|href)="\.\/([^"?]+)/g)].map(m=>m[1]));
 });

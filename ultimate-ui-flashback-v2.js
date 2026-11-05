@@ -109,6 +109,13 @@ const AuraUTUI=(()=>{
       if(action==='lobby'){goToModes();return true;}
       if(action==='create'){club=U.create(pool(),document.getElementById('ut-starter-league')?.value||'all',document.getElementById('ut-club-name')?.value||'Mi AURA FC');tab=['barcelona','muralla'].includes(tab)?tab:'home';renderGame();}
       if(!club)return true;
+      if(action==='barcelona-gift'){
+        if(tab!=='barcelona')return true;
+        const result=U.claimBarcelonaGift(club);
+        if(result.error)notify(result.error);
+        else{renderGame();notify('¡500.000 monedas de bienvenida FC BARCELONA reclamadas!');}
+        return true;
+      }
       if(action==='barcelona-buy'){
         if(tab!=='barcelona')return true;
         const candidate=U.barcelonaCards(pool()).find(p=>p.id===d.player);
