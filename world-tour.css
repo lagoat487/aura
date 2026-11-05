@@ -130,3 +130,5 @@
 @media(max-width:650px){.street-overlay .street-finish{padding:10px;align-items:center}
  .street-finish-content{max-height:calc(100dvh - 20px);padding:18px 15px}
  .street-finish-actions .btn{min-width:0;flex-basis:100%}}
+.street-touch [data-move=sprint]{color:#caff76;border-color:#caff7680}
+@media(max-width:650px){.street-touch [data-move=sprint]{grid-column:1/-1}}

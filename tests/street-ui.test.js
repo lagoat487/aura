@@ -12,7 +12,7 @@ function boot(options={}){
    querySelectorAll:()=>[...buttons.values()],
   };
  }
- for(const move of ['up','left','down','right']){const button=node();button.dataset.move=move;buttons.set(move,button);}
+ for(const move of ['up','left','down','right','sprint']){const button=node();button.dataset.move=move;buttons.set(move,button);}
  for(const action of ['switch','pass','tackle','shoot']){const button=node();button.dataset.actionStreet=action;buttons.set(action,button);}
  const root=node(),context=vm.createContext({
   document:{createElement:()=>root,body:node(),activeElement:node()},devicePixelRatio:1,
@@ -24,7 +24,7 @@ function boot(options={}){
  const players=prefix=>Array.from({length:3},(_,i)=>({id:prefix+i,name:prefix+' '+i,pos:'MC',overall:75,real:false}));
  context.AuraStreet.open(players('Home'),players('Away'),options);
  const game=context.AuraStreet.getSession().game;game.wait=0;
- return {game,
+ return {game,html:()=>root.innerHTML,
   frame(ms=25){now+=ms;const callbacks=[...frames.values()];frames.clear();callbacks.forEach(fn=>fn(now));},
   pointer(button,type,id=1){buttons.get(button)['on'+type]?.({pointerId:id,preventDefault(){}});},
   key(key,extra={}){const event={key,target:root,defaultPrevented:false,preventDefault(){this.defaultPrevented=true;},stopImmediatePropagation(){this.stopped=true;},...extra};events.get('keydown')?.(event);return event;},
@@ -55,6 +55,34 @@ test('Calle touch movement cannot survive pause or be queued while paused',()=>{
   a.pointer('down','pointerdown',2);a.key('d');a.frame();assert.equal(p.x,stopped.x);assert.equal(p.z,stopped.z);
   a.key('p');assert.equal(a.game.paused,false);a.frame();assert.equal(p.x,stopped.x,interrupt+' must discard old movement');assert.equal(p.z,stopped.z,'paused touches must not queue movement');
   a.pointer('right','pointerdown',3);a.frame();assert.ok(p.x>stopped.x,'a fresh touch still works after resuming');a.pointer('right','pointerup',3);a.close();
+ }
+});
+
+test('Calle renders a touch sprint button with the same speed boost as Shift',()=>{
+ const a=boot(),p=a.game.players[a.game.controlled];assert.ok(a.html().includes('data-move="sprint"'),'touch controls must render a sprint button');a.frame();
+ const distance=()=>{const x=p.x;a.frame(50);return p.x-x;};
+ a.pointer('right','pointerdown',1);const walk=distance();assert.ok(walk>0);
+ a.pointer('sprint','pointerdown',2);const sprint=distance();assert.ok(Math.abs(sprint-walk*1.4)<1e-8,'holding touch sprint must match the existing speed multiplier');
+ a.pointer('sprint','pointerup',2);assert.ok(Math.abs(distance()-walk)<1e-8);a.key('Shift');assert.ok(Math.abs(distance()-sprint)<1e-8,'keyboard sprint must keep working');a.close();
+});
+
+test('Calle touch sprint releases without cancelling another finger\'s movement',()=>{
+ for(const release of ['pointerup','pointercancel','lostpointercapture']){
+  const a=boot(),p=a.game.players[a.game.controlled];a.frame();a.pointer('right','pointerdown',1);
+  const x=p.x;a.frame(50);const walk=p.x-x;a.pointer('sprint','pointerdown',2);const fastX=p.x;a.frame(50);assert.ok(p.x-fastX>walk*1.35);
+  a.pointer('sprint',release,2);const releasedX=p.x;a.frame(50);assert.ok(Math.abs((p.x-releasedX)-walk)<1e-8,release+' must release sprint while right remains held');
+  a.pointer('right','pointerup',1);const stoppedX=p.x;a.frame(50);assert.equal(p.x,stoppedX);a.close();
+ }
+});
+
+test('Calle pause and blur discard held sprint and do not queue paused touches',()=>{
+ for(const interrupt of ['keyboard','button','blur']){
+  const a=boot(),p=a.game.players[a.game.controlled];a.frame();a.pointer('right','pointerdown',1);const x=p.x;a.frame(50);const walk=p.x-x;
+  a.pointer('sprint','pointerdown',2);const fastX=p.x;a.frame(50);assert.ok(p.x-fastX>walk*1.35);
+  if(interrupt==='keyboard')a.key('p');else if(interrupt==='button')a.pauseButton();else a.blur();assert.equal(a.game.paused,true);
+  const stoppedX=p.x;a.pointer('sprint','pointerdown',3);a.pointer('right','pointerdown',4);a.frame(50);assert.equal(p.x,stoppedX);
+  a.key('p');a.frame(50);assert.equal(p.x,stoppedX,'resuming must not restore old touches');
+  a.pointer('right','pointerdown',5);a.frame(50);assert.ok(Math.abs((p.x-stoppedX)-walk)<1e-8,'a fresh movement touch must resume without stale sprint');a.close();
  }
 });
 
