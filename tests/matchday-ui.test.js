@@ -291,3 +291,56 @@ test('final score shows the individual MVP and assists, and full player report r
  a.click('report-back');assert.match(a.node('arena-layer').innerHTML,/data-arena="complete"/);
  a.click('complete');a.click('complete');assert.equal(a.commits(),1);
 });
+
+
+test('touch shot charge belongs to its first finger until that finger releases',()=>{
+ for(const release of ['pointerup','pointercancel','lostpointercapture']){
+  const a=boot(),g=a.session.game;g.phase='playing';a.frame();
+  const shot=a.node('touch:shoot'),first={pointerId:31,preventDefault(){}},second={pointerId:32,preventDefault(){}};
+  shot.fire('pointerdown',first);const charge=a.session.charging;assert.notEqual(charge,null);a.frame(100);
+  shot.fire('pointerdown',second);
+  assert.equal(a.session.charging,charge,'a second finger must not restart the held shot charge');
+  assert.equal(a.node('arena-power').hidden,false);
+  const before=JSON.stringify(g);shot.fire(release,second);
+  assert.equal(a.session.charging,charge,'a foreign '+release+' must not release or cancel the held shot');
+  assert.equal(a.node('arena-power').hidden,false);assert.equal(JSON.stringify(g),before);
+  const p=g.players[g.controlled];p.cooldown=0;Object.assign(g.ball,{owner:p.index,x:p.x,z:p.z,y:.22});
+  shot.fire('pointerup',first);assert.equal(g.stats[0].shots,1,'the first finger must still fire once on normal release');
+  assert.equal(a.session.charging,null);assert.equal(a.node('arena-power').hidden,true);
+  shot.fire('pointerup',second);assert.equal(g.stats[0].shots,1,'a late foreign release cannot fire another shot');
+  a.click('pause');a.click('exit');a.click('confirm-exit');assert.equal(a.commits(),0);
+ }
+});
+
+test('touch sprint ignores other fingers and lets the matching release stop sprinting',()=>{
+ for(const release of ['pointerup','pointercancel','lostpointercapture']){
+  const a=boot(),g=a.session.game;g.phase='playing';
+  const sprint=a.node('touch:sprint'),first={pointerId:41,preventDefault(){}},second={pointerId:42,preventDefault(){}};
+  sprint.fire('pointerdown',first);assert.equal(a.session.touchSprint,true);
+  sprint.fire('pointerdown',second);sprint.fire(release,second);
+  assert.equal(a.session.touchSprint,true,'a second finger must not stop the first finger sprinting');
+  sprint.fire(release,first);assert.equal(a.session.touchSprint,false,'the matching release must still stop sprinting');
+  sprint.fire('pointerdown',second);assert.equal(a.session.touchSprint,true);
+  sprint.fire(release,first);assert.equal(a.session.touchSprint,true,'a stale release must not cancel a new sprint');
+  sprint.fire(release,second);assert.equal(a.session.touchSprint,false);
+  a.click('pause');a.click('exit');a.click('confirm-exit');assert.equal(a.commits(),0);
+ }
+});
+
+test('pause discards held touch buttons and old releases cannot interrupt fresh touches after resume',()=>{
+ for(const release of ['pointerup','pointercancel','lostpointercapture']){
+  const a=boot(),g=a.session.game;g.phase='playing';
+  const sprint=a.node('touch:sprint'),shot=a.node('touch:shoot'),oldSprint={pointerId:51,preventDefault(){}},oldShot={pointerId:52,preventDefault(){}},newSprint={pointerId:53,preventDefault(){}},newShot={pointerId:54,preventDefault(){}};
+  sprint.fire('pointerdown',oldSprint);shot.fire('pointerdown',oldShot);
+  a.click('pause');assert.equal(a.session.touchSprint,false);assert.equal(a.session.charging,null);assert.equal(a.node('arena-power').hidden,true);
+  a.click('resume');sprint.fire('pointerdown',newSprint);shot.fire('pointerdown',newShot);
+  assert.equal(a.session.touchSprint,true,'resume must allow a fresh sprint without waiting for the old finger');
+  assert.notEqual(a.session.charging,null,'resume must allow a fresh shot without waiting for the old finger');const charge=a.session.charging;
+  const before=JSON.stringify(g);sprint.fire(release,oldSprint);shot.fire(release,oldShot);
+  assert.equal(a.session.touchSprint,true);assert.equal(a.session.charging,charge);assert.equal(a.node('arena-power').hidden,false);assert.equal(JSON.stringify(g),before);
+  const p=g.players[g.controlled];p.cooldown=0;Object.assign(g.ball,{owner:p.index,x:p.x,z:p.z,y:.22});
+  sprint.fire('pointerup',newSprint);shot.fire('pointerup',newShot);
+  assert.equal(a.session.touchSprint,false);assert.equal(a.session.charging,null);assert.equal(g.stats[0].shots,1);
+  a.click('pause');a.click('exit');a.click('confirm-exit');assert.equal(a.commits(),0);
+ }
+});
