@@ -117,7 +117,12 @@
     function blur(){g.paused=true;keys.clear();touch.clear();}
     window.addEventListener("keydown",down,true);window.addEventListener("keyup",up,true);window.addEventListener("blur",blur);
     node.querySelector('[data-street="close"]').onclick=close;node.querySelector('[data-street="pause"]').onclick=pause;
-    node.querySelectorAll('[data-move],[data-action-street]').forEach(b=>{b.onpointerdown=e=>{e.preventDefault();if(g.paused||g.done)return;b.setPointerCapture(e.pointerId);if(b.dataset.move)touch.add(b.dataset.move);else action(g,b.dataset.actionStreet,axes());};b.onpointerup=b.onpointercancel=b.onlostpointercapture=()=>touch.delete(b.dataset.move);});
+    node.querySelectorAll('[data-move],[data-action-street]').forEach(b=>{
+      b.onpointerdown=e=>{e.preventDefault();if(g.paused||g.done)return;b.setPointerCapture(e.pointerId);if(b.dataset.move)touch.add(b.dataset.move);else action(g,b.dataset.actionStreet,axes());};
+      b.onpointerup=b.onpointercancel=b.onlostpointercapture=()=>touch.delete(b.dataset.move);
+      // Native keyboard clicks have no pointerdown; pointer actions already ran.
+      if(b.dataset.actionStreet)b.onclick=e=>{if(e.detail===0)action(g,b.dataset.actionStreet,axes());};
+    });
     function paint(){
       const bounds=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2),w=Math.max(300,bounds.width),h=Math.max(200,bounds.height);if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);}ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle="#091320";ctx.fillRect(0,0,w,h);
       const scale=Math.min(w/106,h/66),cx=w/2,cy=h/2;ctx.save();ctx.translate(cx,cy);ctx.scale(scale,scale);

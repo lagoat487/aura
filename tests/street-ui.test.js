@@ -27,6 +27,7 @@ function boot(options={}){
  return {game,html:()=>root.innerHTML,
   frame(ms=25){now+=ms;const callbacks=[...frames.values()];frames.clear();callbacks.forEach(fn=>fn(now));},
   pointer(button,type,id=1){buttons.get(button)['on'+type]?.({pointerId:id,preventDefault(){}});},
+  click:(button,detail=0)=>buttons.get(button).onclick?.({detail}),
   key(key,extra={}){const event={key,target:root,defaultPrevented:false,preventDefault(){this.defaultPrevented=true;},stopImmediatePropagation(){this.stopped=true;},...extra};events.get('keydown')?.(event);return event;},
   pauseButton:()=>root.querySelector('[data-street="pause"]').onclick(),blur:()=>events.get('blur')?.(),
   close:()=>root.querySelector('[data-street="close"]').onclick(),
@@ -36,6 +37,48 @@ function boot(options={}){
   closeActive:()=>context.AuraStreet.getSession()?.close(),
  };
 }
+
+function readyAction(type){
+ const a=boot(),g=a.game;g.players.forEach(p=>Object.assign(p,{x:p.team===0?-30:30,z:20,cooldown:0}));
+ const player=g.players[g.controlled],teammate=g.players[2],rival=g.players[4];
+ Object.assign(player,{x:0,z:0});Object.assign(teammate,{x:8,z:0});Object.assign(rival,{x:.4,z:0});
+ const owner=type==='tackle'?rival:type==='switch'?teammate:player;
+ Object.assign(g.ball,{owner:owner.index,x:owner.x,z:owner.z,vx:0,vz:0});return a;
+}
+
+test('Calle action buttons accept native keyboard clicks after Enter or Space without triggering a field shortcut',()=>{
+ for(const key of ['Enter',' '])for(const type of ['shoot','pass','tackle','switch']){
+  const a=readyAction(type),g=a.game,before=JSON.stringify(g),button={closest:selector=>selector==='button'?{}:null};
+  assert.ok(a.html().includes('data-action-street="'+type+'"'));
+  assert.equal(a.key(key,{target:button}).defaultPrevented,false);assert.equal(JSON.stringify(g),before);
+  // Browsers and assistive activation dispatch a click with detail 0.
+  a.click(type);
+  if(type==='switch')assert.equal(g.controlled,2,'the focused switch button must change the controlled player');
+  else assert.equal(g.stats[0][({shoot:'shots',pass:'passes',tackle:'tackles'})[type]],1,'the focused '+type+' button must perform its action');
+  a.close();
+ }
+});
+
+test('Calle pointer actions stay immediate and their following mouse or touch click cannot repeat them',()=>{
+ for(const type of ['shoot','pass']){
+  const a=readyAction(type),g=a.game,stat=type==='shoot'?'shots':'passes';
+  a.pointer(type,'pointerdown');assert.equal(g.stats[0][stat],1,'pointerdown must keep its existing immediate response');a.pointer(type,'pointerup');
+  // Make another action legal, as can happen before a long press is released.
+  const player=g.players[g.controlled];player.cooldown=0;Object.assign(g.ball,{owner:player.index,x:player.x,z:player.z});
+  const before=JSON.stringify(g);a.click(type,1);a.click(type,2);assert.equal(JSON.stringify(g),before,'pointer-generated clicks must not repeat the action');
+  a.close();
+ }
+});
+
+test('Calle native action clicks cannot act while paused, waiting for kickoff or finished',()=>{
+ for(const type of ['shoot','pass','tackle','switch']){
+  const a=readyAction(type),g=a.game;
+  for(const [flag,value] of [['paused',true],['wait',1],['done',true]]){
+   const original=g[flag];g[flag]=value;const before=JSON.stringify(g);a.click(type);assert.equal(JSON.stringify(g),before,flag+' must block '+type);g[flag]=original;
+  }
+  a.close();
+ }
+});
 
 test('Calle touch capture loss releases only the interrupted direction and normal releases still work',()=>{
  const a=boot(),p=a.game.players[a.game.controlled];a.frame();const start={x:p.x,z:p.z};
