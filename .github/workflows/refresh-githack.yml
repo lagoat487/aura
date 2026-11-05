@@ -16,12 +16,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          files=(index.html)
+          files=()
           while IFS= read -r file; do
             case "$file" in
-              *.html|*.js|*.css) files+=("$file") ;;
+              *.js|*.css) files+=("$file") ;;
             esac
           done < <(git diff --name-only HEAD^ HEAD || true)
+          # Refresh scripts and styles before the HTML exposes their new cache keys.
+          files+=(mobile.html index.html)
           declare -A seen=()
           for file in "${files[@]}"; do
             if [[ -n "${seen[$file]:-}" ]]; then continue; fi
@@ -35,20 +37,21 @@ jobs:
             sleep 2
           done
 
-      - name: Verify the fixed AURA URL really serves Flashback
+      - name: Verify the fixed AURA URL serves the current entrypoint
         shell: bash
         run: |
           set -euo pipefail
           live="https://raw.githack.com/lagoat487/aura/main/index.html"
           for attempt in 1 2 3 4; do
             if curl --fail --location --silent --show-error --max-time 20 -H 'Cache-Control: no-cache' "$live" -o /tmp/aura-live-index.html; then
-              if grep -q 'flashback-event-v2.js' /tmp/aura-live-index.html; then
-                echo "Verified live index.html loads the new Flashback files."
+              if cmp -s index.html /tmp/aura-live-index.html; then
+                echo "Verified the fixed URL serves this release of index.html."
                 exit 0
               fi
             fi
             echo "Fixed URL still returns an older HTML version (attempt $attempt)."
             sleep 5
           done
-          echo "::warning::Flashback is committed on main but the fixed GitHack URL still appears stale."
+          echo "::warning::The release is committed on main but the fixed GitHack URL still appears stale."
           exit 0
+
