@@ -154,6 +154,21 @@ test('the match plan hides locked or sent-off players and disables changes witho
  a.click('resume');a.click('pause');a.click('exit');a.click('confirm-exit');
 });
 
+test('substitution selects keep P available for native name search while Escape and field pause still work',()=>{
+ const a=boot({bench:[{id:'reserve-roberto',name:'Roberto',pos:'DC',overall:80},{id:'reserve-pedro',name:'Pedro',pos:'DC',overall:78}]}),g=a.session.game;
+ a.click('pause');a.click('plan');const outgoing=Number(a.node('plan-out').value),select=a.node('plan-in');
+ select.matches=selector=>selector==='select,input,textarea';
+ for(const key of ['p','P']){
+  const before=JSON.stringify(g),event=a.key('keydown',key,select);
+  assert.equal(event.defaultPrevented,false,'typing a name must remain available to the native select');
+  assert.equal(g.paused,true,'select typeahead must not resume the match');assert.equal(JSON.stringify(g),before);
+ }
+ a.change('plan-in','reserve-pedro');a.click('substitute');assert.equal(g.players[outgoing].id,'reserve-pedro');assert.equal(g.paused,true);
+ const escape=a.key('keydown','Escape',select);assert.equal(escape.defaultPrevented,true);assert.equal(g.paused,false,'Escape remains an explicit way back to play');
+ a.key('keydown','p');assert.equal(g.paused,true,'P outside a form control must still pause');
+ a.click('exit');a.click('confirm-exit');assert.equal(a.commits(),0);
+});
+
 test('two-player exhibition assigns arrows to the visitor without moving the home player',()=>{
  const a=boot({local:true}),g=a.session.game;
  assert.equal(g.localTwoPlayer,true);
