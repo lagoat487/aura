@@ -1,7 +1,9 @@
 /* Original console-style AURA UT experience; all opponents and prices are local AI. */
 const AuraUTUI=(()=>{
   "use strict";
-  const U=AuraUT,esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  const U=AuraUT,esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  // Ignore quote style and repeated spaces in searches; keep card names intact.
+  const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/['’‘ʼ“”"]/g,'').replace(/\s+/g,' ');
   // Independent, versioned Ultimate Team backup; never change career saves.
   const SAVE_KEY=AuraUTSave.KEY;
   const allFormations=new Set(Object.keys(AuraSquad.formations));

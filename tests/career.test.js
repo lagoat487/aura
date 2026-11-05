@@ -462,6 +462,32 @@ test('UT market ignores surrounding search whitespace and keeps blank searches o
  const empty=search('');assert.equal(search('   '),empty,'spaces alone must not bypass the default rating range');assert.deepEqual(app.json('AuraUTUI.getClub()'),before);
 });
 
+for(const runtime of ['ultimate-ui.js','ultimate-ui-flashback-v2.js'])test('UT player search tolerates quote styles and repeated spaces in the market and owned cards: '+runtime,async()=>{
+ const app=boot(undefined,runtime);app.run(fs.readFileSync(path.join(__dirname,'..','data/world-rosters.js'),'utf8'));await app.run('World.load(clubs,Competitions.definitions)');
+ app.click({evoMode:'ultimate'});app.click({ut:'create'});app.run('AuraUTUI.getClub().coins=100000');
+ const initial=app.json('AuraUTUI.getClub()'),cases=[
+  ['verified:kitu-diaz',['Kitu Diaz','‘Kitu’ Díaz','"Kitu"  Díaz',' Kitu\u00a0\u00a0Diaz ']],
+  ['real:215914',['N’Golo Kanté',"N'Golo Kante",'NʼGolo   Kante',' NGolo\u00a0\u00a0Kanté ']],
+ ];
+ const search=(field,value)=>{
+  app.run('AuraUTUI.input({target:{id:'+JSON.stringify('ut-'+field+'-query')+',value:'+JSON.stringify(value)+'}})');
+  return app.node('ut-'+field+'-results').innerHTML;
+ };
+ for(const [id,queries] of cases){
+  assert.ok(!initial.owned.some(p=>p.id===id));app.click({utTab:'market'});
+  for(const query of queries)assert.ok(search('market',query).includes('data-ut="buy" data-player="'+id+'"'),query+' must find the existing market card');
+  const coins=app.run('AuraUTUI.getClub().coins'),price=app.run('AuraUT.marketPrice(AuraUTUI.getClub(),AuraUTUI.pool().find(p=>p.id==='+JSON.stringify(id)+'))');
+  app.click({ut:'buy',player:id});assert.equal(app.run('AuraUTUI.getClub().coins'),coins-price);
+  assert.ok(!app.html().includes('data-ut="buy" data-player="'+id+'"'),'buying still removes the card from market results');
+  app.click({utTab:'club'});const owned=app.json('AuraUTUI.getClub()');
+  for(const query of queries)assert.ok(search('club',query).includes('data-player="'+id+'"'),query+' must find the purchased card');
+  assert.deepEqual(app.json('AuraUTUI.getClub()'),owned,'search must preserve the card identity, name, portrait, rating and balance');
+ }
+ const after=app.json('AuraUTUI.getClub()');assert.equal(after.purchases,initial.purchases+2);assert.deepEqual(after.xi,initial.xi);
+ assert.doesNotMatch(search('club','NoSuchPlayerForSearch'),/data-player=/);
+ assert.equal((search('club','').match(/data-ut="inspect"/g)||[]).length,after.owned.length);assert.deepEqual(app.json('AuraUTUI.getClub()'),after);
+});
+
 test('the new Gavi SBC links with catalogue Pedri by club and country on the UT squad screen',async()=>{
  const app=boot();app.run(fs.readFileSync(path.join(__dirname,'..','data/world-rosters.js'),'utf8'));await app.run('World.load(clubs,Competitions.definitions)');
  app.click({evoMode:'ultimate'});app.click({ut:'create'});
