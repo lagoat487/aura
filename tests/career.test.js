@@ -1101,3 +1101,41 @@ test("Mode return to career, VOLTA, UT and back to Pro does not reset individual
  assert.deepEqual(app.json("AuraUTUI.getClub().owned.map(p=>p.id)"),owned);
 });
 
+
+
+for(const runtime of ['ultimate-ui.js','ultimate-ui-6.js'])test('UT DCP keeps keyboard focus on the rebuilt card when selecting and deselecting: '+runtime,()=>{
+ const app=boot(undefined,runtime);app.click({evoMode:'ultimate'});app.click({ut:'create'});app.click({utSbc:'gold'});app.click({utTab:'sbc'});
+ const before=app.json('AuraUTUI.getClub()'),cards=app.json('AuraUT.sbcPool(AuraUTUI.getClub(),"gold").slice(0,3)');
+ assert.equal(cards.length,3);
+ const document=app.run('document'),root=app.node('app'),getElementById=document.getElementById,buttons=new Map(),ids=new Map(),focused=[];
+ let html=root.innerHTML;
+ // Replacing the app detaches every old button and clears its focus, as in the browser.
+ Object.defineProperty(root,'innerHTML',{get:()=>html,set:value=>{
+  html=value;document.activeElement=null;buttons.clear();ids.clear();
+  for(const [tag] of html.matchAll(/<button\b[^>]*data-ut="sbc-pick"[^>]*>/g)){
+   const uid=tag.match(/data-uid="([^"]+)"/)[1],id=tag.match(/\bid="([^"]+)"/)?.[1];
+   const button={dataset:{ut:'sbc-pick',uid},disabled:/\bdisabled\b/.test(tag),pressed:tag.includes('aria-pressed="true"'),focus(options){
+    if(this.disabled)return;document.activeElement=this;focused.push({uid,preventScroll:options?.preventScroll});
+   }};
+   buttons.set(uid,button);if(id)ids.set(id,button);
+  }
+ }});
+ document.getElementById=id=>ids.get(id)||getElementById(id);root.innerHTML=html;
+ const activate=uid=>{
+  const previous=buttons.get(uid);assert.ok(previous&&!previous.disabled);previous.focus();
+  app.run('AuraUTUI.handleClick(document.activeElement)');
+  const current=buttons.get(uid);assert.notEqual(current,previous,'rendering must replace the old card element');
+  assert.equal(document.activeElement,current,'keyboard focus must return to the same card after rendering');
+  assert.deepEqual(focused.at(-1),{uid,preventScroll:true},'restoring focus must not move the viewport');
+  return current;
+ };
+ assert.equal(activate(cards[0].uid).pressed,true);
+ // A second Enter/Space activation on the focused replacement can deselect the same card.
+ app.run('AuraUTUI.handleClick(document.activeElement)');
+ assert.equal(document.activeElement,buttons.get(cards[0].uid));assert.equal(document.activeElement.pressed,false);
+ for(const p of cards)assert.equal(activate(p.uid).pressed,true);
+ assert.match(app.html(),/3\/3 cartas/);assert.equal(activate(cards[1].uid).pressed,false);assert.match(app.html(),/2\/3 cartas/);
+ const count=focused.length;document.activeElement=null;app.click({ut:'sbc-pick',uid:cards[1].uid});
+ assert.equal(focused.length,count,'an activation without focus must not take keyboard focus');
+ assert.deepEqual(app.json('AuraUTUI.getClub()'),before,'selection and focus changes must not consume cards, coins or change the XI');
+});
