@@ -8,6 +8,8 @@
     if(!p?.real)return [];const id=identity(p),urls=[];
     if(id){urls.push('https://ratings-images-prod.pulse.ea.com/FC25/full/player-portraits/p'+id+'.png?padding=0.7');const padded=id.padStart(6,'0');for(const year of [26,25,24])urls.push('https://cdn.sofifa.net/players/'+padded.slice(0,-3)+'/'+padded.slice(-3)+'/'+year+'_120.png');}
     if(/^https:\/\/(www\.)?barcelonasc\.com\.ec\/wp-content\/uploads\/[a-zA-Z0-9/_.-]+\.(webp|png|jpe?g)$/.test(p.photo||''))urls.unshift(p.photo);
+    // Exact official Brian Fariñas portrait, verified with the 2026/27 roster.
+    if(p.photo==="https://www.fcbarcelona.com/photo-resources/2026/09/03/b05e6b1b-fe32-4420-b981-36507d7dfeb0/04-Brian_Farinas.png?height=790&width=670")urls.unshift(p.photo);
     return [...new Set(urls)];
   }
   function html(p,large=false){
@@ -22,3 +24,4 @@
   }
   return {identity,sources,html,fallback};
 });
+

@@ -6,15 +6,36 @@
   const challenges={silver:{name:"De plata a oro",count:3,min:65,max:74,score:900,reward:"gold"},gold:{name:"Mejora 82+",count:3,min:75,max:83,score:1900,reward:"premium"},elite:{name:"Desafío élite 82+",count:4,min:82,max:90,score:4400,reward:"premium"}};
   challenges.ecuador={name:"🇪🇨 Moisés Caicedo 87",count:11,min:1,max:99,score:0,nationality:"Ecuador",reward:"ecuador-caicedo",once:true};
   const ecuadorSbc=Object.freeze({id:"ecuador-sbc",cardId:"sbc:ecuador-caicedo",name:"Moisés Caicedo",overall:87,pos:"MCD",nationality:"Ecuador",playerId:"256079"});
-  function ecuadorSbcCard(pool=[]){
-    const available=Array.isArray(pool)?pool:[];
-    const base=available.find(p=>p.real&&p.id==="real:"+ecuadorSbc.playerId)||
-      available.find(p=>p.real&&["moises caicedo","moises isaac caicedo corozo"].includes(normalizeName(p.name)));
-    return {...(base||{}),id:ecuadorSbc.cardId,originalId:base?.originalId||base?.id||"real:"+ecuadorSbc.playerId,
-      name:ecuadorSbc.name,overall:87,pos:"MCD",nationality:"Ecuador",real:true,tradeable:false,
-      event:ecuadorSbc.id,sourceClub:"Selección de Ecuador",leagueId:base?.leagueId||"reference",leagueLabel:"DCP Ecuador · AURA 27",
-      photo:base?.photo||"https://cdn.sofifa.net/players/256/079/26_120.png"};
+  // One-time player challenges share the same atomic delivery and save history.
+  Object.assign(challenges,{
+    cantera:{name:"Cantera española · Gavi 88",count:5,min:70,max:99,score:0,nationality:"España",reward:"star-gavi",once:true},
+    brasil:{name:"Magia brasileña · Neymar 90",count:5,min:75,max:99,score:0,nationality:"Brasil",reward:"star-neymar",once:true},
+    albiceleste:{name:"Albiceleste · Di María 89",count:7,min:75,max:99,score:0,nationality:"Argentina",reward:"star-di-maria",once:true},
+    defensa:{name:"Muro defensivo · Rúben Dias 90",count:6,min:80,max:99,score:0,positions:["DFC","LI","LD"],reward:"star-ruben-dias",once:true},
+    leyenda:{name:"Ícono mundial · Messi 92",count:11,min:83,max:99,score:0,reward:"star-messi",once:true}
+  });
+  const sbcRewards=Object.freeze({
+    ecuador:ecuadorSbc,
+    cantera:Object.freeze({id:"sbc-stars",cardId:"sbc:star-gavi",name:"Gavi",overall:88,pos:"MC",nationality:"España",playerId:"264240"}),
+    brasil:Object.freeze({id:"sbc-stars",cardId:"sbc:star-neymar",name:"Neymar Júnior",overall:90,pos:"EI",nationality:"Brasil",playerId:"190871",aliases:["Neymar","Neymar Jr","Neymar DA Silva Santos Júnior"]}),
+    albiceleste:Object.freeze({id:"sbc-stars",cardId:"sbc:star-di-maria",name:"Ángel Di María",overall:89,pos:"ED",nationality:"Argentina",playerId:"183898"}),
+    defensa:Object.freeze({id:"sbc-stars",cardId:"sbc:star-ruben-dias",name:"Rúben Dias",overall:90,pos:"DFC",nationality:"Portugal",playerId:"239818"}),
+    leyenda:Object.freeze({id:"sbc-stars",cardId:"sbc:star-messi",name:"Lionel Messi",overall:92,pos:"MCO",nationality:"Argentina",playerId:"158023",aliases:["Messi"]})
+  });
+  function sbcRewardCard(type,pool=[]){
+    const def=sbcRewards[type];if(!def)return null;
+    const available=Array.isArray(pool)?pool:[],aliases=[def.name,...(def.aliases||[])];
+    if(type==="ecuador")aliases.push("Moisés Isaac Caicedo Corozo");
+    const base=available.find(p=>p.real&&p.id==="real:"+def.playerId)||
+      available.find(p=>p.real&&aliases.map(normalizeName).includes(normalizeName(p.name)));
+    const portrait=def.playerId.padStart(6,"0");
+    return {...(base||{}),id:def.cardId,originalId:base?.originalId||base?.id||"real:"+def.playerId,
+      name:def.name,overall:def.overall,pos:def.pos,nationality:def.nationality,real:true,tradeable:false,
+      event:def.id,sourceClub:type==="ecuador"?"Selección de Ecuador":base?.sourceClub||"Estrellas SBC",
+      leagueId:base?.leagueId||"reference",leagueLabel:type==="ecuador"?"DCP Ecuador · AURA 27":"Estrellas SBC · AURA 27",
+      photo:base?.photo||"https://cdn.sofifa.net/players/"+portrait.slice(0,-3)+"/"+portrait.slice(-3)+"/26_120.png"};
   }
+  function ecuadorSbcCard(pool=[]){return sbcRewardCard("ecuador",pool);}
 
   // Retired event. Keep its definitions only for cards already stored in UT clubs.
   const sigma=Object.freeze({id:"ultimate-sigma",name:"ULTIMATE SIGMA",version:"4.2",active:false,cards:Object.freeze([
@@ -60,6 +81,53 @@
     {id:"muralla:rudiger",name:"Antonio Rüdiger",overall:87,pos:"DFC",price:400000,nationality:"Alemania",playerId:"205452"},
     {id:"muralla:van-dijk",name:"Virgil van Dijk",overall:91,pos:"DFC",price:600000,nationality:"Países Bajos",playerId:"203376"}
   ])});
+  // Membership verified on FC Barcelona's official first-team roster, 4 November 2026.
+  // Ratings and prices below are fantasy editions created for AURA Ultimate Team.
+  const barcelona=Object.freeze({id:"fc-barcelona",name:"FC BARCELONA",snapshot:"2026-11-04",
+    source:"https://www.fcbarcelona.com/en/football/first-team/players",cards:Object.freeze([
+    {id:"barcelona:lamine-yamal",name:"Lamine Yamal",overall:93,pos:"ED",price:1000000,nationality:"España",playerId:"277643"},
+    {id:"barcelona:joan-garcia",name:"Joan García",overall:89,pos:"POR",price:600000,nationality:"España",playerId:"259532"},
+    {id:"barcelona:szczesny",name:"Wojciech Szczęsny",overall:87,pos:"POR",price:400000,nationality:"Polonia",playerId:"186153"},
+    {id:"barcelona:livakovic",name:"Dominik Livaković",overall:85,pos:"POR",price:300000,nationality:"Croacia",playerId:"241671"},
+    {id:"barcelona:cancelo",name:"João Cancelo",overall:89,pos:"LD",price:650000,nationality:"Portugal",playerId:"210514"},
+    {id:"barcelona:balde",name:"Alejandro Balde",overall:89,pos:"LI",price:650000,nationality:"España",playerId:"263578",aliases:["Balde"]},
+    {id:"barcelona:cubarsi",name:"Pau Cubarsí",overall:90,pos:"DFC",price:750000,nationality:"España",playerId:"278046"},
+    {id:"barcelona:xavi-espart",name:"Xavi Espart",overall:85,pos:"LD",price:300000,nationality:"España",playerId:"81863"},
+    {id:"barcelona:christensen",name:"Andreas Christensen",overall:86,pos:"DFC",price:350000,nationality:"Dinamarca",playerId:"213661"},
+    {id:"barcelona:gerard-martin",name:"Gerard Martín",overall:85,pos:"LI",price:300000,nationality:"España",playerId:"74462"},
+    {id:"barcelona:kounde",name:"Jules Koundé",overall:90,pos:"LD",price:800000,nationality:"Francia",playerId:"241486"},
+    {id:"barcelona:eric-garcia",name:"Eric García",overall:88,pos:"DFC",price:500000,nationality:"España",playerId:"245037"},
+    {id:"barcelona:brian-farinas",name:"Brian Fariñas",overall:85,pos:"MC",price:300000,nationality:"España",photo:"https://www.fcbarcelona.com/photo-resources/2026/09/03/b05e6b1b-fe32-4420-b981-36507d7dfeb0/04-Brian_Farinas.png?height=790&width=670"},
+    {id:"barcelona:gavi",name:"Gavi",overall:89,pos:"MC",price:650000,nationality:"España",playerId:"264240"},
+    {id:"barcelona:fermin",name:"Fermín López",overall:89,pos:"MCO",price:650000,nationality:"España",playerId:"277179",aliases:["Fermín"]},
+    {id:"barcelona:pedri",name:"Pedri",overall:92,pos:"MC",price:900000,nationality:"España",playerId:"251854"},
+    {id:"barcelona:rodri",name:"Rodri",overall:91,pos:"MCD",price:850000,nationality:"España",playerId:"231866"},
+    {id:"barcelona:dani-olmo",name:"Dani Olmo",overall:90,pos:"MCO",price:750000,nationality:"España",playerId:"244260"},
+    {id:"barcelona:de-jong",name:"Frenkie de Jong",overall:90,pos:"MC",price:800000,nationality:"Países Bajos",playerId:"228702"},
+    {id:"barcelona:marc-bernal",name:"Marc Bernal",overall:87,pos:"MCD",price:450000,nationality:"España",playerId:"74463"},
+    {id:"barcelona:gabriel-jesus",name:"Gabriel Jesus",overall:88,pos:"DC",price:550000,nationality:"Brasil",playerId:"230666"},
+    {id:"barcelona:raphinha",name:"Raphinha",overall:92,pos:"EI",price:900000,nationality:"Brasil",playerId:"233419"},
+    {id:"barcelona:adeyemi",name:"Karim Adeyemi",overall:89,pos:"ED",price:700000,nationality:"Alemania",playerId:"251852"},
+    {id:"barcelona:gordon",name:"Anthony Gordon",overall:88,pos:"EI",price:600000,nationality:"Inglaterra",playerId:"242964"},
+    {id:"barcelona:bardghji",name:"Roony Bardghji",overall:87,pos:"ED",price:450000,nationality:"Suecia",playerId:"265600"},
+    {id:"barcelona:bisiwu",name:"Jesse Bisiwu",overall:85,pos:"EI",price:300000,nationality:"Bélgica",playerId:"88043",aliases:["Jesse Eugen Bisiwu"]},
+    {id:"barcelona:hamza",name:"Hamza Abdelkarim",overall:85,pos:"DC",price:300000,nationality:"Egipto",playerId:"86106",aliases:["Hamza Mohamed Abdelkarim Elsayed Selim"]}
+  ])});
+  function barcelonaCards(pool=[]){
+    const available=Array.isArray(pool)?pool:[];
+    const clubBase=available.find(p=>p.real&&p.club==="barcelona"&&p.catalogClub);
+    return barcelona.cards.map(def=>{
+      const aliases=[def.name,...(def.aliases||[])].map(normalizeName);
+      const base=available.find(p=>p.real&&def.playerId&&p.id==="real:"+def.playerId)||
+        available.find(p=>p.real&&aliases.includes(normalizeName(p.name)));
+      const portrait=def.playerId?.padStart(6,"0");
+      return {...(base||{}),id:def.id,originalId:base?.originalId||base?.id||(def.playerId?"real:"+def.playerId:"verified:barca:brian-farinas"),
+        name:def.name,overall:def.overall,pos:def.pos,real:true,event:barcelona.id,eventPrice:def.price,
+        nationality:def.nationality,club:"barcelona",catalogClub:clubBase?.catalogClub||"barcelona",sourceClub:"FC Barcelona",
+        leagueId:clubBase?.leagueId||"reference",leagueLabel:"FC Barcelona · AURA 27",tradeable:true,
+        photo:def.photo||base?.photo||(portrait?"https://cdn.sofifa.net/players/"+portrait.slice(0,-3)+"/"+portrait.slice(-3)+"/26_120.png":undefined)};
+    });
+  }
   const normalizeName=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
   function murallaCards(pool){
     const available=Array.isArray(pool)?pool:[];
@@ -171,6 +239,8 @@
     return selected;
   }
   function price(p){
+    const barca=p?.event===barcelona.id&&barcelona.cards.find(x=>x.id===p.id&&x.overall===p.overall);
+    if(barca)return barca.price;
     const wall=p?.event===muralla.id&&muralla.cards.find(x=>x.id===p.id&&x.overall===p.overall);
     if(wall)return wall.price;
     const fb=p?.event===flashback.id&&flashback.cards.find(x=>x.id===p.id&&x.overall===p.overall);
@@ -180,7 +250,7 @@
     if(arg)return arg.price;return Math.round((p.overall<65?300:p.overall<75?700+(p.overall-65)*80:p.overall<84?1200+Math.pow(p.overall-74,2)*160:18000*Math.pow(1.6,p.overall-84))/50)*50;}
   function marketPrice(u,p){
     const base=price(p);
-    if(!u||p?.event===sigma.id||p?.event===argentina.id||p?.event===flashback.id||p?.event===muralla.id||!Number.isSafeInteger(u.played)||u.played<=0)return base;
+    if(!u||p?.event===sigma.id||p?.event===argentina.id||p?.event===flashback.id||p?.event===muralla.id||p?.event===barcelona.id||!Number.isSafeInteger(u.played)||u.played<=0)return base;
     let hash=0;for(const ch of String(p.id))hash=(Math.imul(hash,31)+ch.charCodeAt(0))>>>0;
     // Offline market trend is predictable for a given matchday and card;
     // no networking or arbitrary real-money prices are involved.
@@ -188,7 +258,7 @@
     return Math.max(100,Math.round(base*(1+cycle*.025)/50)*50);
   }
   function evolutionCost(p){
-    if(!p||!Number.isInteger(p.overall)||(p.event===sigma.id||p.event===argentina.id||p.event===flashback.id||p.event===muralla.id||p.event===ecuadorSbc.id)||(p.evolutionLevel||0)>=2||p.overall>90)return null;
+    if(!p||!Number.isInteger(p.overall)||(p.event===sigma.id||p.event===argentina.id||p.event===flashback.id||p.event===muralla.id||p.event===ecuadorSbc.id||p.event==="sbc-stars"||p.event===barcelona.id)||(p.evolutionLevel||0)>=2||p.overall>90)return null;
     return Math.max(1500,Math.round((p.overall-60)*400/50)*50);
   }
   function evolve(u,id){
@@ -205,6 +275,10 @@
   }
   function buy(u,player){if(!player?.real||!player.id)return {error:"Jugador no disponible."};
     if(player.event===ecuadorSbc.id||player.id===ecuadorSbc.cardId)return {error:"Esta carta es exclusiva del DCP Ecuador."};
+    if(player.event==="sbc-stars"||String(player.id).startsWith("sbc:"))return {error:"Esta carta es exclusiva de los SBC."};
+    if((player.event===barcelona.id||String(player.id).startsWith("barcelona:"))&&
+      (player.event!==barcelona.id||!barcelona.cards.some(p=>p.id===player.id&&p.name===player.name&&p.overall===player.overall&&p.pos===player.pos)))
+      return {error:"Carta FC Barcelona no disponible."};
     if(player.event===sigma.id||String(player.id).startsWith("sigma:"))return {error:"El evento Ultimate Sigma ha finalizado."};
     if((player.event===muralla.id||String(player.id).startsWith("muralla:"))&&
       (player.event!==muralla.id||!muralla.cards.some(p=>p.id===player.id&&p.name===player.name&&p.overall===player.overall&&p.pos===player.pos)))
@@ -218,11 +292,15 @@
   }
   function itemScore(p){return Math.max(1,p.overall-50)**2;}
   function sbcCompleted(u,type){return !!challenges[type]?.once&&
-    ((Array.isArray(u.sbcCompleted)&&u.sbcCompleted.includes(type))||u.owned.some(p=>type==="ecuador"&&p.id===ecuadorSbc.cardId));}
+    ((Array.isArray(u.sbcCompleted)&&u.sbcCompleted.includes(type))||u.owned.concat(u.duplicates).some(p=>p.id===sbcRewards[type]?.cardId));}
+  function sameNation(value,required){
+    const aliases={ecuador:["ecuador","ecu","ecuatoriano","ecuatoriana"],espana:["espana","spain","esp"],brasil:["brasil","brazil","bra"],argentina:["argentina","arg"]};
+    return (aliases[normalizeName(required)]||[normalizeName(required)]).includes(normalizeName(value));
+  }
   function sbcPool(u,type){
     const def=challenges[type];if(!def||sbcCompleted(u,type))return [];
     return u.owned.filter(p=>!u.xi.includes(p.id)).map(p=>({...p,uid:p.id})).concat(u.duplicates)
-      .filter(p=>p.overall>=def.min&&p.overall<=def.max&&(!def.nationality||["ecuador","ecu","ecuatoriano","ecuatoriana"].includes(normalizeName(p.nationality||p.country||p.nation))));
+      .filter(p=>p.overall>=def.min&&p.overall<=def.max&&(!def.nationality||sameNation(p.nationality||p.country||p.nation,def.nationality))&&(!def.positions||def.positions.includes(p.pos)));
   }
   function sbcPreview(u,type,ids){
     const def=challenges[type];if(!def)return {error:"DCP no disponible."};
@@ -238,12 +316,12 @@
     const staged=JSON.parse(JSON.stringify(u)),keys=new Set(ids);staged.owned=staged.owned.filter(p=>!keys.has(p.id));staged.duplicates=staged.duplicates.filter(p=>!keys.has(p.uid));
     if(staged.owned.length<11||staged.xi.some(id=>!staged.owned.some(p=>p.id===id)))return {error:"No puedes entregar el once titular."};
     let reward;
-    if(type==="ecuador"){
-      const card=ecuadorSbcCard(pool);staged.lastPack=addCards(staged,[card]);
+    if(sbcRewards[type]){
+      const card=sbcRewardCard(type,pool);staged.lastPack=addCards(staged,[card]);
       staged.sbcCompleted=Array.isArray(staged.sbcCompleted)?staged.sbcCompleted:[];staged.sbcCompleted.push(type);
       reward={cards:staged.lastPack};
     }else reward=draw(staged,pool,preview.reward,rng,true);
-    if(reward.error)return reward;staged.sbcs++;Object.assign(u,staged);return {ok:true,cards:reward.cards,kind:type==="ecuador"?"player":"pack"};
+    if(reward.error)return reward;staged.sbcs++;Object.assign(u,staged);return {ok:true,cards:reward.cards,kind:sbcRewards[type]?"player":"pack"};
   }
   function objectives(u){return [{id:"first",name:"El viaje empieza",current:u.played,target:1,coins:1500},{id:"store",name:"Tu primer sobre",current:u.packsOpened,target:1,coins:750},{id:"market",name:"Un nuevo fichaje",current:u.purchases,target:1,coins:1000},{id:"chem",name:"Conexiones",current:chemistry(u).total,target:18,coins:1500},{id:"wins",name:"Mentalidad ganadora",current:u.wins,target:3,coins:2500},{id:"sbc",name:"Ingeniero de plantilla",current:u.sbcs,target:1,coins:1500}].map(o=>({...o,complete:o.current>=o.target,claimed:u.objectives.includes(o.id)}));}
   function claim(u,id){const o=objectives(u).find(o=>o.id===id);if(!o||!o.complete||o.claimed)return {error:"Objetivo incompleto o ya cobrado."};u.objectives.push(id);u.coins+=o.coins;return {ok:true,coins:o.coins};}
@@ -271,5 +349,5 @@
     return coins;
   }
   function claimBattles(u){if(u.battlesClaimed.includes(u.battleCycle)||u.battlePoints<1000)return {error:"Consigue al menos 1.000 puntos en esta serie."};const reward=u.battlePoints>=5000?4000:u.battlePoints>=2500?2500:1000;u.battlesClaimed.push(u.battleCycle);u.coins+=reward;u.battleCycle++;u.battlePoints=0;return {ok:true,coins:reward};}
-  return {create,chemistry,rating,league,packs,challenges,sigma,eventCards,argentina,argentinaCards,flashback,flashbackCards,muralla,murallaCards,claimMurallaGift,claimFlashbackGift,claimSigmaGift,draw,setPlayer,setFormation,auto,bench,price,marketPrice,evolutionCost,evolve,buy,quickSell,itemScore,ecuadorSbc,ecuadorSbcCard,sbcCompleted,sbcPool,sbcPreview,submitSBC,objectives,claim,reward,claimBattles};
+  return {create,chemistry,rating,league,packs,challenges,sbcRewards,sbcRewardCard,barcelona,barcelonaCards,sigma,eventCards,argentina,argentinaCards,flashback,flashbackCards,muralla,murallaCards,claimMurallaGift,claimFlashbackGift,claimSigmaGift,draw,setPlayer,setFormation,auto,bench,price,marketPrice,evolutionCost,evolve,buy,quickSell,itemScore,ecuadorSbc,ecuadorSbcCard,sbcCompleted,sbcPool,sbcPreview,submitSBC,objectives,claim,reward,claimBattles};
 });
