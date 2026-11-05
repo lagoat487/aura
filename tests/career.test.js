@@ -84,6 +84,25 @@ test("Champions fixtures are interleaved with the same career, use its XI, and n
  assert.deepEqual(app.json('europeTeam.players.map(p=>p.id)'),app.json('AuraSquad.ensure(state).xi'));app.run('pendingEurope.onFinish({home:2,away:1,goals:[],participants:[europeTeam.players.map(p=>p.id)],stats:[]})');assert.equal(app.run('state.round'),2);assert.deepEqual(app.json('state.competition'),domestic);assert.equal(app.run('state.continentalHistory.length'),1);assert.equal(app.run('state.budget'),budget+1500000);assert.equal(app.run('AuraContinental.next(state).kind'),'league');
  const after=app.json('state');app.run('pendingEurope.onFinish({home:2,away:1,goals:[],stats:[]})');assert.deepEqual(app.json('state'),after);app.click({nav:'champions'});assert.match(app.html(),/36 clubes/);assert.match(app.html(),/FASE LIGA/);
 });
+
+test('career call-ups exclude injured reserves and restore their availability after recovery without replacing the chosen XI',()=>{
+ const app=boot();app.click({action:'start'});
+ app.run('globalThis.injured=clubPlayers(state.club).slice().sort((a,b)=>b.overall-a.overall)[0];injured.injuryRounds=2;AuraSquad.ensure(state);globalThis.beforeCall=JSON.stringify(state);globalThis.callup=AuraArena.team(getClub(state.club),state)');
+ const id=app.run('injured.id');assert.ok(!app.json('callup.players.map(p=>p.id)').includes(id));assert.ok(!app.json('callup.bench.map(p=>p.id)').includes(id),'a medically unavailable player must not be offered as a substitute');
+ assert.ok(app.run('callup.bench.length>0&&callup.bench.every(p=>!(p.injuryRounds>0))'));assert.equal(app.run('JSON.stringify(state)'),app.run('beforeCall'));
+ const xi=app.json('state.squad.xi');app.run('injured.injuryRounds=0;globalThis.recoveredCall=AuraArena.team(getClub(state.club),state)');
+ assert.ok(app.json('recoveredCall.bench.map(p=>p.id)').includes(id),'a recovered reserve must be available again');assert.deepEqual(app.json('state.squad.xi'),xi);assert.equal(app.run('injured.injuryRounds'),0);
+});
+
+test('Champions preparation excludes injured substitutes without changing the career roster or calendar',async()=>{
+ const app=boot();app.run(fs.readFileSync(path.join(__dirname,'..','data/world-rosters.js'),'utf8'));await app.run('World.load(clubs,Competitions.definitions)');app.click({action:'start'});app.click({action:'play'});app.click({action:'play'});
+ assert.equal(app.run('AuraContinental.next(state).kind'),'champions');
+ app.run('globalThis.injured=clubPlayers(state.club).slice().sort((a,b)=>b.overall-a.overall)[0];injured.injuryRounds=3;AuraSquad.ensure(state);AuraArena.preMatch=(home,away,options)=>{globalThis.europeCall=home}');
+ const before=app.json('state'),id=app.run('injured.id');app.click({evo:'career-play'});
+ assert.ok(!app.json('europeCall.players.concat(europeCall.bench).map(p=>p.id)').includes(id));assert.ok(app.run('europeCall.bench.length>0&&europeCall.bench.every(p=>!(p.injuryRounds>0))'));
+ assert.deepEqual(app.json('state'),before,'preparing the match must not delete a player, advance recovery or change the calendar');
+});
+
 test("player career can be created at a club with 28 real players without deleting a footballer",()=>{
  const app=boot();app.click({action:'start'});app.run('while(clubPlayers(state.club).length<28){const p={...clubPlayers(state.club)[1],id:"extra:"+clubPlayers(state.club).length};clubPlayers(state.club).push(p);}globalThis.initialIds=clubPlayers(state.club).map(p=>p.id);AuraTour.startPlayer(state,"new","Mi delantero","DC");AuraTourUI.ensurePro()');
  assert.equal(app.run('clubPlayers(state.club).length'),29);assert.ok(app.run('initialIds.every(id=>clubPlayers(state.club).some(p=>p.id===id))'));assert.ok(app.run('AuraSquad.ensure(state).xi.includes(state.playerCareer.playerId)'));assert.equal(app.run('state.squadLimit'),29);

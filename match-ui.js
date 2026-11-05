@@ -23,7 +23,7 @@ const AuraArena=(()=>{
       return career&&club.id===career.club?{...player,overall:Math.round(AuraSquad.effective(player,slots[index][0]))}:player;
     }).filter(Boolean);
     if(players.length!==11)throw Error("No hay once jugadores disponibles para "+club.name);
-    const bench=roster.filter(p=>!ids.includes(p.id)).slice().sort((a,b)=>b.overall-a.overall).slice(0,9).map(p=>career&&club.id===career.club?{...p,slotRatings:slots.map(slot=>Math.round(AuraSquad.effective(p,slot[0])))}:p);
+    const bench=roster.filter(p=>!ids.includes(p.id)&&!(p.injuryRounds>0)).slice().sort((a,b)=>b.overall-a.overall).slice(0,9).map(p=>career&&club.id===career.club?{...p,slotRatings:slots.map(slot=>Math.round(AuraSquad.effective(p,slot[0])))}:p);
     return {...club,players,bench,slots,formation};
   }
   function scoreboardCrest(club){
