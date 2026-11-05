@@ -599,6 +599,35 @@ for(const runtime of ['ultimate-ui.js','ultimate-ui-61.js'])test('UT explicit ma
  assert.deepEqual(app.json('AuraUTUI.getClub()'),before,'browsing must preserve coins, collection and XI');
 });
 
+for(const runtime of ['ultimate-ui.js','ultimate-ui-61.js'])test('UT explicit budget and position filters include low-cost cards outside the starter range: '+runtime,async()=>{
+ const app=boot(undefined,runtime);app.run(fs.readFileSync(path.join(__dirname,'..','data/world-rosters.js'),'utf8'));await app.run('World.load(clubs,Competitions.definitions)');
+ app.click({evoMode:'ultimate'});app.click({ut:'create'});app.click({utTab:'market'});const before=app.json('AuraUTUI.getClub()');
+ const available=app.json('AuraUTUI.pool().filter(p=>!AuraUTUI.getClub().owned.some(q=>q.id===p.id)).map(p=>({id:p.id,pos:p.pos,overall:p.overall,cost:AuraUT.marketPrice(AuraUTUI.getClub(),p)}))');
+ const results=()=>[...app.html().matchAll(/data-ut="buy" data-player="([^"]+)"/g)].map(m=>available.find(p=>p.id===m[1]));
+ const defaults=results();assert.ok(defaults.length>0);assert.ok(defaults.every(p=>p.overall>=75&&p.overall<=83));
+ const check=(maximum,position)=>{
+  app.change('ut-market-position','all');app.change('ut-market-max','0');
+  if(maximum)app.change('ut-market-max',String(maximum));if(position!=='all')app.change('ut-market-position',position);
+  const eligible=available.filter(p=>(!maximum||p.cost<=maximum)&&(position==='all'||p.pos===position)),cards=results();
+  assert.ok(eligible.some(p=>p.overall<75),'the bundled catalogue must contain cheaper eligible cards');
+  assert.ok(cards.length>0&&cards.length<=24);assert.ok(cards.every(p=>p&&(!maximum||p.cost<=maximum)&&(position==='all'||p.pos===position)));
+  assert.equal(cards[0].cost,Math.min(...eligible.map(p=>p.cost)),'the displayed lowest-price order must include the cheapest eligible cards');
+  assert.ok(cards.some(p=>p.overall<75),'an explicit filter must not retain the hidden starter rating floor');
+  assert.deepEqual(app.json('AuraUTUI.getClub()'),before,'browsing must preserve the club, collection and balance');
+  return cards;
+ };
+ check(5000,'all');check(0,'POR');check(5000,'MC');
+ app.change('ut-market-position','all');app.change('ut-market-max','0');
+ assert.deepEqual(results().map(p=>p.id),defaults.map(p=>p.id),'clearing the explicit filters must restore the starter catalogue');
+ const chosen=check(5000,'MC')[0],original=app.json('AuraUTUI.pool().find(p=>p.id==='+JSON.stringify(chosen.id)+')');
+ app.click({ut:'buy',player:chosen.id});const after=app.json('AuraUTUI.getClub()');
+ assert.equal(after.coins,before.coins-chosen.cost);assert.equal(after.purchases,before.purchases+1);assert.deepEqual(after.xi,before.xi);
+ assert.deepEqual(after.owned.slice(0,before.owned.length),before.owned);assert.equal(after.owned.length,before.owned.length+1);
+ const {tradeable:wasTradeable,...catalogueCard}=original,{tradeable:isTradeable,...boughtCard}=after.owned.find(p=>p.id===chosen.id);
+ assert.equal(isTradeable,true);assert.deepEqual(boughtCard,catalogueCard,'buying must retain the existing identity, portrait and attributes');
+ assert.ok(!app.html().includes('data-ut="buy" data-player="'+chosen.id+'"'),'the bought card must leave the current filtered results');
+});
+
 for(const runtime of ['ultimate-ui.js','ultimate-ui-61.js'])test('UT select changes restore focus after rendering while preserving the club and formation choices: '+runtime,()=>{
  const app=boot(undefined,runtime);app.click({evoMode:'ultimate'});app.click({ut:'create'});app.click({utTab:'market'});
  const before=app.json('AuraUTUI.getClub()'),focused=[];
