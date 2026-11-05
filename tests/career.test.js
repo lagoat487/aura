@@ -370,6 +370,26 @@ test('UT DCP drops a sold selected card without changing the remaining club on r
  app.click({utTab:'sbc'});assert.match(app.html(),/1\/3 cartas/,'the remaining eligible card stays selected');assert.deepEqual(app.json('utClub'),after);assert.ok(app.run('!AuraUT.sbcPool(utClub,"gold").some(p=>p.uid===selectedCard.uid)'));
 });
 
+for(const runtime of ['ultimate-ui.js','ultimate-ui-flashback-v2.js'])test('UT DCP shows selected cards, disables full-capacity additions and allows replacement before delivery: '+runtime,()=>{
+ const app=boot(undefined,runtime);app.click({evoMode:'ultimate'});app.click({ut:'create'});app.click({utSbc:'gold'});app.click({utTab:'sbc'});
+ const before=app.json('AuraUTUI.getClub()'),cards=app.json('AuraUT.sbcPool(AuraUTUI.getClub(),"gold").sort((a,b)=>b.overall-a.overall).slice(0,4)');assert.equal(cards.length,4);
+ const tag=uid=>[...app.html().matchAll(/<button\b[^>]*data-ut="sbc-pick"[^>]*>/g)].map(m=>m[0]).find(t=>t.includes('data-uid="'+uid+'"'));
+ for(const p of cards)assert.doesNotMatch(tag(p.uid),/\bdisabled\b/);
+ for(const p of cards.slice(0,3))app.click({ut:'sbc-pick',uid:p.uid});
+ assert.match(app.html(),/3\/3 cartas/);assert.match(tag(cards[3].uid),/\bdisabled\b/,'unselected cards must stop inviting clicks at full capacity');
+ assert.match(app.html(),/Cupo completo\. Desmarca una carta/);assert.equal((app.html().match(/Seleccionada · /g)||[]).length,3);
+ for(const p of cards.slice(0,3)){assert.match(tag(p.uid),/aria-pressed="true"/);assert.doesNotMatch(tag(p.uid),/\bdisabled\b/,'selected cards must remain available for deselection');}
+ assert.match(tag(cards[3].uid),/aria-pressed="false"/);assert.match(tag(cards[3].uid),/\bdisabled\b/);
+ app.click({ut:'sbc-pick',uid:cards[3].uid});assert.match(app.html(),/3\/3 cartas/);assert.match(tag(cards[3].uid),/aria-pressed="false"/);
+ app.click({ut:'sbc-pick',uid:cards[0].uid});assert.match(app.html(),/2\/3 cartas/);assert.doesNotMatch(app.html(),/Cupo completo\. Desmarca una carta/);assert.match(tag(cards[0].uid),/aria-pressed="false"/);assert.doesNotMatch(tag(cards[3].uid),/\bdisabled\b/);
+ app.click({ut:'sbc-pick',uid:cards[3].uid});assert.match(tag(cards[3].uid),/aria-pressed="true"/);assert.match(tag(cards[0].uid),/\bdisabled\b/);
+ assert.deepEqual(app.json('AuraUTUI.getClub()'),before,'editing delivery selections must not consume cards or coins');
+ app.click({ut:'sbc-review'});assert.match(app.node('modal').innerHTML,/data-ut="sbc-confirm"/);assert.equal((app.node('modal').innerHTML.match(/class="ut-card /g)||[]).length,3);
+ app.click({ut:'sbc-confirm'});const after=app.json('AuraUTUI.getClub()');assert.equal(after.sbcs,before.sbcs+1);assert.equal(after.coins,before.coins);assert.deepEqual(after.xi,before.xi);
+ assert.deepEqual(after.owned.find(p=>p.id===cards[0].id),before.owned.find(p=>p.id===cards[0].id),'the deselected card must stay in the club');
+ assert.equal(after.lastPack.length,3);app.click({ut:'sbc-confirm'});assert.deepEqual(app.json('AuraUTUI.getClub()'),after,'a stale confirmation must not deliver another reward');
+});
+
 test('UT market offers every squad position and filters and buys real wide midfielders',async()=>{
  const app=boot();app.run(fs.readFileSync(path.join(__dirname,'..','data/world-rosters.js'),'utf8'));
  await app.run('World.load(clubs,Competitions.definitions)');app.click({evoMode:'ultimate'});app.click({ut:'create'});app.click({utTab:'market'});
