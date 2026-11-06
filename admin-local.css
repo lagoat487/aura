@@ -1,2 +1,6 @@
 .ut-admin-local label{display:grid;gap:8px;max-width:440px;margin:18px 0;color:#b6c8db;font-size:12px}
 .ut-admin-local input{box-sizing:border-box;width:100%;min-height:44px;padding:12px;background:#0e192f;color:#e8f7ff;border:1px solid #6a94ba66;border-radius:8px;font-size:14px}
+.ut-admin-shortcut{border:1px solid #ffe196!important;background:#ffe196!important;color:#182031!important;white-space:nowrap}
+.ut-admin-banner{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:20px;margin-bottom:24px;border:1px solid #ffe196;border-radius:14px;background:#202338}
+.ut-admin-banner h3{margin:6px 0}.ut-admin-banner p{margin:0;color:#c2d2e5}
+@media(max-width:600px){.ut-admin-banner{align-items:stretch;flex-direction:column}.ut-top .ut-admin-shortcut{width:100%}}

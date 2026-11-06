@@ -59,7 +59,7 @@ test("new and legacy saved event tabs keep club inventory, gift and SBC progress
  assert.deepEqual(legacy.club,old);assert.equal(legacy.tab,"barcelona");
 });
 test("both production entries ship the new theme last and the hub before its controller",()=>{
- for(const file of ["index.html","mobile.html"]){const html=read(file);assert.match(html,/<title>AURA 27 · VISION 9\.2/);assert.ok(html.indexOf("aura-6.css")>html.indexOf("mobile-mode.css"));assert.ok(html.indexOf("magia-event.css")>html.indexOf("aura-6.css"));assert.ok(html.indexOf("match-vision.css")>html.indexOf("magia-event.css"));assert.ok(html.indexOf("current-events-62.js")<html.indexOf("ultimate-ui-63.js"));}
+ for(const file of ["index.html","mobile.html"]){const html=read(file);assert.match(html,/<title>AURA 27 · VISION 9\.2/);assert.ok(html.indexOf("aura-6.css")>html.indexOf("mobile-mode.css"));assert.ok(html.indexOf("magia-event.css")>html.indexOf("aura-6.css"));assert.ok(html.indexOf("match-vision.css")>html.indexOf("magia-event.css"));assert.ok(html.indexOf("current-events-62.js")<html.indexOf("ultimate-ui-64.js"));}
  for(const ext of ["js","css"])assert.equal(read("barcelona-event."+ext),read("barcelona-event-6."+ext));
  for(const name of ["ultimate-team","ultimate-ui","ultimate-save","evolution-ui","game"])assert.equal(read(name+".js"),read(name+(name==="game"?"-6.js":"-61.js")));
 });
@@ -82,7 +82,7 @@ for(const runtime of ['ultimate-ui.js','ultimate-ui-61.js','ultimate-ui-62.js'])
 test('retirement release keeps card styling and uses fresh coherent UT sources on both entrypoints',()=>{
  for(const name of ['ultimate-team','ultimate-ui','ultimate-save','current-events']){
   assert.equal(read(name+'-62.js'),read(name+'.js'));
-  for(const entry of ['index.html','mobile.html'])assert.ok(read(entry).includes('./'+name+(name==='ultimate-ui'?'-63.js?v=6.3-admin-local':'-62.js?v=6.2-retired-argentina')));
+  for(const entry of ['index.html','mobile.html'])assert.ok(read(entry).includes('./'+name+(name==='ultimate-ui'?'-64.js?v=6.4-admin-visible':'-62.js?v=6.2-retired-argentina')));
  }
  assert.equal(read('evolution-ui-93.js'),read('evolution-ui.js'));
  for(const entry of ['index.html','mobile.html']){
