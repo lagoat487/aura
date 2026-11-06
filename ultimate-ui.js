@@ -17,6 +17,7 @@ const AuraUTUI=(()=>{
   }
   const restored=restoreSaved();
   let club=restored?.club||null,tab=restored?.tab||'home',pickerSlot=0,marketQuery='',clubQuery='',position='all',marketMin=0,marketMax=0,marketOrder='price',packIndex=0,matchToken=restored?.matchToken||0,playMode='battles',sbcType='silver',sbcSelection=new Set(),cachedPool=null,signature='';
+  let adminPending=false;
   const tabs=[['home','Inicio'],['events','Eventos actuales'],['squad','Plantilla'],['play','Jugar'],['store','Tienda'],['market','Mercado'],['sbc','DCP'],['objectives','Objetivos'],['club','Mi club'],['evolutions','Evoluciones'],['backup','Respaldo']];
   function pool(){
     const stamp=World.getStats().players;if(cachedPool&&signature===stamp)return cachedPool;signature=stamp;
@@ -85,7 +86,8 @@ const AuraUTUI=(()=>{
     return title("PROTECCIÓN DE TU CLUB","TU EQUIPO. TU RESPALDO.","Descarga tu plantilla y vuelve a cargarla si cambias de dispositivo. Los guardados son locales a cada navegador.")+
       '<section class="ut-panel"><h3>EXPORTAR EQUIPO</h3><p>Incluye monedas, cartas, once, suplentes y progreso Ultimate Team.</p><button class="btn primary" data-ut="export">Descargar respaldo →</button></section>'+
       '<section class="ut-panel"><h3>IMPORTAR RESPALDO</h3><p>El archivo reemplazará el club actual solo después de verificar los datos.</p><input id="ut-import-file" type="file" accept=".json,application/json"><button class="btn" data-ut="import">Importar archivo verificado →</button></section>'+
-      '<section class="ut-panel"><h3>RECUPERACIÓN</h3><p>Restablecer el respaldo automático anterior a tu último guardado.</p><button class="btn" data-ut="rollback">Recuperar copia anterior →</button></section>';
+      '<section class="ut-panel"><h3>RECUPERACIÓN</h3><p>Restablecer el respaldo automático anterior a tu último guardado.</p><button class="btn" data-ut="rollback">Recuperar copia anterior →</button></section>'+
+      '<section class="ut-panel ut-admin-local"><h3>CÓDIGO PRIVADO</h3><p>Se aplica al club guardado en este navegador.</p><label for="ut-admin-code">Código de administrador<input type="password" id="ut-admin-code" maxlength="96" autocomplete="off" spellcheck="false" placeholder="Pega tu código privado"></label><button class="btn primary" data-ut="admin-local-credit">Canjear código →</button></section>';
   }
   function render(){if(tab==='argentina')tab='events';if(!club)return '<div class="ut-shell">'+start()+'</div>';return '<div class="ut-shell">'+top()+'<nav class="ut-nav" aria-label="Ultimate Team">'+tabs.map(([id,label])=>'<button data-ut-tab="'+id+'" '+(id===tab||id==='events'&&['magia','barcelona','muralla','flashback'].includes(tab)?'aria-current="page"':'')+'>'+label+'</button>').join('')+'</nav>'+(['magia','barcelona','muralla','flashback'].includes(tab)?'<div class="ut-event-breadcrumb"><button class="btn small" data-ut-tab="events">← Eventos actuales</button><span>TU COLECCIÓN / '+esc(tab==='barcelona'?'FC BARCELONA':tab.toUpperCase())+'</span></div>':'')+({home,events:currentEvents,squad,play,store,market,sbc,objectives,club:myClub,magia:magiaEvent,barcelona:barcelonaEvent,muralla:murallaEvent,flashback:flashbackEvent,evolutions,backup}[tab]||home)()+'<footer class="ut-footnote">AURA UT · Guardado automático en este navegador · Monedas de juego · Atributos estimados por AURA</footer></div>';}
   function reveal(){const p=club.lastPack[packIndex];if(!p)return;openModal('SOBRE ABIERTO','<div class="ut-reveal '+(p.overall>=86?'walkout':'')+'"><span class="eyebrow">'+(p.overall>=86?'JUGADOR DESTACADO':p.overall>=82?'CARTA ESPECIAL DE TU SOBRE':'NUEVO JUGADOR')+'</span>'+card(p)+'<p>'+(p.duplicate?'Repetido: guardado para DCP o venta rápida.':'Añadido a tu club.')+'</p><button class="btn primary" data-ut="reveal-next">'+(packIndex<club.lastPack.length-1?'Ver siguiente carta →':'Ir a mi club →')+'</button><button class="btn subtle" data-ut="reveal-skip">Ver todas las cartas</button></div>');}
@@ -121,6 +123,18 @@ const AuraUTUI=(()=>{
       if(action==='lobby'){goToModes();return true;}
       if(action==='create'){club=U.create(pool(),document.getElementById('ut-starter-league')?.value||'all',document.getElementById('ut-club-name')?.value||'Mi AURA FC');tab=['events','magia','barcelona','muralla','flashback'].includes(tab)?tab:'home';renderGame();}
       if(!club)return true;
+      if(action==='admin-local-credit'){
+        if(adminPending)return true;
+        if(typeof AuraAdminLocal==='undefined'){notify('Recarga AURA para cargar los códigos privados.');return true;}
+        const current=club,field=document.getElementById('ut-admin-code'),code=field?.value||'';
+        adminPending=true;
+        AuraAdminLocal.redeem(typeof localStorage==='undefined'?null:localStorage,{version:2,club,tab,matchToken},code,allFormations,()=>club===current).then(result=>{
+          if(club!==current)return;
+          if(result.ok){Object.assign(club,result.club);if(field)field.value='';renderMain();notify('¡30.000.000 de monedas añadidas a tu club local!');}
+          else notify(result.error);
+        }).catch(()=>notify('No se pudo verificar el código.')).finally(()=>{adminPending=false;});
+        return true;
+      }
       if(action==='magia-gift'){
         if(tab!=='magia')return true;
         const result=U.claimMagiaGift(club);
