@@ -18,7 +18,7 @@ const AuraBarcelonaEvent=(()=>{
       '<div class="barca-card-bottom">FC BARCELONA <i>✦</i> BLAUGRANA</div></div>';
   }
   function product(p,club){
-    const have=club.owned.some(q=>q.id===p.id),cost=U.price(p),poor=club.coins<cost;
+    const have=club.owned.some(q=>q.id===p.id),cost=U.price(p),poor=typeof U.canAfford==='function'?!U.canAfford(club,cost):club.coins<cost;
     return '<article class="barca-product"><div class="barca-product-edition"><span>EDICIÓN AZULGRANA</span><b>'+esc(p.pos)+'</b></div>'+card(p)+
       '<div class="barca-price"><b>'+coins(cost)+'</b><span>MONEDAS</span></div>'+
       '<button class="btn primary" data-ut="barcelona-buy" data-player="'+esc(p.id)+'" '+(have||poor?'disabled':'')+'>'+

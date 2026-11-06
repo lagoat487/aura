@@ -53,7 +53,7 @@ const AuraFlashbackEvent=(()=>{
        '<h3>EL ORO DE <em>LOS RECUERDOS</em></h3>'+
        '<p>Las cinco cartas son exclusivas del evento, con precios fijos. Una edición de cada futbolista por club.</p></div>'+
        '<div class="fb-market-grid">'+all.map(p=>{
-         const owned=club.owned.some(q=>q.id===p.id),cost=U.price(p),poor=club.coins<cost;
+         const owned=club.owned.some(q=>q.id===p.id),cost=U.price(p),poor=typeof U.canAfford==='function'?!U.canAfford(club,cost):club.coins<cost;
          return '<article class="fb-product">'+card(p)+
            '<div class="fb-product-cost"><strong>'+coins(cost)+'</strong><span>MONEDAS</span></div>'+
            '<button class="btn primary" data-ut="flashback-buy" data-player="'+esc(p.id)+'" '+(owned||poor?'disabled':'')+'>'+

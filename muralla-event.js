@@ -27,7 +27,7 @@ const AuraMurallaEvent=(()=>{
       '<div class="mur-collection-head" id="muralla-collection"><div><span class="mur-kicker">LA ÚLTIMA LÍNEA</span><h3>CONSTRUYE TU FORTALEZA.</h3></div>'+
       '<p>300.000–600.000 monedas por carta.<br>Precios fijos · Una edición por jugador</p></div>'+
       '<div class="mur-grid">'+cards.map((p,i)=>{
-        const have=club.owned.some(q=>q.id===p.id),cost=U.price(p),poor=club.coins<cost;
+        const have=club.owned.some(q=>q.id===p.id),cost=U.price(p),poor=typeof U.canAfford==='function'?!U.canAfford(club,cost):club.coins<cost;
         return '<article class="mur-product"><div class="mur-product-index">MURALLA / '+String(i+1).padStart(2,"0")+'<span>'+esc(p.pos)+'</span></div>'+card(p)+
           '<div class="mur-price"><b>'+coins(cost)+'</b><span>MONEDAS</span></div>'+
           '<button class="btn primary" data-ut="muralla-buy" data-player="'+esc(p.id)+'" '+(have||poor?'disabled':'')+'>'+
