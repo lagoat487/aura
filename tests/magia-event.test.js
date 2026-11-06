@@ -59,7 +59,7 @@ for(const runtime of ["ultimate-ui.js","ultimate-ui-61.js"]){
  test(runtime+": MAGIA opens through onboarding and the events hub, claims once, buys a card and restores on reload",()=>{
   const app=boot(runtime);app.click({utTab:"magia"});assert.match(app.html(),/NUEVO EVENTO: MAGIA/);app.click({ut:"create"});const u=app.UI.getClub(),xi=u.xi.slice();
   assert.match(app.html(),/LIONEL MESSI 97/);assert.match(app.html(),/3.000.000 de monedas/);assert.equal((app.html().match(/class="mag-product"/g)||[]).length,4);assert.match(app.html(),/RECLAMAR 400.000 MONEDAS/);
-  app.click({utTab:"events"});assert.match(app.html(),/45<\/b> CARTAS ESPECIALES/);assert.match(app.html(),/Entrar a MAGIA/);
+  app.click({utTab:"events"});assert.match(app.html(),/55<\/b> CARTAS ESPECIALES/);assert.match(app.html(),/Entrar a MAGIA/);
   const before=structuredClone(u);app.click({ut:"magia-gift"});app.click({ut:"magia-buy",player:"magia:olise"});assert.deepEqual(u,before);
   app.click({utTab:"magia"});app.click({ut:"magia-gift"});assert.equal(u.coins,410000);assert.equal(u.magiaGiftClaimed,true);assert.match(app.html(),/data-ut="magia-gift" disabled/);assert.deepEqual(u.xi,xi);
   const claimed=structuredClone(u);app.click({ut:"magia-gift"});assert.deepEqual(u,claimed);
@@ -70,12 +70,12 @@ for(const runtime of ["ultimate-ui.js","ultimate-ui-61.js"]){
 }
 test("both entrypoints ship complete MAGIA assets and synchronized current controllers without requiring a cached old model",()=>{
  for(const name of ["ultimate-team","ultimate-save","ultimate-ui","evolution-ui","current-events"])assert.equal(read(name+".js"),read(name+"-61.js"));
- for(const file of ["index.html","mobile.html"]){const html=read(file);for(const name of ["ultimate-team","ultimate-save","ultimate-ui","evolution-ui","current-events"])assert.ok(html.includes('./'+name+(name==='evolution-ui'?'-93.js?v=9.2-retired-argentina':['ultimate-ui','ultimate-team'].includes(name)?'-65.js?v=6.5-admin-unlimited':'-62.js?v=6.2-retired-argentina')));
+ for(const file of ["index.html","mobile.html"]){const html=read(file);for(const name of ["ultimate-team","ultimate-save","ultimate-ui","evolution-ui","current-events"])assert.ok(html.includes('./'+name+(name==='evolution-ui'?'-93.js?v=9.2-retired-argentina':'-66.js?v=6.6-champions')));
   assert.ok(html.includes('./magia-event.css?v=6.1'));assert.ok(html.includes('./magia-event-65.js?v=6.5-unlimited'));assert.ok(html.indexOf('magia-event-65.js')<html.indexOf('./game-92.js'));
  }
 });
 test("the updated event catalogue remains compatible with an already cached pre-MAGIA model",()=>{
- const old={...U};delete old.magia;delete old.magiaCards;delete old.activeEvents;
+ const old={...U};delete old.magia;delete old.magiaCards;delete old.activeEvents;delete old.champions;delete old.championsCards;
  const context=vm.createContext({AuraUT:old,AuraPortraits:Portraits});vm.runInContext(read('current-events.js'),context);
  assert.equal(context.AuraCurrentEvents.catalogue([]).length,3);
 });

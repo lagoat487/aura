@@ -42,7 +42,7 @@ test('the private-code UI activates unlimited coins, clears its input and shows 
  const context=vm.createContext({AuraUT:U,AuraUTSave:Save,AuraSquad:Squad,AuraAdminLocal:checked(),AuraPortraits:require('../portraits'),
   AuraEvolution:{pool:()=>f.club.owned,badge:()=>''},AuraCurrentEvents:require('../current-events'),World:{getStats:()=>({players:23})},Competitions:{definitions:[]},clubs:[],
   localStorage:f.storage,document:{getElementById:id=>id==='ut-admin-code'?field:null},notify:message=>notices.push(message),closeModal(){},openModal(){},goToModes(){}});
- vm.runInContext(fs.readFileSync(path.join(__dirname,'../ultimate-ui-65.js'),'utf8')+';globalThis.UI=AuraUTUI',context);
+ vm.runInContext(fs.readFileSync(path.join(__dirname,'../ultimate-ui-66.js'),'utf8')+';globalThis.UI=AuraUTUI',context);
  context.UI.bindRender(()=>{});assert.match(context.UI.render(),/data-ut="admin-local-credit"/);
  context.UI.handleClick({dataset:{ut:'admin-local-credit'}});context.UI.handleClick({dataset:{ut:'admin-local-credit'}});
  await new Promise(resolve=>setImmediate(resolve));
@@ -59,7 +59,7 @@ test('the visible header and home buttons open a focused private-code dialog and
   AuraEvolution:{pool:()=>f.club.owned,badge:()=>''},AuraCurrentEvents:require('../current-events'),World:{getStats:()=>({players:23})},Competitions:{definitions:[]},clubs:[],
   localStorage:f.storage,document:{getElementById:id=>id==='ut-admin-modal-code'?modal:id==='ut-admin-code'?backup:null},notify:message=>notices.push(message),
   openModal:(title,body)=>dialogs.push({title,body}),closeModal:()=>closed++,goToModes(){}});
- vm.runInContext(fs.readFileSync(path.join(__dirname,'../ultimate-ui-65.js'),'utf8')+';globalThis.UI=AuraUTUI',context);context.UI.bindRender(()=>{});
+ vm.runInContext(fs.readFileSync(path.join(__dirname,'../ultimate-ui-66.js'),'utf8')+';globalThis.UI=AuraUTUI',context);context.UI.bindRender(()=>{});
  const html=context.UI.render();assert.equal((html.match(/data-ut="admin-local-open"/g)||[]).length,2);assert.ok(html.indexOf('ut-admin-banner')<html.indexOf('ut-current-events-promo'));
  context.UI.handleClick({dataset:{ut:'admin-local-open'}});assert.equal(dialogs.length,1);assert.match(dialogs[0].body,/id="ut-admin-modal-code"/);assert.doesNotMatch(dialogs[0].body,/id="ut-admin-code"/);assert.equal(modal.focused,true);
  context.UI.handleClick({dataset:{ut:'admin-local-credit',adminInput:'ut-admin-modal-code'}});await new Promise(resolve=>setImmediate(resolve));
@@ -72,7 +72,7 @@ test('cached entrypoints can load the private-admin module on demand without dup
  const context=vm.createContext({AuraUT:U,AuraUTSave:Save,AuraSquad:Squad,Promise,AuraPortraits:require('../portraits'),
   AuraEvolution:{pool:()=>f.club.owned,badge:()=>''},World:{getStats:()=>({players:23})},Competitions:{definitions:[]},clubs:[],localStorage:f.storage,
   document:{getElementById:()=>field,createElement:()=>({}),head:{appendChild:script=>scripts.push(script)}},notify:message=>notices.push(message),closeModal(){},openModal(){},goToModes(){}});
- vm.runInContext(fs.readFileSync(path.join(__dirname,'../ultimate-ui-65.js'),'utf8')+';globalThis.UI=AuraUTUI',context);context.UI.bindRender(()=>{});
+ vm.runInContext(fs.readFileSync(path.join(__dirname,'../ultimate-ui-66.js'),'utf8')+';globalThis.UI=AuraUTUI',context);context.UI.bindRender(()=>{});
  const before=context.UI.getClub().coins;context.UI.handleClick({dataset:{ut:'admin-local-credit'}});context.UI.handleClick({dataset:{ut:'admin-local-credit'}});
  assert.equal(scripts.length,1);assert.equal(scripts[0].src,'./admin-local-2.js?v=unlimited-1');context.AuraAdminLocal=checked();scripts[0].onload();await new Promise(resolve=>setImmediate(resolve));
  assert.equal(context.UI.getClub().coins,before);assert.equal(notices.filter(s=>s.includes('ilimitadas')).length,1);
@@ -80,10 +80,10 @@ test('cached entrypoints can load the private-admin module on demand without dup
 
 test('both entries ship the private unlimited coins with identical tested UI copies and no plaintext redeem code',()=>{
  const read=file=>fs.readFileSync(path.join(__dirname,'..',file),'utf8');
- for(const alias of ['ultimate-ui-61.js','ultimate-ui-62.js','ultimate-ui-63.js','ultimate-ui-64.js','ultimate-ui-65.js'])assert.equal(read(alias),read('ultimate-ui.js'));
+ for(const alias of ['ultimate-ui-61.js','ultimate-ui-62.js','ultimate-ui-63.js','ultimate-ui-64.js','ultimate-ui-65.js','ultimate-ui-66.js'])assert.equal(read(alias),read('ultimate-ui.js'));
  for(const file of ['index.html','mobile.html']){
   const html=read(file);assert.ok(html.includes('./admin-local-2.js?v=unlimited-1'));assert.ok(html.includes('./admin-local.css?v=local-2'));
-  assert.ok(html.includes('./ultimate-ui-65.js?v=6.5-admin-unlimited'));assert.ok(html.indexOf('admin-local-2.js')<html.indexOf('ultimate-ui-65.js'));
+  assert.ok(html.includes('./ultimate-ui-66.js?v=6.6-champions'));assert.ok(html.indexOf('admin-local-2.js')<html.indexOf('ultimate-ui-66.js'));
  }
  assert.equal(read('admin-local-2.js'),read('admin-local.js'));
  assert.doesNotMatch(read('admin-local.js'),/AURA-(?:[A-F0-9]{4}-){4}[A-F0-9]{4}/);

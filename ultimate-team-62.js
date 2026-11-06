@@ -10,6 +10,10 @@
   function spend(u,cost){if(!canAfford(u,cost))return false;if(!hasUnlimited(u))u.coins-=cost;return true;}
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
   const packs={silver:{name:"Sobre de plata",cost:750,count:3,min:65,max:74},gold:{name:"Sobre de oro",cost:2500,count:3,min:75,max:92},premium:{name:"Oro premium 82+",cost:7500,count:3,min:75,max:92,guaranteed:82}};
+  Object.assign(packs,{
+    champions86:{name:"Champions 86+",cost:25000,count:1,min:86,max:92,guaranteed:86,championsChance:.08},
+    championsTriple86:{name:"Triple Champions 86+",cost:70000,count:3,min:86,max:92,guaranteed:86,championsChance:.08}
+  });
   const challenges={silver:{name:"De plata a oro",count:3,min:65,max:74,score:900,reward:"gold"},gold:{name:"Mejora 82+",count:3,min:75,max:83,score:1900,reward:"premium"},elite:{name:"Desafío élite 82+",count:4,min:82,max:90,score:4400,reward:"premium"}};
   challenges.ecuador={name:"🇪🇨 Moisés Caicedo 87",count:11,min:1,max:99,score:0,nationality:"Ecuador",reward:"ecuador-caicedo",once:true};
   const ecuadorSbc=Object.freeze({id:"ecuador-sbc",cardId:"sbc:ecuador-caicedo",name:"Moisés Caicedo",overall:87,pos:"MCD",nationality:"Ecuador",playerId:"256079"});
@@ -127,7 +131,36 @@
     {id:"barcelona:bisiwu",name:"Jesse Bisiwu",overall:85,pos:"EI",price:300000,nationality:"Bélgica",playerId:"88043",aliases:["Jesse Eugen Bisiwu"]},
     {id:"barcelona:hamza",name:"Hamza Abdelkarim",overall:85,pos:"DC",price:300000,nationality:"Egipto",playerId:"86106",aliases:["Hamza Mohamed Abdelkarim Elsayed Selim"]}
   ])});
-  const activeEvents=Object.freeze([magia,barcelona,muralla,flashback]);
+  // AURA selection from UEFA's ten matchday-4 Player of the Match winners below.
+  // These 89-rated editions are exclusively obtainable from promotional packs.
+  const champions=Object.freeze({id:"champions",name:"CHAMPIONS",matchday:4,dates:"3–4 NOV 2026",packOnly:true,
+    source:"https://www.uefa.com/uefachampionsleague/news/02a9-218b8766a6ce-03f12a507d5c-1000--every-2026-27-uefa-champions-league-player-of-the-match/",cards:Object.freeze([
+    {id:"champions:raphinha",name:"Raphinha",overall:89,pos:"EI",playerId:"233419",nationality:"Brasil",sourceClub:"FC Barcelona",club:"barcelona",clubNames:["FC Barcelona"],match:"Barcelona 3–0 Aston Villa"},
+    {id:"champions:bellingham",name:"Jude Bellingham",overall:89,pos:"MCO",playerId:"252371",nationality:"Inglaterra",sourceClub:"Real Madrid",club:"madrid",clubNames:["Real Madrid"],match:"AEK 2–3 Real Madrid"},
+    {id:"champions:bruno-fernandes",name:"Bruno Fernandes",overall:89,pos:"MCO",playerId:"212198",nationality:"Portugal",sourceClub:"Manchester United",club:"manutd",clubNames:["Man Utd","Manchester United"],match:"Manchester United 3–2 Roma"},
+    {id:"champions:fabian-ruiz",name:"Fabián Ruiz",overall:89,pos:"MC",playerId:"226271",nationality:"España",sourceClub:"Paris Saint-Germain",club:"psg",clubNames:["Paris SG","Paris Saint-Germain"],match:"Villarreal 0–6 Paris"},
+    {id:"champions:enzo-fernandez",name:"Enzo Fernández",overall:89,pos:"MC",playerId:"247090",nationality:"Argentina",sourceClub:"Manchester City",club:"city",clubNames:["Manchester City","Man City"],match:"Leipzig 2–3 Manchester City"},
+    {id:"champions:gyokeres",name:"Viktor Gyökeres",overall:89,pos:"DC",playerId:"241651",nationality:"Suecia",sourceClub:"Arsenal",club:"arsenal",clubNames:["Arsenal"],match:"Slavia Praha 1–2 Arsenal"},
+    {id:"champions:gabri-veiga",name:"Gabri Veiga",overall:89,pos:"MC",playerId:"258729",nationality:"España",sourceClub:"FC Porto",club:"porto",clubNames:["FC Porto","Porto"],match:"Porto 4–1 Napoli"},
+    {id:"champions:douvikas",name:"Tasos Douvikas",overall:89,pos:"DC",playerId:"261478",nationality:"Grecia",sourceClub:"Como",club:"como",clubNames:["Como"],match:"Lens 1–9 Como"},
+    {id:"champions:laimer",name:"Konrad Laimer",overall:89,pos:"LD",playerId:"225375",nationality:"Austria",sourceClub:"Bayern München",club:"bayern",clubNames:["FC Bayern München","Bayern München","Bayern Munich"],match:"Atlético 0–2 Bayern"},
+    {id:"champions:spence",name:"Djed Spence",overall:89,pos:"LI",playerId:"243702",nationality:"Inglaterra",sourceClub:"Inter",club:"inter",clubNames:["Inter","Lombardia FC"],match:"Feyenoord 0–3 Inter"}
+  ])});
+  const activeEvents=Object.freeze([magia,barcelona,muralla,flashback,champions]);
+  function isChampions(p){return p?.event===champions.id||String(p?.id||"").startsWith("champions:");}
+  function championsCards(pool=[]){
+    const available=Array.isArray(pool)?pool:[];
+    return champions.cards.map(def=>{
+      const base=available.find(p=>p.real&&p.id==="real:"+def.playerId)||available.find(p=>p.real&&normalizeName(p.name)===normalizeName(def.name));
+      const clubBase=available.find(p=>p.real&&def.clubNames.some(name=>normalizeName(name)===normalizeName(p.sourceClub)));
+      const portrait=def.playerId.padStart(6,"0");
+      return {...(base||{}),id:def.id,originalId:base?.originalId||base?.id||"real:"+def.playerId,name:def.name,
+        overall:89,pos:def.pos,real:true,event:champions.id,packOnly:true,tradeable:false,nationality:def.nationality,
+        sourceClub:def.sourceClub,club:clubBase?.club||def.club,catalogClub:clubBase?.catalogClub||def.club,
+        leagueId:clubBase?.leagueId||"reference",leagueLabel:"Champions · Jornada 4 · AURA",match:def.match,
+        photo:base?.photo||"https://cdn.sofifa.net/players/"+portrait.slice(0,-3)+"/"+portrait.slice(-3)+"/26_120.png"};
+    });
+  }
   function magiaCards(pool=[]){
     const available=Array.isArray(pool)?pool:[];
     return magia.cards.map(def=>{
@@ -243,7 +276,7 @@
     return {players,total:players.reduce((a,b)=>a+b,0)};
   }
   function create(pool,preferredLeague="all",name="Mi AURA FC"){
-    const eligible=pool.filter(p=>p.real&&p.overall>=62&&p.overall<=79),fav=eligible.filter(p=>preferredLeague!=="all"&&league(p)===preferredLeague),ranked=[...fav,...eligible.filter(p=>!fav.some(q=>q.id===p.id))];
+    const eligible=pool.filter(p=>p.real&&!isChampions(p)&&p.overall>=62&&p.overall<=79),fav=eligible.filter(p=>preferredLeague!=="all"&&league(p)===preferredLeague),ranked=[...fav,...eligible.filter(p=>!fav.some(q=>q.id===p.id))];
     const unique=[...new Map(ranked.map(p=>[p.id,p])).values()],xi=Squad.choose(unique.map(p=>({...p,overall:p.overall+(league(p)===preferredLeague?12:0)})),'4-3-3');if(xi.some(id=>!id))throw Error("El catálogo todavía está cargando. Vuelve a intentarlo.");
     // Choose with a small starter preference; keep a full bench and SBC reserves.
     const first=xi.map(id=>({...unique.find(p=>p.id===id),tradeable:false})),others=unique.filter(p=>!xi.includes(p.id)).sort((a,b)=>Number(league(b)===preferredLeague)-Number(league(a)===preferredLeague)||b.overall-a.overall).slice(0,12).map(p=>({...p,tradeable:false}));
@@ -253,7 +286,8 @@
   function addCards(u,cards){return cards.map(p=>{const copy={...p};if(u.owned.some(q=>q.id===p.id)){copy.duplicate=true;copy.uid="duplicate:"+(++u.serial);u.duplicates.push({...copy});}else u.owned.push(copy);return copy;});}
   function draw(u,pool,type,rng=Math.random,free=false){
     const def=packs[type];if(!def)return {error:"Este sobre no existe."};if(!free&&!canAfford(u,def.cost))return {error:"No tienes monedas suficientes."};
-    const candidates=pool.filter(p=>p.real&&p.overall>=def.min&&p.overall<=def.max),chosen=[],used=new Set();
+    if(def.championsChance)return drawPromotional(u,pool,def,rng,free);
+    const candidates=pool.filter(p=>p.real&&!isChampions(p)&&p.overall>=def.min&&p.overall<=def.max),chosen=[],used=new Set();
     if(candidates.length<def.count)return {error:"No hay suficientes jugadores disponibles para este sobre."};
     for(let i=0;i<def.count;i++){
       const minimum=i===0&&def.guaranteed?def.guaranteed:def.min;
@@ -262,6 +296,24 @@
       let at=rng()*sum,index=0;while(index<options.length-1&&(at-=weights[index])>0)index++;const p=options[index];used.add(p.id);chosen.push({...p,tradeable:!free});
     }
     if(!free)spend(u,def.cost);u.packsOpened++;u.lastPack=addCards(u,chosen).sort((a,b)=>b.overall-a.overall);return {ok:true,cards:u.lastPack};
+  }
+  function drawPromotional(u,pool,def,rng,free){
+    if(free)return {error:"Este sobre promocional está disponible solo en la tienda."};
+    const base=[...new Map(pool.filter(p=>p.real&&!p.event&&!isChampions(p)&&p.overall>=86&&p.overall<=def.max).map(p=>[p.id,p])).values()];
+    if(base.length<def.count)return {error:"El catálogo 86+ todavía está cargando. Vuelve a intentarlo."};
+    const special=championsCards(pool),used=new Set(),chosen=[];
+    const roll=()=>{const n=rng();if(!Number.isFinite(n)||n<0||n>=1)throw Error("invalid random draw");return n;};
+    try{
+      for(let i=0;i<def.count;i++){
+        const promo=roll()<def.championsChance,options=(promo?special:base).filter(p=>!used.has(p.id));
+        if(!options.length)return {error:"No se puede completar este sobre. No se cobraron monedas."};
+        const p=options[Math.floor(roll()*options.length)];used.add(p.id);chosen.push({...p,tradeable:promo?false:true});
+      }
+    }catch{return {error:"No se pudo abrir el sobre. Vuelve a intentarlo."};}
+    const fresh=chosen.filter(p=>!u.owned.some(q=>q.id===p.id)).length;
+    if(u.owned.length+fresh>8000||u.duplicates.length+chosen.length-fresh>8000)return {error:"Tu club está lleno. Usa repetidos en DCP antes de abrir otro sobre."};
+    if(!spend(u,def.cost))return {error:"No tienes monedas suficientes."};
+    u.packsOpened++;u.lastPack=addCards(u,chosen).sort((a,b)=>Number(isChampions(b))-Number(isChampions(a))||b.overall-a.overall);return {ok:true,cards:u.lastPack};
   }
   function setPlayer(u,slot,id){
     if(!Number.isInteger(slot)||slot<0||slot>10||!u.owned.some(p=>p.id===id))return false;
@@ -280,6 +332,7 @@
     return selected;
   }
   function price(p){
+    if(isChampions(p))return 0;
     const magic=p?.event===magia.id&&magia.cards.find(x=>x.id===p.id&&x.overall===p.overall);
     if(magic)return magic.price;
     const barca=p?.event===barcelona.id&&barcelona.cards.find(x=>x.id===p.id&&x.overall===p.overall);
@@ -301,7 +354,7 @@
     return Math.max(100,Math.round(base*(1+cycle*.025)/50)*50);
   }
   function evolutionCost(p){
-    if(!p||!Number.isInteger(p.overall)||(p.event===sigma.id||p.event===argentina.id||p.event===flashback.id||p.event===muralla.id||p.event===ecuadorSbc.id||p.event==="sbc-stars"||p.event===barcelona.id||p.event===magia.id)||(p.evolutionLevel||0)>=2||p.overall>90)return null;
+    if(!p||isChampions(p)||!Number.isInteger(p.overall)||(p.event===sigma.id||p.event===argentina.id||p.event===flashback.id||p.event===muralla.id||p.event===ecuadorSbc.id||p.event==="sbc-stars"||p.event===barcelona.id||p.event===magia.id)||(p.evolutionLevel||0)>=2||p.overall>90)return null;
     return Math.max(1500,Math.round((p.overall-60)*400/50)*50);
   }
   function evolve(u,id){
@@ -317,6 +370,7 @@
     return {ok:true,player:p,cost,overall:p.overall,level:p.evolutionLevel};
   }
   function buy(u,player){if(!player?.real||!player.id)return {error:"Jugador no disponible."};
+    if(isChampions(player))return {error:"Las cartas Champions solo se consiguen en sobres promocionales 86+."};
     if(player.event===ecuadorSbc.id||player.id===ecuadorSbc.cardId)return {error:"Esta carta es exclusiva del DCP Ecuador."};
     if(player.event==="sbc-stars"||String(player.id).startsWith("sbc:"))return {error:"Esta carta es exclusiva de los SBC."};
     if((player.event===magia.id||String(player.id).startsWith("magia:"))&&
@@ -397,5 +451,5 @@
     return coins;
   }
   function claimBattles(u){if(u.battlesClaimed.includes(u.battleCycle)||u.battlePoints<1000)return {error:"Consigue al menos 1.000 puntos en esta serie."};const reward=u.battlePoints>=5000?4000:u.battlePoints>=2500?2500:1000;u.battlesClaimed.push(u.battleCycle);u.coins+=reward;u.battleCycle++;u.battlePoints=0;return {ok:true,coins:reward};}
-  return {hasUnlimited,setUnlimited,canAfford,create,chemistry,rating,league,packs,magia,magiaCards,claimMagiaGift,activeEvents,challenges,sbcRewards,sbcRewardCard,barcelona,barcelonaCards,sigma,eventCards,argentina,argentinaCards,flashback,flashbackCards,muralla,murallaCards,claimBarcelonaGift,claimMurallaGift,claimFlashbackGift,claimSigmaGift,draw,setPlayer,setFormation,auto,bench,price,marketPrice,evolutionCost,evolve,buy,quickSell,itemScore,ecuadorSbc,ecuadorSbcCard,sbcCompleted,sbcPool,sbcPreview,submitSBC,objectives,claim,reward,claimBattles};
+  return {champions,championsCards,isChampions,hasUnlimited,setUnlimited,canAfford,create,chemistry,rating,league,packs,magia,magiaCards,claimMagiaGift,activeEvents,challenges,sbcRewards,sbcRewardCard,barcelona,barcelonaCards,sigma,eventCards,argentina,argentinaCards,flashback,flashbackCards,muralla,murallaCards,claimBarcelonaGift,claimMurallaGift,claimFlashbackGift,claimSigmaGift,draw,setPlayer,setFormation,auto,bench,price,marketPrice,evolutionCost,evolve,buy,quickSell,itemScore,ecuadorSbc,ecuadorSbcCard,sbcCompleted,sbcPool,sbcPreview,submitSBC,objectives,claim,reward,claimBattles};
 });
