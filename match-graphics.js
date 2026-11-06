@@ -59,13 +59,13 @@ const AuraGraphics=(()=>{
     const concrete=material(0x28333d),rail=material(0x8b959a,{metalness:.55,roughness:.42}),black=material(0x111c29);
     const luminous=material(0xe8edfc,{emissive:0xc7ddff,emissiveIntensity:2.1,roughness:.4});
     const postMat=material(0xf3f3ef,{roughness:.33,metalness:.16});
-    scene.add(new T.HemisphereLight(day?0xd7eaff:sunset?0xf5d9c1:0xbacdea,0x3d4728,day?1.5:1.35));
-    const sun=new T.DirectionalLight(raining?0xe2e9ef:sunset?0xffd3a3:0xfff8ed,day?2.7:2.9);
+    scene.add(new T.HemisphereLight(day?0xd7eaff:sunset?0xf5d9c1:0xbacdea,0x25301e,day?1.25:.78));
+    const sun=new T.DirectionalLight(raining?0xe2e9ef:sunset?0xffd3a3:0xfff8ed,day?2.7:2.6);
     sun.position.set(day?-38:-24,day?62:48,day?30:-25);scene.add(sun);
     if(!low){sun.castShadow=true;sun.shadow.mapSize.set(ultra?3072:high?2048:1024,ultra?3072:high?2048:1024);
       Object.assign(sun.shadow.camera,{left:-66,right:66,top:49,bottom:-49,near:1,far:150});sun.shadow.bias=-.00018;sun.shadow.normalBias=.035;sun.shadow.radius=3;}
-    const fill=new T.DirectionalLight(day?0xbdd9fc:0xd5e3ff,day?.55:1.15);fill.position.set(32,34,35);scene.add(fill);
-    const rim=new T.DirectionalLight(0xd2e4ff,.45);rim.position.set(0,24,-44);scene.add(rim);
+    const fill=new T.DirectionalLight(day?0xbdd9fc:0xd5e3ff,day?.5:.42);fill.position.set(32,34,35);scene.add(fill);
+    const rim=new T.DirectionalLight(0xd2e4ff,.62);rim.position.set(0,24,-44);scene.add(rim);
     box(270,1.2,210,material(0x132329),0,-.8,0);
     box(121,.12,80,material(0x27452d),0,-.075,0);
     // Full-pitch albedo plus a separate repeating grass-fibre bump map.
@@ -80,7 +80,16 @@ const AuraGraphics=(()=>{
       const x=tw/2+sign*(tw*.465+rnd()*tw*.028),y=th*(.38+rnd()*.24);
       ctx.fillStyle=i%3?'#a49a5914':'#173b2522';ctx.fillRect(x,y,1+rnd()*7,1+rnd()*3);
     }
-    const turfMap=texture(turf),fibres=canvas(256,256),fc=fibres.getContext('2d');fc.fillStyle='#808080';fc.fillRect(0,0,256,256);
+    const turfMap=texture(turf);
+    if(typeof Image==='function'){
+      const photo=new Image();photo.onload=()=>{if(disposed)return;const tile=tw/28;
+        ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+        for(let x=0;x<tw;x+=tile)for(let y=0;y<th;y+=tile)ctx.drawImage(photo,x,y,tile+1,tile+1);
+        ctx.fillStyle='#315d393d';ctx.fillRect(0,0,tw,th);
+        for(let i=0;i<20;i++){ctx.fillStyle=i%2?'#d2deb914':'#092b1816';ctx.fillRect(i*tw/20,0,tw/20+1,th);}
+        turfMap.needsUpdate=true;};photo.src='./assets/textures/turf-photo.webp';
+    }
+    const fibres=canvas(256,256),fc=fibres.getContext('2d');fc.fillStyle='#808080';fc.fillRect(0,0,256,256);
     for(let i=0;i<12000;i++){fc.fillStyle=rnd()>.5?'#afafaf':'#505050';fc.fillRect(rnd()*256,rnd()*256,.7,.6+rnd()*4);}
     const fibreMap=texture(fibres,false);fibreMap.wrapS=fibreMap.wrapT=T.RepeatWrapping;fibreMap.repeat.set(75,49);
     const pitch=mesh(geometry('pitch',()=>new T.PlaneGeometry(105,68)),material(0xffffff,{map:turfMap,bumpMap:low?null:fibreMap,bumpScale:raining?.026:.052,roughness:raining?.58:.96}),0,.015,0);
@@ -140,6 +149,20 @@ const AuraGraphics=(()=>{
       for(let i=0;i<Math.min(180,count);i++){const [x,y,z,yaw]=occupied[i],bounce=Math.sin(now*.003+i)*((score?.[0]||score?.[1])?.10:.035);
         dummy.rotation.set(0,yaw,0);dummy.scale.set(1,1,1);dummy.position.set(x,y+.38+bounce,z);dummy.updateMatrix();crowdBodies.setMatrixAt(i,dummy.matrix);dummy.position.y=y+.72+bounce;dummy.scale.set(1,1.1,1);dummy.updateMatrix();crowdHeads.setMatrixAt(i,dummy.matrix);}
       crowdBodies.instanceMatrix.needsUpdate=true;crowdHeads.instanceMatrix.needsUpdate=true;}
+    if(typeof Image==='function'){
+      const terrace=new Image();terrace.onload=()=>{if(disposed)return;
+        const image=typeof AuraHumanSprites!=='undefined'?AuraHumanSprites.tileCrowd(terrace):terrace;
+        const terraceMap=texture(image),m=material(0xffffff,{map:terraceMap,roughness:1,side:T.DoubleSide});
+        function bank(points){const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(points,3));g.setAttribute('uv',new T.Float32BufferAttribute([0,0,1,0,1,1,0,0,1,1,0,1],2));g.computeVertexNormals();mesh(g,m);}
+        for(const sign of [-1,1])for(let tier=0;tier<tiers;tier++){
+          const y=1.1+tier*(rows*.43+1.7),top=y+rows*.43+.8,z=sign*(41.75+tier*(rows*.72+2)),back=z+sign*(rows*.72);
+          bank([-68,y,z,68,y,z,68,top,back,-68,y,z,68,top,back,-68,top,back]);
+          const x=sign*(61.75+tier*(rows*.72+2)),far=x+sign*rows*.72;
+          bank([x,y,-39,x,y,39,far,top,39,x,y,-39,far,top,39,far,top,-39]);
+        }
+        crowdBodies.visible=crowdHeads.visible=seats.visible=false;
+      };terrace.src='./assets/textures/crowd-photo.webp';
+    }
     const roofY=3+tiers*(rows*.43+1.7),roofZ=42+tiers*(rows*.72+2),roofX=62+tiers*(rows*.72+2);
     for(const side of [-1,1]){
       box(156,.38,12,black,0,roofY,side*(roofZ-4));box(12,.38,90,black,side*(roofX-4),roofY,0);
@@ -183,10 +206,20 @@ const AuraGraphics=(()=>{
     const joint=geometry('anatomy-sphere',()=>new T.SphereGeometry(1,low?8:12,low?6:10));
     // A single shared skinned geometry per hairstyle; eight material groups per athlete.
     // Limbs use bones instead of dozens of independently submitted cylinder meshes.
-    const boneDefs=[[-1,0,.86,0],[0,0,.22,0],[1,0,.25,0],[2,0,.18,0],[3,0,.16,0],
+    const anatomical=typeof AuraHumanMesh!=='undefined'?AuraHumanMesh:null;
+    const boneDefs=anatomical?.bones||[[-1,0,.86,0],[0,0,.22,0],[1,0,.25,0],[2,0,.18,0],[3,0,.16,0],
       [0,-.115,-.04,0],[5,0,-.39,0],[6,0,-.36,0],[0,.115,-.04,0],[8,0,-.39,0],[9,0,-.36,0],
       [2,-.285,.045,0],[11,0,-.29,0],[12,0,-.25,0],[2,.285,.045,0],[14,0,-.29,0],[15,0,-.25,0]];
-    function humanGeometry(style){return geometry('human:'+style,()=>{
+    function humanGeometry(style){
+      if(anatomical)return geometry('anatomical-human:'+style,()=>{
+        const data=anatomical,g=new T.BufferGeometry(),positions=new Float32Array(data.positions);
+        if(style===1)for(let i=0;i<positions.length;i+=3)if(positions[i+1]>1.82)positions[i+1]+=(positions[i+1]-1.82)*.25;
+        g.setAttribute('position',new T.BufferAttribute(positions,3));g.setAttribute('normal',new T.Float32BufferAttribute(data.normals,3));
+        g.setAttribute('uv',new T.Float32BufferAttribute(data.uv,2));g.setAttribute('skinIndex',new T.Uint16BufferAttribute(data.skinIndices,4));
+        g.setAttribute('skinWeight',new T.Float32BufferAttribute(data.skinWeights,4));g.setIndex(new T.BufferAttribute(data.indices,1));
+        data.groups.forEach(([start,count,mat])=>g.addGroup(start,count,mat));return g;
+      });
+      return geometry('human:'+style,()=>{
       const buckets=Array.from({length:8},()=>({p:[],n:[],uv:[],si:[],sw:[]})),matrix=new T.Matrix4(),q=new T.Quaternion();
       function add(g,slot,bone,x,y,z,sx=1,sy=1,sz=1,blend=false){const source=g.index?g.toNonIndexed():g.clone();matrix.compose(new T.Vector3(x,y,z),q,new T.Vector3(sx,sy,sz));source.applyMatrix4(matrix);
         const b=buckets[slot],p=source.attributes.position,n=source.attributes.normal,uv=source.attributes.uv;
@@ -217,13 +250,26 @@ const AuraGraphics=(()=>{
     const labelGeometry=geometry('shirt-label',()=>new T.PlaneGeometry(.33,.36));
     function footballer(p){const root=new T.Group(),look=P.appearance(p),keeper=p.index===0,colors=keeper?keeperColors[p.team]:kits[p.team];root.name='player:'+p.id;scene.add(root);
       const shirt=material(0xffffff,{map:keeper?keeperMaps[p.team]:teamMaps[p.team],roughness:.91});
-      const mats=[shirt,material(colors[1]),material(look.skin,{roughness:.72}),material(colors[0]),material(p.index%3===0?0xefebe3:p.index%3===1?0xe49a55:0x182436,{roughness:.48}),material(look.hair),material(colors[2]),material(0x17202a)];
+      const mats=[shirt,material(colors[1]),material(look.skin,{roughness:.64}),material(colors[0]),material(p.index%3===0?0xefebe3:p.index%3===1?0xe49a55:0x182436,{roughness:.48}),material(look.hair),material(colors[2]),material(anatomical?0xe8e6df:0x17202a)];
       const body=new T.SkinnedMesh(humanGeometry(look.hairStyle),mats),bones=boneDefs.map(()=>new T.Bone());
       boneDefs.forEach(([parent,x,y,z],i)=>{bones[i].position.set(x,y,z);if(parent>=0)bones[parent].add(bones[i]);});
-      body.add(bones[0]);body.updateMatrixWorld(true);const skeleton=new T.Skeleton(bones);skeletons.add(skeleton);body.bind(skeleton);body.castShadow=!low;body.frustumCulled=false;root.add(body);
+      body.add(bones[0]);body.updateMatrixWorld(true);const skeleton=new T.Skeleton(bones);skeletons.add(skeleton);body.bind(skeleton);
+      if(anatomical){
+        const group=anatomical.groups.find(g=>g[2]===7),eyes=[[],[]];
+        if(group){const indices=new Set(anatomical.indices.slice(group[0],group[0]+group[1]));
+          for(const index of indices){const x=anatomical.positions[index*3];eyes[x<0?0:1].push([x,anatomical.positions[index*3+1],anatomical.positions[index*3+2]]);}
+          const head=boneDefs.slice(0,5).reduce((p,b)=>p.map((v,i)=>v+b[i+1]),[0,0,0]);
+          for(const vertices of eyes)if(vertices.length){const centre=vertices.reduce((p,v)=>p.map((n,i)=>n+v[i]/vertices.length),[0,0,0]);
+            const z=Math.max(...vertices.map(v=>v[2]));
+            const iris=mesh(geometry('human-iris',()=>new T.SphereGeometry(.0055,8,6)),material(0x34382b),centre[0]-head[0],centre[1]-head[1],z-head[2],bones[4]);iris.scale.z=.2;
+            const pupil=mesh(geometry('human-pupil',()=>new T.SphereGeometry(.0028,6,4)),material(0x10151b),centre[0]-head[0],centre[1]-head[1],z-head[2]+.001,bones[4]);pupil.scale.z=.2;
+          }
+        }
+      }
+      body.castShadow=!low;body.frustumCulled=false;root.add(body);
       const label=canvas(128,160),cx=label.getContext('2d');cx.clearRect(0,0,128,160);cx.fillStyle=colors[2];cx.textAlign='center';cx.font='bold 17px Arial';cx.fillText(String(p.name).split(' ').at(-1).toUpperCase().slice(0,12),64,24);cx.font='bold 102px Arial';cx.fillText(String(p.number||p.index+1),64,129);
       const labelMap=texture(label),labelMat=basic({map:labelMap,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2});
-      const back=mesh(labelGeometry,labelMat,0,-.145,-.177,bones[2]);back.rotation.y=Math.PI;
+      const back=mesh(labelGeometry,labelMat,0,-.145,anatomical?-.127:-.177,bones[2]);back.rotation.y=Math.PI;
       root.scale.set(look.build,look.height/1.88,look.build);
       return {id:p.id,root,body,bones,skeleton,labelMap,labelMat,shirt,yaw:Math.atan2(p.faceX,p.faceZ)};
     }
@@ -274,6 +320,7 @@ const AuraGraphics=(()=>{
       }else {actorShadows.count=0;selection.ring.visible=selection.marker.visible=awaySelection.ring.visible=awaySelection.marker.visible=false;}
       const desired=P.cameraFrame(game,cam,camera.aspect,preview);cameraState=P.smoothCamera(cameraState,desired,dt);camera.position.fromArray(cameraState.position);camera.lookAt(new T.Vector3().fromArray(cameraState.target));
       if(Math.abs(camera.fov-cameraState.fov)>.01){camera.fov=cameraState.fov;camera.updateProjectionMatrix();}lastTime=now;
+      if(scene.fog){const distance=Math.hypot(...cameraState.position);scene.fog.near=cam==='tactical'?distance+20:(raining?90:155);scene.fog.far=cam==='tactical'?distance+160:(raining?240:350);}
       cheerCrowd(now,game?.score);updateScreen(game);updateGoalNets(game);updateRain(now);renderer.render(scene,camera);
     }
     function project(p){const v=new T.Vector3(p.x,2.2,p.z).project(camera);return {x:(v.x*.5+.5)*container.clientWidth,y:(-.5*v.y+.5)*container.clientHeight,visible:v.z>-1&&v.z<1&&Math.abs(v.x)<1&&Math.abs(v.y)<1};}

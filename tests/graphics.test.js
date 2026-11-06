@@ -11,12 +11,12 @@ test("WebGL scene construction produces finite stadium and player geometry in al
    setPixelRatio(){}setSize(){}dispose(){}forceContextLoss(){}
    render(scene,camera){
      renders++;this.scene=scene;latestScene=scene;scene.updateMatrixWorld(true);camera.updateMatrixWorld(true);
-     let meshCount=0;const geometries=new Set();scene.traverse(o=>{if(o.isMesh){meshCount++;geometries.add(o.geometry);const array=o.geometry.attributes.position?.array;assert.ok(!array||array.every(Number.isFinite));assert.ok(o.position.toArray().every(Number.isFinite));assert.ok(o.scale.toArray().every(Number.isFinite));if(o.isSkinnedMesh){o.skeleton.update();assert.ok(o.skeleton.boneMatrices.every(Number.isFinite));const weights=o.geometry.attributes.skinWeight;for(let i=0;i<weights.count;i++)assert.ok(Math.abs(weights.getX(i)+weights.getY(i)+weights.getZ(i)+weights.getW(i)-1)<.00001);}}});
+     let meshCount=0;const geometries=new Set();scene.traverse(o=>{if(o.isMesh){meshCount++;geometries.add(o.geometry);const array=o.geometry.attributes.position?.array;assert.ok(!array||array.every(Number.isFinite));assert.ok(o.position.toArray().every(Number.isFinite));assert.ok(o.scale.toArray().every(Number.isFinite));if(o.isSkinnedMesh){assert.equal(o.geometry.attributes.position.count,13660);assert.equal(o.geometry.index.count,27228*3);o.skeleton.update();assert.ok(o.skeleton.boneMatrices.every(Number.isFinite));const weights=o.geometry.attributes.skinWeight;for(let i=0;i<weights.count;i++)assert.ok(Math.abs(weights.getX(i)+weights.getY(i)+weights.getZ(i)+weights.getW(i)-1)<.00001);}}});
      assert.ok(meshCount>100);assert.ok(Number.isFinite(camera.projectionMatrix.elements[0]));
      assert.ok(geometries.size<meshCount/3,'footballers share geometry rather than allocating every joint');
    }
  }
- const context=vm.createContext({THREE:{...THREE,WebGLRenderer:Renderer},document:{createElement:canvas}});
+ const context=vm.createContext({THREE:{...THREE,WebGLRenderer:Renderer},AuraHumanMesh:require('../assets/models/footballer-mesh.js'),document:{createElement:canvas}});
  vm.runInContext(fs.readFileSync(path.join(__dirname,"..","match-presentation.js"),"utf8"),context);
  vm.runInContext(fs.readFileSync(path.join(__dirname,"..","match-graphics.js"),"utf8"),context);
  const make=id=>({id,name:id,players:Match.SHAPE.map((s,i)=>({id:id+i,name:id+i,pos:s[0],overall:80}))});

@@ -12,10 +12,10 @@
     // A little wider in transitional play and tighter in the final third.
     const dynamicFov=clamp(44+tracking*1.2-urgency*1.8,41.5,45.2);
     if(preview)return {position:[72,73,98],target:[0,0,-2],fov:44};
-    if(mode==='tactical')return {position:[look*.15,108,.1],target:[look*.15,0,0],fov:45};
+    if(mode==='tactical')return {position:[0,Math.max(108,140/Math.max(.4,aspect)),.1],target:[0,0,0],fov:45};
     if(mode==='wide')return {position:[look*.46,49*portrait,65*portrait],target:[look*.5,0,z*.18],fov:44};
-    if(mode==='tele'||mode==='replay')return {position:[look*.92-3,20*portrait,30*portrait+z*.46],target:[look*.96,.65,z*.77],fov:mode==='replay'?39:42};
-    return {position:[look*.9-4,26*portrait-urgency*1.3,37*portrait+z*.38],target:[look*.96,.35,z*.72],fov:dynamicFov};
+    if(mode==='tele'||mode==='replay')return {position:[look*.95-3,17.5*portrait,25*portrait+z*.58],target:[look*.98,.65,z*.80],fov:mode==='replay'?38:40};
+    return {position:[look*.94-3,22*portrait-urgency*.8,31*portrait+z*.45],target:[look*.98,.35,z*.76],fov:dynamicFov};
   }
   function smoothCamera(previous,desired,delta){
     if(!previous)return {position:desired.position.slice(),target:desired.target.slice(),fov:desired.fov};

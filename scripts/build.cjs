@@ -9,10 +9,10 @@ function addAssets(directory){
   for(const entry of fs.readdirSync(source,{withFileTypes:true})){
     const file=path.join(directory,entry.name);
     if(entry.isDirectory())addAssets(file);
-    else if(entry.isFile()&&/\.(svg|png|webp|json|txt)$/i.test(entry.name))files.push(file);
+    else if(entry.isFile()&&/\.(svg|png|jpe?g|webp|json|txt)$/i.test(entry.name))files.push(file);
   }
 }
-addAssets("assets/crests");
+addAssets("assets");
 fs.rmSync(out,{recursive:true,force:true});
 fs.mkdirSync(out,{recursive:true});
 for(const file of new Set(files)){
