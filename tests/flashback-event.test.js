@@ -54,7 +54,7 @@ test("Flashback match rewards exactly 70000 on win draw or loss, only with event
  assert.equal(U.reward(club,"ut:flashback:90",{home:1,away:0},"battles"),false);
  assert.equal(JSON.stringify(club),snapshot);
  assert.equal(U.reward(club,"ut:normal:91",{home:1,away:0},"battles"),1200);
- assert.equal(U.reward(club,"ut:argentina:92",{home:1,away:0},U.argentina.id),35000);
+ assert.equal(U.reward(club,"ut:argentina:92",{home:1,away:0},U.argentina.id),false);
 });
 test("Five cards cannot be forged, are not repriced by matchdays and cannot be bought twice",()=>{
  const club=U.create(pool());club.played=40;club.coins=4000000;
@@ -111,12 +111,12 @@ test("Flashback is only launched from its own UT screen, on both desktop and mob
  assert.match(css,/\.fb-card\{/);
  assert.match(css,/\.ut-shell \.ut-card\.flashback/);
  for(const html of [read("index.html"),read("mobile.html")]){
-  assert.match(html,/ultimate-team-61\.js/);
-  assert.match(html,/ultimate-ui-61\.js/);
+  assert.match(html,/ultimate-team-62\.js/);
+  assert.match(html,/ultimate-ui-62\.js/);
   assert.match(html,/flashback-event-v2\.js/);
   assert.match(html,/flashback-event-v2\.css/);
-  assert.ok(html.indexOf("ultimate-team-61.js")<html.indexOf("ultimate-ui-61.js"));
-  assert.ok(html.indexOf("ultimate-ui-61.js")<html.indexOf("flashback-event-v2.js"));
+  assert.ok(html.indexOf("ultimate-team-62.js")<html.indexOf("ultimate-ui-62.js"));
+  assert.ok(html.indexOf("ultimate-ui-62.js")<html.indexOf("flashback-event-v2.js"));
  }
  const context={AuraUT:U,AuraPortraits:{html:()=>'[RETRATO]'}};
  vm.createContext(context);vm.runInContext(read("flashback-event.js")+";globalThis.Flashback=AuraFlashbackEvent",context);

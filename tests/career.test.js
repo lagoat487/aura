@@ -21,7 +21,7 @@ function boot(saved, utUI = "ultimate-ui.js") {
     localStorage: { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value) },
     setTimeout() {}, clearTimeout() {},
   });
-  for (const file of ["clubs.js", "competitions.js", "world.js", "real-players.js", "world-tour.js", "roster-sync.js", "club-badges.js", "portraits.js", "squad.js", "champions.js", "ultimate-team.js", "ultimate-save.js", "progression.js", "negotiations.js", "loans.js", "career-ui.js", "progression-ui.js", "match-engine.js", "match-presentation.js", "match-graphics.js", "match-ui.js", "mode-knockout.js", "quick-rivalry.js", "evolution-ui.js", "street.js", "street-circuit.js", "pro-training.js", "tour-ui.js", utUI, "argentina-event.js", "career-continental.js", "game.js"]) {
+  for (const file of ["clubs.js", "competitions.js", "world.js", "real-players.js", "world-tour.js", "roster-sync.js", "club-badges.js", "portraits.js", "squad.js", "champions.js", "ultimate-team.js", "ultimate-save.js", "current-events.js", "progression.js", "negotiations.js", "loans.js", "career-ui.js", "progression-ui.js", "match-engine.js", "match-presentation.js", "match-graphics.js", "match-ui.js", "mode-knockout.js", "quick-rivalry.js", "evolution-ui.js", "street.js", "street-circuit.js", "pro-training.js", "tour-ui.js", utUI, "argentina-event.js", "career-continental.js", "game.js"]) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, "..", file), "utf8"), context, { filename: file });
   }
   return {
@@ -764,62 +764,33 @@ test("career loan buttons show fixed terms, confirmation and optional purchase w
  assert.equal(app.saved(),undefined,"career remains session-only");
 });
 
-test("Liga Argentina menu lists 8 cards and paid matches grant 35000 once without touching other modes",()=>{
+test("retired Argentina routes cannot start paid matches or spend coins",()=>{
  const app=boot();app.click({evoMode:"ultimate"});app.click({ut:"create"});
- app.click({utTab:"argentina"});
- const markup=app.html();
- assert.match(markup,/LIGA ARGENTINA/);
- assert.equal((markup.match(/class="arg-product"/g)||[]).length,8);
- assert.match(markup,/35.000/);
- app.run('AuraArena.preMatch=(home,away,options)=>{globalThis.argentinaMatch=options;globalThis.argentinaAway=away}');
- const before=app.run('AuraUTUI.getClub().coins');
- app.click({ut:"argentina-play",opponent:"boca"});
- assert.match(app.run('argentinaMatch.label'),/LIGA ARGENTINA/);
- assert.equal(app.run('argentinaAway.id'),"boca");
- assert.equal(app.run('AuraUTUI.getClub().coins'),before);
- app.run('argentinaMatch.onFinish({home:0,away:3})');
- assert.equal(app.run('AuraUTUI.getClub().coins'),before+35000);
- assert.equal(app.run('AuraUTUI.getClub().argentinaPlayed'),1);
- app.run('argentinaMatch.onFinish({home:0,away:3})');
- assert.equal(app.run('AuraUTUI.getClub().coins'),before+35000);
- app.click({ut:"argentina-play",opponent:"river"});
- assert.equal(app.run('argentinaAway.id'),"river");
- app.run('argentinaMatch.onFinish({home:2,away:2})');
- assert.equal(app.run('AuraUTUI.getClub().coins'),before+70000);
- assert.equal(app.run('AuraUTUI.getClub().argentinaPlayed'),2);
- assert.equal(app.run('AuraUTUI.getClub().argentinaEarned'),70000);
- assert.equal(app.run('AuraUTUI.getClub().divisionPoints'),0);
- assert.equal(app.run('AuraUTUI.getClub().battlePoints'),0);
- assert.equal(app.run('AuraUTSave.load(localStorage,new Set(Object.keys(AuraSquad.formations))).snapshot.tab'),"argentina");
+ const before=app.json('AuraUTUI.getClub()');
+ app.run('globalThis.argentinaStarts=0;AuraArena.preMatch=()=>argentinaStarts++');
+ app.click({utTab:"argentina"});assert.doesNotMatch(app.html(),/class="arg-product"|data-ut="argentina-play"/);
+ assert.match(app.html(),/EVENTOS<br><em>ACTUALES/);
+ app.click({ut:"argentina-play",opponent:"boca"});app.click({ut:"argentina-play",opponent:"river"});
+ app.click({ut:"argentina-buy",player:"argentina:enner-valencia"});
+ assert.equal(app.run('argentinaStarts'),0);assert.deepEqual(app.json('AuraUTUI.getClub()'),before);
 });
-test("Liga Argentina buying special cards preserves the starting XI and saved original players",()=>{
+test("previously purchased Argentina cards remain visible and usable in the club and starting XI",()=>{
  const app=boot();app.click({evoMode:"ultimate"});app.click({ut:"create"});
- app.click({utTab:"argentina"});app.run('AuraUTUI.getClub().coins=500000');
- const before=app.json('AuraUTUI.getClub().xi');
- const original=app.json('AuraUTUI.getClub().owned.map(p=>p.id)');
- app.click({ut:"argentina-buy",player:"argentina:enner-valencia"});
- assert.equal(app.run('AuraUTUI.getClub().coins'),80000);
- assert.ok(app.run('AuraUTUI.getClub().owned.some(p=>p.id==="argentina:enner-valencia")'));
- assert.deepEqual(app.json('AuraUTUI.getClub().xi'),before);
- assert.deepEqual(app.json('AuraUTUI.getClub().owned.slice(0,'+original.length+').map(p=>p.id)'),original);
- const snapshot=app.json('AuraUTUI.getClub()');
- app.click({ut:"argentina-buy",player:"argentina:enner-valencia"});
- assert.deepEqual(app.json('AuraUTUI.getClub()'),snapshot);
- assert.match(app.html(),/En tu club/);
+ app.run('const oldCard=AuraUT.argentinaCards(AuraUTUI.pool())[0];AuraUTUI.getClub().owned.push(oldCard);AuraUT.setPlayer(AuraUTUI.getClub(),9,oldCard.id);AuraUTUI.saveClub()');
+ const before=app.json('AuraUTUI.getClub()');
+ app.click({utTab:"club"});assert.match(app.html(),/ut-card argentina/);assert.match(app.html(),/Enner Valencia/);
+ app.click({utTab:"squad"});assert.match(app.html(),/ut-card argentina/);
+ assert.deepEqual(app.json('AuraUTUI.getClub()'),before);
+ assert.deepEqual(app.json('AuraUTSave.load(localStorage,new Set(Object.keys(AuraSquad.formations))).snapshot.club'),before);
 });
-
-test("Liga Argentina is discoverable from the first screen and preserves the UT club when re-entering",()=>{
- const app=boot();
- assert.match(app.html(),/data-evo="argentina-open"/);
- app.click({evo:"argentina-open"});
- assert.match(app.html(),/NUEVO EVENTO: LIGA ARGENTINA/);
- app.click({ut:"create"});
- app.click({ut:"lobby"});
- app.click({evo:"argentina-open"});
- assert.match(app.html(),/35.000 MONEDAS POR PARTIDO/);
- assert.equal((app.html().match(/class="arg-product"/g)||[]).length,8);
- assert.equal(app.run("AuraUTUI.getClub().coins"),10000);
- assert.equal(app.run('AuraUTSave.load(localStorage,new Set(Object.keys(AuraSquad.formations))).snapshot.tab'),"argentina");
+test("Argentina promotion is removed and an old lobby shortcut safely opens current events",()=>{
+ const app=boot();assert.doesNotMatch(app.html(),/data-evo="argentina-open"/);
+ app.click({evo:"argentina-open"});assert.doesNotMatch(app.html(),/NUEVO EVENTO: LIGA ARGENTINA/);
+ app.click({ut:"create"});const before=app.json('AuraUTUI.getClub()');
+ app.click({ut:"lobby"});app.click({evo:"argentina-open"});
+ assert.match(app.html(),/EVENTOS<br><em>ACTUALES/);assert.doesNotMatch(app.html(),/class="arg-product"/);
+ assert.deepEqual(app.json('AuraUTUI.getClub()'),before);
+ assert.equal(app.run('AuraUTSave.load(localStorage,new Set(Object.keys(AuraSquad.formations))).snapshot.tab'),"events");
 });
 
 test("Draft XI plays through four distinct knockout rounds and becomes champion without changing a club save",()=>{
@@ -881,7 +852,7 @@ test("main menu presents seven large independent mode cards instead of shared ta
  assert.equal((html.match(/data-evo-mode="/g)||[]).length,7);
  assert.match(html,/SIETE MODOS/);
  assert.doesNotMatch(html,/id="mode-content"/,"no mode can take over the hub until selected");
- assert.match(html,/data-evo="argentina-open"/,"existing special event stays reachable");
+ assert.doesNotMatch(html,/data-evo="argentina-open"/,"retired event stays out of the lobby");
 });
 test("every game mode gets its own full-width page, unique theme and a working back control",()=>{
  const app=boot();

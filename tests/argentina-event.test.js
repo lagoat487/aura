@@ -1,61 +1,58 @@
-"use strict";
-const test=require("node:test"),assert=require("node:assert/strict");
-const U=require("../ultimate-team"),Save=require("../ultimate-save"),Squad=require("../squad");
-const positions=["POR","LI","DFC","DFC","LD","MCD","MC","MC","EI","DC","ED","POR","DC","DFC","MC","EI","LD","MCO"];
-const pool=()=>["a","b","c"].flatMap(cid=>positions.map((pos,i)=>({id:cid+i,name:cid+i,pos,overall:72+i%9,real:true,club:cid,leagueId:"reference",nationality:"Argentina"})));
-test("Liga Argentina consists of exactly the eight specified cards and all prices stay in bounds",()=>{
-  const event=U.argentina,cards=U.argentinaCards(pool());
-  assert.equal(event.id,"liga-argentina");assert.equal(event.reward,35000);
-  assert.equal(cards.length,8);assert.equal(new Set(cards.map(p=>p.id)).size,8);
-  assert.deepEqual(cards.map(p=>[p.name,p.overall,U.price(p)]),[
-    ["Enner Valencia",89,420000],["Ángel Di María",88,390000],
-    ["Nicolás Otamendi",87,330000],["Leandro Paredes",90,500000],
-    ["Paulo Dybala",87,470000],["Marcos Acuña",87,340000],
-    ["Thiago Almada",87,315000],["Exequiel Palacios",87,325000]
-  ]);
-  assert.ok(cards.every(p=>p.real&&p.event===event.id&&U.price(p)>=300000&&U.price(p)<=500000));
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict');
+const U=require('../ultimate-team'),Save=require('../ultimate-save'),Squad=require('../squad');
+const forms=new Set(Object.keys(Squad.formations));
+const positions=['POR','LI','DFC','DFC','LD','MCD','MC','MC','EI','DC','ED','POR','DC','DFC','MC','EI','LD','MCO'];
+const pool=()=>['a','b','c'].flatMap(cid=>positions.map((pos,i)=>({id:cid+i,name:cid+i,pos,overall:72+i%9,real:true,club:cid,leagueId:'reference',nationality:'Argentina'})));
+function legacyClub(){
+ const u=U.create(pool()),cards=U.argentinaCards(pool());
+ u.owned.push(...cards.map(p=>({...p,tradeable:true})));u.coins=212345;u.purchases=8;
+ u.argentinaPlayed=3;u.argentinaWins=1;u.argentinaEarned=105000;
+ u.duplicates.push({...cards[2],uid:'old-argentina-duplicate',tradeable:true});
+ assert.equal(U.setPlayer(u,9,cards[0].id),true);return u;
+}
+test('retired Liga Argentina keeps all eight historical card definitions and prices for owned editions',()=>{
+ assert.equal(U.argentina.active,false);assert.ok(!U.activeEvents.some(e=>e.id===U.argentina.id));
+ assert.deepEqual(U.argentinaCards(pool()).map(p=>[p.name,p.overall,U.price(p)]),[
+  ['Enner Valencia',89,420000],['Ángel Di María',88,390000],['Nicolás Otamendi',87,330000],['Leandro Paredes',90,500000],
+  ['Paulo Dybala',87,470000],['Marcos Acuña',87,340000],['Thiago Almada',87,315000],['Exequiel Palacios',87,325000]
+ ]);
 });
-test("purchase checks exact event edition, debit only once and leave original collection untouched",()=>{
-  const u=U.create(pool()),p=U.argentinaCards(pool())[0];
-  const before=u.owned.map(x=>x.id),xi=u.xi.slice();u.coins=500000;
-  assert.equal(U.marketPrice({...u,played:88},p),420000);
-  const result=U.buy(u,p);assert.equal(result.ok,true);assert.equal(result.cost,420000);
-  assert.equal(u.coins,80000);assert.equal(u.owned.filter(q=>q.id===p.id).length,1);
-  assert.deepEqual(u.xi,xi);assert.deepEqual(u.owned.slice(0,before.length).map(q=>q.id),before);
-  const snap=JSON.stringify(u);assert.ok(U.buy(u,p).error);assert.equal(JSON.stringify(u),snap);
-  assert.equal(U.evolutionCost(p),null);
-  assert.ok(U.buy(u,{...p,id:"argentina:fake",overall:99}).error);
+test('new purchases and forged legacy card requests cannot mutate the retired-event club',()=>{
+ for(const api of [U,require('../ultimate-team-61'),require('../ultimate-team-62')]){
+  const u=legacyClub(),before=structuredClone(u);
+  for(const card of api.argentinaCards(pool()))for(const changes of [{},{event:undefined},{id:'argentina:fake',overall:99}]){
+   assert.match(api.buy(u,{...card,...changes}).error,/ha finalizado/);assert.deepEqual(u,before);
+  }
+ }
 });
-test("completed win, draw and loss each reward exactly 35000 only in this event",()=>{
- const u=U.create(pool()),before=u.coins,battle=u.battlePoints,division=u.divisionPoints;
- const scores=[[3,0],[1,1],[0,2]];
- scores.forEach(([home,away],i)=>{
-   const token="ut:argentina:"+(i+1);
-   assert.equal(U.reward(u,token,{home,away},U.argentina.id),35000);
-   const same=JSON.stringify(u);
-   assert.equal(U.reward(u,token,{home,away},U.argentina.id),false);
-   assert.equal(JSON.stringify(u),same);
- });
- assert.equal(u.coins,before+105000);
- assert.equal(u.argentinaPlayed,3);assert.equal(u.argentinaWins,1);assert.equal(u.argentinaEarned,105000);
- assert.equal(u.battlePoints,battle);assert.equal(u.divisionPoints,division);
- assert.deepEqual([u.wins,u.draws,u.losses],[1,1,1]);
- assert.equal(U.reward(u,"ut:argentina:bad",{home:0,away:0},U.argentina.id),false);
- assert.equal(U.reward(u,"ut:argentina:4",{home:-1,away:0},U.argentina.id),false);
+test('retired event match rewards and disguised Argentina tokens leave all balances and past results unchanged',()=>{
+ for(const api of [U,require('../ultimate-team-61'),require('../ultimate-team-62')]){
+  const u=legacyClub(),before=structuredClone(u);
+  for(const mode of [api.argentina.id,'battles','divisions',api.flashback.id])for(const score of [{home:3,away:0},{home:1,away:1},{home:0,away:2}]){
+   assert.equal(api.reward(u,'ut:argentina:9',score,mode),false);assert.deepEqual(u,before);
+  }
+  assert.equal(api.reward(u,'ut:10',{home:1,away:0},api.argentina.id),false);assert.deepEqual(u,before);
+ }
 });
-test("normal modes never receive the event reward, and existing Sigma prices remain unchanged",()=>{
-  const u=U.create(pool());
-  assert.equal(U.reward(u,"ut:1",{home:1,away:0},"battles"),1200);
-  assert.equal(U.reward(u,"ut:2",{home:1,away:0},"divisions"),1200);
-  const sigma=U.eventCards(pool()).find(p=>p.id==="sigma:rashford");
-  assert.equal(U.price(sigma),450000);
+test('owned cards, duplicates, XI, reserves, coins and statistics survive old and checked saves after retirement',()=>{
+ const u=legacyClub(),before=structuredClone(u),old={version:2,club:u,tab:'argentina',matchToken:8};
+ const payload=JSON.stringify(old),checked=JSON.stringify({format:Save.FORMAT,version:2,payload,checksum:Save.hash(payload)});
+ for(const api of [Save,require('../ultimate-save-61'),require('../ultimate-save-62')])for(const raw of [JSON.stringify({...old,version:1}),JSON.stringify(old),checked]){
+  const state=api.unpack(raw,forms);assert.ok(state);assert.equal(state.tab,'events');assert.equal(state.matchToken,8);
+  assert.deepEqual(state.club,before);assert.equal(state.club.xi[9],'argentina:enner-valencia');
+  assert.ok(U.bench(state.club).some(p=>p.event===U.argentina.id));assert.equal(U.price(state.club.owned.find(p=>p.id==='argentina:leandro-paredes')),500000);
+  const storage=new Map(),adapter={getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)};
+  assert.equal(api.save(adapter,state,forms),true);assert.deepEqual(api.load(adapter,forms).snapshot,state);
+  assert.deepEqual(api.importData(api.exportData(state,forms),forms),state);
+ }
+ assert.deepEqual(u,before);
 });
-test("event card, coins, earned totals and selected event tab survive a verified save/restore",()=>{
-  const u=U.create(pool()),card=U.argentinaCards(pool())[2];u.coins=400000;
-  assert.equal(U.buy(u,card).ok,true);
-  U.reward(u,"ut:argentina:8",{home:0,away:2},U.argentina.id);
-  const state={version:2,club:u,tab:"argentina",matchToken:8};
-  const restored=Save.unpack(Save.pack(state,new Set(Object.keys(Squad.formations))),new Set(Object.keys(Squad.formations)));
-  assert.deepEqual(restored,state);
-  assert.equal(restored.club.owned.find(p=>p.id===card.id).overall,87);
+test('normal modes and the other live events remain available after Argentina retirement',()=>{
+ const u=U.create(pool());u.coins=2000000;
+ assert.equal(U.reward(u,'ut:1',{home:1,away:0},'battles'),1200);
+ assert.equal(U.reward(u,'ut:2',{home:1,away:0},'divisions'),1200);
+ assert.equal(U.reward(u,'ut:flashback:3',{home:0,away:1},U.flashback.id),70000);
+ assert.equal(U.buy(u,U.murallaCards(pool())[0]).ok,true);
+ assert.equal(U.buy(u,U.magiaCards(pool())[0]).ok,true);
 });

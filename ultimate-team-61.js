@@ -51,7 +51,7 @@
     {id:"sigma:salah",name:"Mohamed Salah",overall:89,pos:"ED",price:580000,nationality:"Egipto",sourceClub:"Liverpool"}
   ])});
   // AURA fantasy event: player selection and ratings are not official league rosters.
-  const argentina=Object.freeze({id:"liga-argentina",name:"LIGA ARGENTINA",reward:35000,cards:Object.freeze([
+  const argentina=Object.freeze({id:"liga-argentina",name:"LIGA ARGENTINA",active:false,reward:35000,cards:Object.freeze([
     {id:"argentina:enner-valencia",name:"Enner Valencia",overall:89,pos:"DC",price:420000,nationality:"Ecuador"},
     {id:"argentina:angel-di-maria",name:"Ángel Di María",overall:88,pos:"ED",price:390000,nationality:"Argentina"},
     {id:"argentina:nicolas-otamendi",name:"Nicolás Otamendi",overall:87,pos:"DFC",price:330000,nationality:"Argentina"},
@@ -120,7 +120,7 @@
     {id:"barcelona:bisiwu",name:"Jesse Bisiwu",overall:85,pos:"EI",price:300000,nationality:"Bélgica",playerId:"88043",aliases:["Jesse Eugen Bisiwu"]},
     {id:"barcelona:hamza",name:"Hamza Abdelkarim",overall:85,pos:"DC",price:300000,nationality:"Egipto",playerId:"86106",aliases:["Hamza Mohamed Abdelkarim Elsayed Selim"]}
   ])});
-  const activeEvents=Object.freeze([magia,barcelona,muralla,flashback,argentina]);
+  const activeEvents=Object.freeze([magia,barcelona,muralla,flashback]);
   function magiaCards(pool=[]){
     const available=Array.isArray(pool)?pool:[];
     return magia.cards.map(def=>{
@@ -318,6 +318,7 @@
     if((player.event===barcelona.id||String(player.id).startsWith("barcelona:"))&&
       (player.event!==barcelona.id||!barcelona.cards.some(p=>p.id===player.id&&p.name===player.name&&p.overall===player.overall&&p.pos===player.pos)))
       return {error:"Carta FC Barcelona no disponible."};
+    if(player.event===argentina.id||String(player.id).startsWith("argentina:"))return {error:"El evento Liga Argentina ha finalizado."};
     if(player.event===sigma.id||String(player.id).startsWith("sigma:"))return {error:"El evento Ultimate Sigma ha finalizado."};
     if((player.event===muralla.id||String(player.id).startsWith("muralla:"))&&
       (player.event!==muralla.id||!muralla.cards.some(p=>p.id===player.id&&p.name===player.name&&p.overall===player.overall&&p.pos===player.pos)))
@@ -374,21 +375,15 @@
   function reward(u,token,result,mode='battles',difficulty=1){
     if(mode===flashback.id&&!(typeof token==="string"&&/^ut:flashback:\d+$/.test(token)))return false;
     if(typeof token==="string"&&token.startsWith("ut:flashback:")&&mode!==flashback.id)return false;
-    if(mode===argentina.id&&!(typeof token==="string"&&/^ut:argentina:\d+$/.test(token)))return false;
+    if(mode===argentina.id||typeof token==="string"&&token.startsWith("ut:argentina:"))return false;
     if(u.claimed.includes(token)||!Number.isInteger(result?.home)||!Number.isInteger(result?.away)||result.home<0||result.away<0)return false;
     u.claimed.push(token);u.played++;const won=result.home>result.away,drew=result.home===result.away;u[won?'wins':drew?'draws':'losses']++;
     const flashbackMatch=mode===flashback.id&&typeof token==="string"&&/^ut:flashback:\d+$/.test(token);
-    const argentinaMatch=mode===argentina.id&&typeof token==="string"&&/^ut:argentina:\d+$/.test(token);
-    const coins=flashbackMatch?flashback.reward:argentinaMatch?argentina.reward:won?1200:drew?600:350;u.coins+=coins;
+    const coins=flashbackMatch?flashback.reward:won?1200:drew?600:350;u.coins+=coins;
     if(flashbackMatch){
       u.flashbackPlayed=(u.flashbackPlayed||0)+1;
       u.flashbackWins=(u.flashbackWins||0)+(won?1:0);
       u.flashbackEarned=(u.flashbackEarned||0)+coins;
-    }
-    if(argentinaMatch){
-      u.argentinaPlayed=(u.argentinaPlayed||0)+1;
-      u.argentinaWins=(u.argentinaWins||0)+(won?1:0);
-      u.argentinaEarned=(u.argentinaEarned||0)+coins;
     }
     if(mode==='battles')u.battlePoints+=Math.round((won?900:drew?450:250)*difficulty)+Math.min(5,result.home)*40;
     if(mode==='divisions'){u.divisionPoints+=won?3:drew?1:0;if(u.divisionPoints>=9&&u.division>1){u.division--;u.divisionPoints-=9;u.coins+=1500;}}

@@ -42,7 +42,7 @@ const AuraEvolution=(()=>{
     ["draft","03","DRAFT XI","ONCE ELECCIONES. UN TROFEO.","Elige 11 futbolistas y pelea en un torneo de cuatro eliminatorias.","Fichajes fantasy · Eliminatorias","🃏"],
     ["pro","04","CARRERA DE JUGADOR","TU NOMBRE EN LA CAMISETA","Controla a tu futbolista, suma minutos y haz historia.","Tu jugador · Experiencia · Goles","🌟"],
     ["cup","05","COPAS Y SELECCIONES","EL MUNDO EN JUEGO","Juega octavos, cuartos, semifinales y finales internacionales.","Champions · Libertadores · Mundial","🏆"],
-    ["ultimate","06","ULTIMATE TEAM","TU CLUB. TUS CARTAS.","Colecciona, mejora tu once y juega los eventos especiales.","Mercado · Sobres · Liga Argentina","💎"],
+    ["ultimate","06","ULTIMATE TEAM","TU CLUB. TUS CARTAS.","Colecciona, mejora tu once y juega los eventos especiales.","Mercado · Sobres · Eventos","💎"],
     ["street","07","CALLE / VOLTA","LA CALLE ES TU ESTADIO","Partidos rápidos de tres contra tres: ritmo, técnica y espectáculo.","3 contra 3 · Fútbol urbano","🔥"]
   ];
   const savedFormations=typeof AuraQuickFormations!=="undefined"&&typeof localStorage!=="undefined"
@@ -156,7 +156,7 @@ const AuraEvolution=(()=>{
       '<button class="btn" data-evo="hero-start">EXPLORAR MODOS ↓</button>'+
       (recent?'<button class="btn" data-evo="mode-resume">↗ VOLVER A '+recent[2]+'</button>':'')+
       '<button class="btn" data-evo="skill-open">🎯 CENTRO DE ENTRENAMIENTO</button></div>'+
-      '<div class="aura60-live-strip"><div><span>EN ULTIMATE TEAM</span><strong>EVENTOS ACTUALES. TUS COLORES.</strong></div><div class="aura60-event-shortcuts"><button data-evo="magia-open">✧ MAGIA</button><button data-evo="barcelona-open">🔵🔴 BARÇA</button><button data-evo="muralla-open">◈ MURALLA</button><button data-evo="flashback-open">✦ FLASHBACK</button><button data-evo="argentina-open">🇦🇷 LIGA ARGENTINA</button></div></div>'+
+      '<div class="aura60-live-strip"><div><span>EN ULTIMATE TEAM</span><strong>EVENTOS ACTUALES. TUS COLORES.</strong></div><div class="aura60-event-shortcuts"><button data-evo="magia-open">✧ MAGIA</button><button data-evo="barcelona-open">🔵🔴 BARÇA</button><button data-evo="muralla-open">◈ MURALLA</button><button data-evo="flashback-open">✦ FLASHBACK</button></div></div>'+
       '<div class="aura-mode-home-metrics"><span><strong>07</strong> MODOS</span>'+
       '<span><strong>'+(loaded?Number(stats.clubs||0).toLocaleString("es-ES"):'11×11')+'</strong> CLUBES O JUGADORES</span>'+
       '<span><strong>3D</strong> PARTIDOS JUGABLES</span></div></section>'+modeTabs();
@@ -523,7 +523,7 @@ const AuraEvolution=(()=>{
     if(d.evo==="argentina-open"){
       mode="ultimate";modeOpen=true;recentMode="ultimate";lobby=true;
       try{localStorage.setItem("aura-recent-mode-v1","ultimate");}catch{}
-      if(!AuraUTUI.openArgentinaEvent())render();
+      AuraUTUI.handleClick({dataset:{utTab:"events"}});
       return true;
     }
     if(d.evo==="hero-start"){

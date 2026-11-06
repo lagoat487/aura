@@ -11,9 +11,9 @@ test("Mobile and canonical entries load practice and match preferences before de
   assert.match(html,/match-ui-92\.js\?v=9\.2-field/);
   assert.match(html,/quick-formations\.js\?v=7\.6/);
   assert.match(html,/quick-formations\.css\?v=7\.4/);
-  assert.ok(html.indexOf("skill-games.js")<html.indexOf("evolution-ui-92.js"));
+  assert.ok(html.indexOf("skill-games.js")<html.indexOf("evolution-ui-93.js"));
   assert.ok(html.indexOf("match-preferences-92.js")<html.indexOf("match-ui-92.js"));
-  assert.ok(html.indexOf("quick-formations.js")<html.indexOf("evolution-ui-92.js"));
+  assert.ok(html.indexOf("quick-formations.js")<html.indexOf("evolution-ui-93.js"));
  }
 });
 test("Match setup exposes four real presets and saves only after confirmed kickoff",()=>{

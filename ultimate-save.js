@@ -2,7 +2,7 @@
 (function(root,factory){const api=factory();if(typeof module==="object"&&module.exports)module.exports=api;else root.AuraUTSave=api;})(typeof globalThis!=="undefined"?globalThis:this,function(){
   "use strict";
   const KEY="aura-ultimate-team-v1",BACKUP_KEY="aura-ultimate-team-backup-v1",FORMAT="aura-ut-backup",MAX_BYTES=3_000_000;
-  const allowedTabs=new Set(["home","events","magia","squad","play","store","market","sbc","objectives","club","argentina","flashback","muralla","barcelona","evolutions","backup"]);
+  const allowedTabs=new Set(["home","events","magia","squad","play","store","market","sbc","objectives","club","flashback","muralla","barcelona","evolutions","backup"]);
   const formations=new Set(["4-3-3","4-4-2","4-2-3-1","4-3-2-1","4-1-2-1-2","3-5-2","5-3-2","4-5-1"]);
   const array=a=>Array.isArray(a);
   const integer=n=>Number.isSafeInteger(n)&&n>=0;
@@ -47,7 +47,7 @@
   }
   function normalize(session,allowedFormations=formations){
     if(!session||typeof session!=="object"||![1,2].includes(session.version)||!validClub(session.club,allowedFormations))return null;
-    return {version:2,club:session.club,tab:allowedTabs.has(session.tab)?session.tab:"home",matchToken:integer(session.matchToken)?session.matchToken:0};
+    return {version:2,club:session.club,tab:session.tab==="argentina"?"events":allowedTabs.has(session.tab)?session.tab:"home",matchToken:integer(session.matchToken)?session.matchToken:0};
   }
   function hash(data){
     let h=2166136261;

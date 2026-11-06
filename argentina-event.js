@@ -14,6 +14,7 @@ const AuraArgentinaEvent=(()=>{
       '<div class="arg-card-footer">EDICIÓN ESPECIAL · AZUL Y BLANCO</div></div>';
   }
   function view(club,pool){
+    if(U.argentina.active===false)return '<p>El evento Liga Argentina ha finalizado. Tus cartas siguen en Mi club.</p>';
     const cards=U.argentinaCards(pool);
     const played=club.argentinaPlayed||0,wins=club.argentinaWins||0,earned=club.argentinaEarned||0;
     return '<section class="arg-event">'+

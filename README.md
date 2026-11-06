@@ -1,5 +1,7 @@
 # AURA 27 / VISION 9.2
 
+**Liga Argentina finalizada:** el evento deja de aparecer en el inicio y en Eventos actuales. No admite compras ni partidos nuevos. Las cartas ya adquiridas, incluidos titulares, suplentes y duplicados, mantienen su identidad, media, diseño y valor. Los guardados y respaldos antiguos siguen siendo válidos; una pestaña guardada del evento abre Eventos actuales sin cambiar el club.
+
 **VISION 9.2 — cámara inmersiva:** nueva vista a ras de campo, controles relativos a la pantalla con teclado, joystick táctil y mandos; sombras direccionales en el modo compatible, porteros que inclinan el cuerpo al lanzarse, recorte del terreno al acercarse a la cámara y detalle de tejido y briznas en WebGL Alto/Ultra. Selecciona **⚽ A ras de campo** o **✦ AURA VISION · Máximo** antes del partido. Cámaras de TV, Tele, Panorámica y Táctica continúan disponibles con C. Detalles y límites: [docs/vision-9.2.md](docs/vision-9.2.md).
 
 **Motor de jugadores y materiales — revisión 9.1:** el partido usa ahora una malla humana de 13.660 vértices y 27.228 triángulos, con manos y rostro modelados, en lugar del cuerpo compuesto por primitivas. El modo compatible dibuja animaciones renderizadas desde esa misma malla. Se incorporan césped fotográfico, textura de público y cámaras más cercanas. Captura real, fuentes y límites: [docs/human-engine.md](docs/human-engine.md).
