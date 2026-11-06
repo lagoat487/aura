@@ -289,7 +289,7 @@ function goToModes(){lobby=true;AuraEvolution.setMode("hub");closeModal();render
 function render(){
  AuraEvolution.stopPreview();const inLobby=lobby||!state,active=inLobby?"modes":screen;
  $("topnav").innerHTML=nav.map(([id,label])=>'<button class="'+(active===id?'active':'')+'" '+(active===id?'aria-current="page" ':'')+'data-nav="'+id+'">'+label+'</button>').join("");
- $("header-profile").innerHTML=state?'<strong>'+safeText(myClub().name)+'</strong>Jornada '+state.round+' · '+money(state.budget):'<strong>AURA 6.0</strong>Tu próxima gran historia';
+ $("header-profile").innerHTML=state?'<strong>'+safeText(myClub().name)+'</strong>Jornada '+state.round+' · '+money(state.budget):'<strong>AURA VISION 9.0</strong>Tu próxima gran historia';
  $("app").innerHTML=inLobby?(state?'<div class="resume-career"><span>Tu carrera sigue abierta.</span><button class="btn small" data-nav="career">Continuar carrera →</button></div>':'')+renderWelcome():({home:renderDashboard,career:renderDashboard,squad:renderSquad,market:renderMarket,calendar:renderCalendar,academy:renderAcademy,table:renderTable,champions:AuraContinental.render,tour:AuraTourUI.careerHub,pro:AuraTourUI.playerHub}[active]||renderDashboard)();
  AuraEvolution.afterRender();AuraTourUI.afterRender();
 }

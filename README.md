@@ -1,4 +1,6 @@
-# AURA 27 / Club Update 4.1
+# AURA 27 / VISION 9.0
+
+**VISION 9.0 — actualización gráfica del partido:** jugadores con esqueleto animado, césped con textura de fibras, líneas con grosor real, público denso, porterías y balón renovados, iluminación revisada y presentación de televisión en azul, cian y violeta. En la preparación del partido elige **✦ AURA VISION · Máximo** para activar Ultra y cámara TV. También se actualiza el modo compatible sin WebGL. Detalles y límites de verificación: [docs/vision-9.0.md](docs/vision-9.0.md).
 
 **Matchday 4.2 — partidos:** cámaras de TV y Tele más cercanas, campo con textura, futbolistas articulados con dorsales, animaciones de golpeo y portero, aceleración y frenado, rebotes en los palos, marcador compacto, sonido de estadio y repeticiones cortas de goles. Se aplica al motor de partidos compartido por los modos existentes. Alcance y validación: [docs/matchday.md](docs/matchday.md).
 

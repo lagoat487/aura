@@ -12,12 +12,13 @@
   fast:Object.freeze({seconds:120,difficulty:1,stadium:"day",weather:"clear",quality:"low",camera:"wide"}),
   classic:Object.freeze({seconds:180,difficulty:1,stadium:"night",weather:"clear",quality:"medium",camera:"broadcast"}),
   epic:Object.freeze({seconds:480,difficulty:1.16,stadium:"sunset",weather:"clear",quality:"high",camera:"tele"}),
+  vision:Object.freeze({seconds:180,difficulty:1,stadium:"night",weather:"clear",quality:"ultra",camera:"broadcast"}),
   default:DEFAULTS
  });
  const choices=Object.freeze({
   seconds:[120,180,300,480],difficulty:[.68,.82,1,1.16,1.34],
   stadium:["night","sunset","day"],weather:["clear","rain"],
-  quality:["low","medium","high"],camera:["broadcast","tele","wide","tactical"],
+  quality:["low","medium","high","ultra"],camera:["broadcast","tele","wide","tactical"],
   sound:[true,false],localTwoPlayer:[true,false]
  });
  function valid(data){

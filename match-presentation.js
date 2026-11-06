@@ -6,7 +6,7 @@
   function appearance(p){const n=hash(p.id);return {skin:['#c6926c','#9a6547','#e2b28b','#754a34','#c9a17d','#573b2d'][n%6],hair:['#201c19','#34271e','#191c20','#72513a'][n%4],height:1.74+(n%18)/100,build:.94+(n%12)/100,hairStyle:n%4};}
   function cameraFrame(game,mode='broadcast',aspect=16/9,preview=false){
     const b=game?.ball||{},x=clamp(finite(b.x),-53,53),z=clamp(finite(b.z),-35,35),vx=clamp(finite(b.vx),-35,35);
-    const look=clamp(x+vx*.16,-45,45),portrait=aspect<1?1.32:aspect<1.3?1.12:1;
+    const look=clamp(x+vx*.18,-46,46),portrait=aspect<1?1.52:aspect<1.3?1.17:1;
     const urgency=clamp((Math.abs(x)-24)/27,0,1);
     const tracking=clamp(Math.abs(vx)/35,0,1);
     // A little wider in transitional play and tighter in the final third.
@@ -14,8 +14,8 @@
     if(preview)return {position:[72,73,98],target:[0,0,-2],fov:44};
     if(mode==='tactical')return {position:[look*.15,108,.1],target:[look*.15,0,0],fov:45};
     if(mode==='wide')return {position:[look*.46,49*portrait,65*portrait],target:[look*.5,0,z*.18],fov:44};
-    if(mode==='tele'||mode==='replay')return {position:[look*.88,22*portrait,32*portrait+z*.3],target:[look*.91,.65,z*.63],fov:mode==='replay'?41:43};
-    return {position:[look*.83,30*portrait-urgency*1.2,42*portrait+z*.24],target:[look*.86,.35,z*.56],fov:dynamicFov};
+    if(mode==='tele'||mode==='replay')return {position:[look*.92-3,20*portrait,30*portrait+z*.46],target:[look*.96,.65,z*.77],fov:mode==='replay'?39:42};
+    return {position:[look*.9-4,26*portrait-urgency*1.3,37*portrait+z*.38],target:[look*.96,.35,z*.72],fov:dynamicFov};
   }
   function smoothCamera(previous,desired,delta){
     if(!previous)return {position:desired.position.slice(),target:desired.target.slice(),fov:desired.fov};

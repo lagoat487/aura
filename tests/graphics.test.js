@@ -1,16 +1,17 @@
 "use strict";
 const test=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("node:vm"),path=require("node:path");
 const THREE=require("../vendor/three.min.js"),Match=require("../match-engine");
-test("WebGL scene construction produces finite stadium and player geometry in all three quality settings",()=>{
- const context2d={fillRect(){},fillText(){},clearRect(){}};
+test("WebGL scene construction produces finite stadium and player geometry in all four quality settings",()=>{
+ const gradient={addColorStop(){}};
+ const context2d=new Proxy({createLinearGradient:()=>gradient,createRadialGradient:()=>gradient},{get:(o,k)=>k in o?o[k]:()=>{}});
  const canvas=()=>({width:1,height:1,getContext:()=>context2d,setAttribute(){},remove(){}});
- let renders=0;
+ let renders=0,latestScene=null;
  class Renderer{
    constructor(){this.domElement=canvas();this.shadowMap={};this.capabilities={getMaxAnisotropy:()=>4};}
    setPixelRatio(){}setSize(){}dispose(){}forceContextLoss(){}
    render(scene,camera){
-     renders++;scene.updateMatrixWorld(true);camera.updateMatrixWorld(true);
-     let meshCount=0;const geometries=new Set();scene.traverse(o=>{if(o.isMesh){meshCount++;geometries.add(o.geometry);const array=o.geometry.attributes.position?.array;assert.ok(!array||array.every(Number.isFinite));assert.ok(o.position.toArray().every(Number.isFinite));assert.ok(o.scale.toArray().every(Number.isFinite));}});
+     renders++;this.scene=scene;latestScene=scene;scene.updateMatrixWorld(true);camera.updateMatrixWorld(true);
+     let meshCount=0;const geometries=new Set();scene.traverse(o=>{if(o.isMesh){meshCount++;geometries.add(o.geometry);const array=o.geometry.attributes.position?.array;assert.ok(!array||array.every(Number.isFinite));assert.ok(o.position.toArray().every(Number.isFinite));assert.ok(o.scale.toArray().every(Number.isFinite));if(o.isSkinnedMesh){o.skeleton.update();assert.ok(o.skeleton.boneMatrices.every(Number.isFinite));const weights=o.geometry.attributes.skinWeight;for(let i=0;i<weights.count;i++)assert.ok(Math.abs(weights.getX(i)+weights.getY(i)+weights.getZ(i)+weights.getW(i)-1)<.00001);}}});
      assert.ok(meshCount>100);assert.ok(Number.isFinite(camera.projectionMatrix.elements[0]));
      assert.ok(geometries.size<meshCount/3,'footballers share geometry rather than allocating every joint');
    }
@@ -21,12 +22,14 @@ test("WebGL scene construction produces finite stadium and player geometry in al
  const make=id=>({id,name:id,players:Match.SHAPE.map((s,i)=>({id:id+i,name:id+i,pos:s[0],overall:80}))});
  context.game=Match.create({home:make("home"),away:make("away"),seed:48});
  context.container={clientWidth:1280,clientHeight:720,appendChild(){}};
- for(const quality of ["low","medium","high"]){
+ for(const quality of ["low","medium","high","ultra"]){
    context.quality=quality;
-   const point=vm.runInContext('(()=>{const graphics=AuraGraphics.create(container,{quality,stadium:quality==="high"?"day":"night"});let now=100;for(const cam of ["broadcast","tele","wide","tactical","replay"]){game.players[9].action="shoot";game.players[9].actionTime=.2;game.players[9].actionDuration=.4;graphics.render(game,cam,now+=100);}for(const action of ["save","parry","dive","smother"]){Object.assign(game.players[11],{action,actionTime:.35,actionDuration:.7,diveSide:-1,saveHeight:action==="dive"?2.7:.3});graphics.render(game,"tele",now+=100);}game.players[9].id="substitute";game.players[9].name="Fresh substitute";graphics.render(game,"broadcast",now+100);const p=graphics.project(game.players[9]);graphics.dispose();return p;})()',context);
+   const point=vm.runInContext('(()=>{const graphics=AuraGraphics.create(container,{quality,stadium:quality==="high"?"day":"night"});let now=100;for(const cam of ["broadcast","tele","wide","tactical","replay"]){game.players[9].action="shoot";game.players[9].actionTime=.2;game.players[9].actionDuration=.4;graphics.render(game,cam,now+=100);}for(const action of ["save","parry","dive","smother"]){Object.assign(game.players[11],{action,actionTime:.35,actionDuration:.7,diveSide:-1,saveHeight:action==="dive"?2.7:.3});graphics.render(game,"tele",now+=100);}game.players[9].id="substitute:"+quality;game.players[9].name="Fresh substitute";graphics.render(game,"broadcast",now+100);game.ball.vx=12;game.visualTime=2;graphics.render(game,"broadcast",now+150);const ball=graphics.renderer.scene.getObjectByName("match-ball"),rotation=ball.rotation.z;graphics.render(game,"broadcast",now+200);if(ball.rotation.z!==rotation)throw Error("A paused ball must not keep spinning");const p=graphics.project(game.players[9]);graphics.dispose();return p;})()',context);
    assert.ok(Number.isFinite(point.x)&&Number.isFinite(point.y));
+   assert.equal(latestScene.children.filter(o=>o.name.startsWith("player:")).length,22,"substitutions remove the previous actor from the scene");
+   assert.equal(latestScene.getObjectsByProperty("isSkinnedMesh",true).length,22);
  }
- assert.equal(renders,30);
+ assert.equal(renders,48);
 });
 test('compatible renderer draws finite frames for portrait and landscape, every camera and action, and releases its canvas',()=>{
  let draws=0,removed=0;
@@ -39,7 +42,7 @@ test('compatible renderer draws finite frames for portrait and landscape, every 
  context.game=Match.create({home:make('home'),away:make('away'),seed:48});
  for(const [w,h] of [[1280,720],[430,844],[844,390]]){
   context.container={clientWidth:w,clientHeight:h,appendChild(){}};
-  const point=vm.runInContext(`(()=>{const graphics=AuraSoftwareGraphics.create(container,{quality:'medium'});let now=0;for(const cam of ['broadcast','tele','wide','tactical','replay'])for(const action of ['shoot','save','celebrate','tackle','parry','dive','smother']){const p=game.players[['save','parry','dive','smother'].includes(action)?11:9];Object.assign(p,{action,actionTime:.2,actionDuration:.4,diveSide:1,saveHeight:action==='dive'?2.7:.3});graphics.render(game,cam,now+=100);}const p=graphics.project(game.players[9]);graphics.dispose();graphics.render(game,'broadcast',now+200);return p;})()`,context);
+  const point=vm.runInContext(`(()=>{const graphics=AuraSoftwareGraphics.create(container,{quality:'medium'});let now=0;for(const cam of ['broadcast','tele','wide','tactical','replay'])for(const action of ['shoot','save','celebrate','tackle','parry','dive','smother']){const p=game.players[['save','parry','dive','smother'].includes(action)?11:9];Object.assign(p,{action,actionTime:.2,actionDuration:.4,diveSide:1,saveHeight:action==='dive'?2.7:.3});graphics.render(game,cam,now+=100);}const p=graphics.project(game.players[9]);graphics.dispose();graphics.render(game,"broadcast",now+200);return p;})()`,context);
   assert.ok(Number.isFinite(point.x)&&Number.isFinite(point.y));
  }
  assert.ok(draws>1000);assert.equal(removed,3);

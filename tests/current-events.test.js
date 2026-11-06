@@ -59,7 +59,7 @@ test("new and legacy saved event tabs keep club inventory, gift and SBC progress
  assert.deepEqual(legacy.club,old);assert.equal(legacy.tab,"barcelona");
 });
 test("both production entries ship the new theme last and the hub before its controller",()=>{
- for(const file of ["index.html","mobile.html"]){const html=read(file);assert.match(html,/<title>AURA 6\.0/);assert.ok(html.indexOf("aura-6.css")>html.indexOf("mobile-mode.css"));assert.ok(html.indexOf("magia-event.css")>html.indexOf("aura-6.css"));assert.ok(html.indexOf("current-events-61.js")<html.indexOf("ultimate-ui-61.js"));}
+ for(const file of ["index.html","mobile.html"]){const html=read(file);assert.match(html,/<title>AURA 27 · VISION 9\.0/);assert.ok(html.indexOf("aura-6.css")>html.indexOf("mobile-mode.css"));assert.ok(html.indexOf("magia-event.css")>html.indexOf("aura-6.css"));assert.ok(html.indexOf("match-vision.css")>html.indexOf("magia-event.css"));assert.ok(html.indexOf("current-events-61.js")<html.indexOf("ultimate-ui-61.js"));}
  for(const ext of ["js","css"])assert.equal(read("barcelona-event."+ext),read("barcelona-event-6."+ext));
  for(const name of ["ultimate-team","ultimate-ui","ultimate-save","evolution-ui","game"])assert.equal(read(name+".js"),read(name+(name==="game"?"-6.js":"-61.js")));
 });
