@@ -26,14 +26,15 @@ function boot(options={}){
   if(id)nodes.set(id,n);return n;
  }
  const home={id:'home',name:'Home FC',players:Match.SHAPE.map((s,i)=>({id:'home'+i,name:'Local '+i,pos:s[0],overall:80})),bench:options.bench||[]},away={...home,id:'away',name:'Away FC',players:home.players.map((p,i)=>({...p,id:'away'+i,name:'Rival '+i})),bench:[]};
- const graphics={kits:[['#bb2233'],['#eeeedd']],render:g=>{lastView=g;},project:()=>({visible:true,x:100,y:100}),dispose(){}};
+ const graphics={kits:[['#bb2233'],['#eeeedd']],render:g=>{lastView=g;},mapInput:input=>Presentation.cameraInput(input,options.cameraFrame),project:()=>({visible:true,x:100,y:100}),dispose(){}};
  const context=vm.createContext({AuraMatch:Match,AuraPresentation:Presentation,AuraGraphics:{kit:()=>['#bb2233'],create:()=>graphics},AuraEvolution:{stopPreview(){},badge:()=>''},AuraBadges:{get:()=>null},
   document:{createElement:()=>node(),body:node('body'),activeElement:node('focus'),addEventListener:(name,fn)=>{docEvents[name]=fn;},removeEventListener(){}},
   window:{addEventListener:(name,fn)=>{windowEvents[name]=fn;},removeEventListener:(name)=>{delete windowEvents[name];}},navigator:{getGamepads:()=>[]},performance:{now:()=>now},
   requestAnimationFrame:fn=>{raf.set(++nextRaf,fn);return nextRaf;},cancelAnimationFrame:id=>raf.delete(id),home,away,playerLock:options.playerLock,commit:()=>commits++,cancel:()=>cancels++,
+  initialCamera:options.camera||'broadcast',
  });
  vm.runInContext(fs.readFileSync(path.join(__dirname,'..','match-ui.js'),'utf8'),context);
- vm.runInContext('AuraArena.settings.sound=false;AuraArena.settings.seconds=30;'+
+ vm.runInContext('AuraArena.settings.sound=false;AuraArena.settings.seconds=30;AuraArena.settings.camera=initialCamera;'+
    (options.local?'AuraArena.settings.localTwoPlayer=true;AuraArena.start(home,away,{})':'AuraArena.start(home,away,{onFinish:commit,onCancel:cancel,playerLock})'),context);
  const session=vm.runInContext('AuraArena.getSession()',context);
  return {session,node,run:code=>vm.runInContext(code,context),frame(ms=100){now+=ms;const callbacks=[...raf.values()];raf.clear();callbacks.forEach(fn=>fn(now));},
@@ -78,9 +79,9 @@ test('restart setup explains the dead ball, discards old input and blocks queued
  assert.equal(g.phase,'playing');shot.fire('pointerup',pointer);a.key('keyup','j');assert.equal(g.stats[0].shots,0);
  a.click('pause');a.click('exit');a.click('confirm-exit');
 });
-test('automatic replay finishes and camera selection cycles through four working views',()=>{
+test('automatic replay finishes and camera selection cycles through five working views',()=>{
  const a=boot(),g=a.session.game;g.phase='playing';for(let i=0;i<10;i++)a.frame();
- const camera=a.run('AuraArena.settings.camera');for(let i=0;i<4;i++)a.click('camera');assert.equal(a.run('AuraArena.settings.camera'),camera);
+ const camera=a.run('AuraArena.settings.camera');for(let i=0;i<5;i++)a.click('camera');assert.equal(a.run('AuraArena.settings.camera'),camera);
  g.players.forEach(p=>{p.x=-40;p.z=25;});Object.assign(g.ball,{owner:null,x:52.4,y:.3,z:0,vx:25,vy:0,vz:0,lastTouch:0,lastKicker:9});a.frame(50);assert.ok(a.session.replay);
  for(let i=0;i<36;i++)a.frame(100);assert.equal(a.session.replay,null);assert.deepEqual(g.score,[1,0]);a.click('pause');a.click('exit');a.click('confirm-exit');assert.equal(a.commits(),0);
 });
@@ -416,5 +417,27 @@ test('pause discards held touch buttons and old releases cannot interrupt fresh 
   sprint.fire('pointerup',newSprint);shot.fire('pointerup',newShot);
   assert.equal(a.session.touchSprint,false);assert.equal(a.session.charging,null);assert.equal(g.stats[0].shots,1);
   a.click('pause');a.click('exit');a.click('confirm-exit');assert.equal(a.commits(),0);
+ }
+});
+
+test('immersive keyboard, touch and gamepads map movement and action aiming once for both local players',()=>{
+ const frame={position:[-7,5,8],target:[5,1,-2],fov:52};
+ for(const source of ['keyboard','touch','gamepad']){
+  const a=boot({local:true,camera:'immersive',cameraFrame:frame}),g=a.session.game;g.phase='playing';
+  const pads=arenaGamepads(a);a.run("globalThis.aims=[];const aimAction=AuraMatch.action;globalThis.AuraMatch={...AuraMatch,action:(game,type,input)=>{aims.push({type,...input});return aimAction(game,type,input)}}");
+  let amount=1;
+  if(source==='keyboard'){a.key('keydown','d');a.key('keydown','arrowright');}
+  if(source==='touch'){a.node('touch-stick').fire('pointerdown',{pointerId:1,clientX:88,clientY:50});}
+  if(source==='gamepad'){pads[0].axes[0]=.7;pads[1].axes[0]=.7;amount=.7;}
+  a.frame(50);a.frame(50);
+  const input=a.run('arenaInput'),expected=Presentation.cameraInput({x:amount,z:0},frame);
+  assert.ok(Math.abs(input.x-expected.x)<1e-8);assert.ok(Math.abs(input.z-expected.z)<1e-8);
+  if(source!=='touch'){assert.ok(Math.abs(input.away.x-expected.x)<1e-8);assert.ok(Math.abs(input.away.z-expected.z)<1e-8);}
+  if(source==='keyboard')a.key('keydown','k');
+  if(source==='touch')a.node('touch:pass').fire('pointerdown',{pointerId:2,preventDefault(){}});
+  if(source==='gamepad'){pads[0].buttons[0].pressed=true;pads[1].buttons[0].pressed=true;a.frame(50);}
+  const aims=a.run('aims');assert.equal(aims.length,source==='gamepad'?2:1);
+  for(const aim of aims){assert.ok(Math.abs(aim.x-expected.x)<1e-8);assert.ok(Math.abs(aim.z-expected.z)<1e-8);}
+  a.click('pause');a.click('exit');a.click('confirm-exit');
  }
 });

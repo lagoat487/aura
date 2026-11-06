@@ -1,8 +1,10 @@
-# AURA 27 / VISION 9.0
+# AURA 27 / VISION 9.2
+
+**VISION 9.2 — cámara inmersiva:** nueva vista a ras de campo, controles relativos a la pantalla con teclado, joystick táctil y mandos; sombras direccionales en el modo compatible, porteros que inclinan el cuerpo al lanzarse, recorte del terreno al acercarse a la cámara y detalle de tejido y briznas en WebGL Alto/Ultra. Selecciona **⚽ A ras de campo** o **✦ AURA VISION · Máximo** antes del partido. Cámaras de TV, Tele, Panorámica y Táctica continúan disponibles con C. Detalles y límites: [docs/vision-9.2.md](docs/vision-9.2.md).
 
 **Motor de jugadores y materiales — revisión 9.1:** el partido usa ahora una malla humana de 13.660 vértices y 27.228 triángulos, con manos y rostro modelados, en lugar del cuerpo compuesto por primitivas. El modo compatible dibuja animaciones renderizadas desde esa misma malla. Se incorporan césped fotográfico, textura de público y cámaras más cercanas. Captura real, fuentes y límites: [docs/human-engine.md](docs/human-engine.md).
 
-**VISION 9.0 — actualización gráfica del partido:** jugadores con esqueleto animado, césped con textura de fibras, líneas con grosor real, público denso, porterías y balón renovados, iluminación revisada y presentación de televisión en azul, cian y violeta. En la preparación del partido elige **✦ AURA VISION · Máximo** para activar Ultra y cámara TV. También se actualiza el modo compatible sin WebGL. Detalles y límites de verificación: [docs/vision-9.0.md](docs/vision-9.0.md).
+**VISION 9.0 — actualización gráfica del partido:** jugadores con esqueleto animado, césped con textura de fibras, líneas con grosor real, público denso, porterías y balón renovados, iluminación revisada y presentación de televisión en azul, cian y violeta. En la preparación del partido elige **✦ AURA VISION · Máximo** para activar Ultra y la nueva cámara inmersiva; puedes elegir TV manualmente. También se actualiza el modo compatible sin WebGL. Detalles y límites de verificación: [docs/vision-9.0.md](docs/vision-9.0.md).
 
 **Matchday 4.2 — partidos:** cámaras de TV y Tele más cercanas, campo con textura, futbolistas articulados con dorsales, animaciones de golpeo y portero, aceleración y frenado, rebotes en los palos, marcador compacto, sonido de estadio y repeticiones cortas de goles. Se aplica al motor de partidos compartido por los modos existentes. Alcance y validación: [docs/matchday.md](docs/matchday.md).
 

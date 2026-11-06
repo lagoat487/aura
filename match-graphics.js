@@ -194,12 +194,18 @@ const AuraGraphics=(()=>{
       screenCtx.fillStyle='#0a1428';screenCtx.fillRect(0,0,512,256);screenCtx.textAlign='center';screenCtx.fillStyle='#50e6e0';screenCtx.font='bold 28px Arial';screenCtx.fillText('AURA VISION',256,49);screenCtx.fillStyle='#ffffff';screenCtx.font='bold 112px Arial';screenCtx.fillText(score[0]+' – '+score[1],256,177);screenCtx.font='18px Arial';screenCtx.fillText('EL FÚTBOL SE SIENTE.',256,224);screenMap.needsUpdate=true;}
     for(const x of [-52.5,52.5])for(const z of [-34,34]){cylinder(.025,1.45,postMat,x,.725,z);const f=mesh(geometry('flag',()=>new T.PlaneGeometry(.55,.35)),material(0xecd868,{side:T.DoubleSide}),x+.25,1.25,z);f.rotation.y=.4;}
     const kits=P.separateKits(kit(options.home),kit(options.away));
+    const weaveCanvas=canvas(128,128),weaveCtx=weaveCanvas.getContext('2d');weaveCtx.fillStyle='#808080';weaveCtx.fillRect(0,0,128,128);
+    for(let y=0;y<128;y+=2)for(let x=0;x<128;x+=2){weaveCtx.fillStyle=(x+y)%4?'#a2a2a2':'#646464';weaveCtx.fillRect(x,y,1,2);}
+    const weaveMap=texture(weaveCanvas,false);weaveMap.wrapS=weaveMap.wrapT=T.RepeatWrapping;weaveMap.repeat.set(10,10);
     function shirtTexture(colors,club,keeper){const c=canvas(512,512),cx=c.getContext('2d');cx.fillStyle=colors[0];cx.fillRect(0,0,512,512);
       const name=String(club?.id||club?.name||'').toLowerCase(),striped=!keeper&&/barcelona|boca|milan|juventus|atletico/.test(name);
       if(striped){cx.fillStyle=colors[1];for(let x=0;x<512;x+=128)cx.fillRect(x,0,56,512);}
       else {cx.fillStyle=colors[1]+'30';cx.fillRect(0,0,40,512);cx.fillRect(256,0,40,512);}
       for(let y=0;y<512;y+=3){cx.fillStyle=y%2?'#ffffff09':'#0000000c';cx.fillRect(0,y,512,1);}
-      cx.fillStyle=colors[2];cx.fillRect(0,16,512,5);cx.fillStyle=colors[2]+'a0';cx.font='bold 22px Arial';cx.textAlign='center';cx.fillText('AURA',128,230);cx.fillText('AURA',384,230);return texture(c);}
+      cx.fillStyle=colors[2];cx.fillRect(0,16,512,5);cx.fillStyle=colors[2]+'d0';cx.font='italic bold 22px Arial';cx.textAlign='center';cx.fillText('AURA',256,245);
+      const map=texture(c),crest=typeof AuraBadges!=='undefined'&&!keeper?AuraBadges.get(club):null;
+      if(crest&&typeof Image==='function'){const image=new Image();image.onload=()=>{if(disposed)return;cx.drawImage(image,293,151,29,34);map.needsUpdate=true;};image.src=crest;}
+      return map;}
     const teamMaps=kits.map((c,i)=>shirtTexture(c,i===0?options.home:options.away,false));
     const keeperColors=[['#4cafbd','#183845','#f3ecdc'],['#e1ac3c','#26312b','#fbf2d6']];
     const keeperMaps=keeperColors.map((c,i)=>shirtTexture(c,null,true));
@@ -249,8 +255,9 @@ const AuraGraphics=(()=>{
     });}
     const labelGeometry=geometry('shirt-label',()=>new T.PlaneGeometry(.33,.36));
     function footballer(p){const root=new T.Group(),look=P.appearance(p),keeper=p.index===0,colors=keeper?keeperColors[p.team]:kits[p.team];root.name='player:'+p.id;scene.add(root);
-      const shirt=material(0xffffff,{map:keeper?keeperMaps[p.team]:teamMaps[p.team],roughness:.91});
-      const mats=[shirt,material(colors[1]),material(look.skin,{roughness:.64}),material(colors[0]),material(p.index%3===0?0xefebe3:p.index%3===1?0xe49a55:0x182436,{roughness:.48}),material(look.hair),material(colors[2]),material(anatomical?0xe8e6df:0x17202a)];
+      const cloth={bumpMap:low?null:weaveMap,bumpScale:.009,roughness:.91};
+      const shirt=material(0xffffff,{map:keeper?keeperMaps[p.team]:teamMaps[p.team],...cloth});
+      const mats=[shirt,material(colors[1],cloth),material(look.skin,{roughness:.64}),material(colors[0],cloth),material(p.index%3===0?0xefebe3:p.index%3===1?0xe49a55:0x182436,{roughness:.48}),material(look.hair),material(colors[2]),material(anatomical?0xe8e6df:0x17202a)];
       const body=new T.SkinnedMesh(humanGeometry(look.hairStyle),mats),bones=boneDefs.map(()=>new T.Bone());
       boneDefs.forEach(([parent,x,y,z],i)=>{bones[i].position.set(x,y,z);if(parent>=0)bones[parent].add(bones[i]);});
       body.add(bones[0]);body.updateMatrixWorld(true);const skeleton=new T.Skeleton(bones);skeletons.add(skeleton);body.bind(skeleton);
@@ -285,6 +292,22 @@ const AuraGraphics=(()=>{
     for(let i=0;i<v.count;i++){const n=new T.Vector3(v.getX(i),v.getY(i),v.getZ(i)).normalize(),key=n.toArray().map(x=>x.toFixed(3)).join(':');if(seen.has(key))continue;seen.add(key);
       const patch=mesh(patchGeo,material(0x182334,{roughness:.51}),0,0,0,ball);patch.position.copy(n).multiplyScalar(.181);patch.quaternion.setFromUnitVectors(new T.Vector3(0,0,1),n);}
     const ballShadow=mesh(geometry('ball-shadow',()=>new T.PlaneGeometry(.7,.7)),shadowMat,0,.04,0);ballShadow.rotation.x=-Math.PI/2;
+    // Real geometry gives the close camera a grass silhouette without burdening low/medium.
+    let nearGrass=null,grassCell='';
+    if(high&&!preview){
+      const blade=new T.BufferGeometry();blade.setAttribute('position',new T.Float32BufferAttribute([-.009,0,0,.009,0,0,.012,.105,.026,0,0,-.009,0,0,.009,-.02,.083,.007],3));blade.computeVertexNormals();
+      nearGrass=new T.InstancedMesh(blade,material(0x638847,{side:T.DoubleSide,roughness:1}),ultra?6000:2600);nearGrass.name='near-turf-blades';nearGrass.frustumCulled=false;nearGrass.receiveShadow=true;scene.add(nearGrass);geometries.add(blade);
+    }
+    function updateGrass(game,cam){
+      if(!nearGrass)return;nearGrass.visible=cam==='immersive'||cam==='tele'||cam==='replay';if(!nearGrass.visible)return;
+      const x=Math.round((game?.ball.x||0)/3)*3,z=Math.round((game?.ball.z||0)/3)*3,key=x+':'+z;if(key===grassCell)return;grassCell=key;
+      for(let i=0;i<nearGrass.count;i++){
+        const u=((i*0.61803398875)%1-.5)*24,v=((i*0.754877666)%1-.5)*20,px=x+u,pz=z+v;
+        const inside=Math.abs(px)<52.4&&Math.abs(pz)<33.9,edge=Math.max(0,1-Math.max(Math.abs(u)/12,Math.abs(v)/10));
+        dummy.position.set(px,.017,pz);dummy.rotation.set(0,i*2.39996,0);dummy.scale.set(1,inside?(edge*.7+.3)*(.6+(i%11)/16):0,1);dummy.updateMatrix();nearGrass.setMatrixAt(i,dummy.matrix);
+        color.set([0x628442,0x80984f,0x4b733a,0x6a8946][i%4]);nearGrass.setColorAt(i,color);
+      }nearGrass.instanceMatrix.needsUpdate=true;if(nearGrass.instanceColor)nearGrass.instanceColor.needsUpdate=true;
+    }
     function indicator(color){const ring=mesh(geometry('selection-ring',()=>new T.RingGeometry(.59,.65,48)),basic({color,side:T.DoubleSide,transparent:true,opacity:.9}));ring.rotation.x=-Math.PI/2;
       const marker=mesh(geometry('selection-marker',()=>new T.ConeGeometry(.16,.27,3)),basic({color}));marker.rotation.z=Math.PI;return {ring,marker};}
     const selection=indicator(0x45e5e5),awaySelection=indicator(0xad9aff);
@@ -321,12 +344,12 @@ const AuraGraphics=(()=>{
       const desired=P.cameraFrame(game,cam,camera.aspect,preview);cameraState=P.smoothCamera(cameraState,desired,dt);camera.position.fromArray(cameraState.position);camera.lookAt(new T.Vector3().fromArray(cameraState.target));
       if(Math.abs(camera.fov-cameraState.fov)>.01){camera.fov=cameraState.fov;camera.updateProjectionMatrix();}lastTime=now;
       if(scene.fog){const distance=Math.hypot(...cameraState.position);scene.fog.near=cam==='tactical'?distance+20:(raining?90:155);scene.fog.far=cam==='tactical'?distance+160:(raining?240:350);}
-      cheerCrowd(now,game?.score);updateScreen(game);updateGoalNets(game);updateRain(now);renderer.render(scene,camera);
+      cheerCrowd(now,game?.score);updateScreen(game);updateGoalNets(game);updateRain(now);updateGrass(game,cam);renderer.render(scene,camera);
     }
     function project(p){const v=new T.Vector3(p.x,2.2,p.z).project(camera);return {x:(v.x*.5+.5)*container.clientWidth,y:(-.5*v.y+.5)*container.clientHeight,visible:v.z>-1&&v.z<1&&Math.abs(v.x)<1&&Math.abs(v.y)<1};}
     function dispose(){if(disposed)return;disposed=true;observer?.disconnect();skeletons.forEach(s=>s.dispose());geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());textures.forEach(t=>t.dispose());
       scene.traverse(o=>{if(o.isInstancedMesh)o.dispose();});renderer.dispose();renderer.forceContextLoss();renderer.domElement.remove();}
-    return {render,resize,dispose,project,renderer,kits};
+    return {render,resize,dispose,project,mapInput:input=>P.cameraInput(input,cameraState),renderer,kits};
   }
   function fallback(container,options={}){
     if(typeof AuraSoftwareGraphics!=="undefined")return AuraSoftwareGraphics.create(container,options);

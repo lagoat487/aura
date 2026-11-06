@@ -47,7 +47,14 @@
    const image=sprite(p,pose,view,look);if(!image)return false;
    const scale=ground.scale/META.pixelsPerMeter,sy=scale*look.height/1.88,sx=scale*look.build;
    const lift=(pose.jump+pose.saveLift-pose.crouch)*ground.scale;
-   ctx.drawImage(image,ground.x-META.width/2*sx,ground.y-META.anchorY*sy-lift,META.width*sx,META.height*sy);return true;
+   const vx=view[0]-p.x,vz=view[2]-p.z,length=Math.hypot(vx,vz)||1;
+   const lateral=(p.faceZ*vz+p.faceX*vx)/length;
+   const roll=-(pose.dive||0)*lateral*1.1;
+   if(Math.abs(roll)>.001&&typeof ctx.save==='function'){
+    ctx.save();ctx.translate(ground.x,ground.y-lift);ctx.rotate(roll);
+    ctx.drawImage(image,-META.width/2*sx,-META.anchorY*sy,META.width*sx,META.height*sy);ctx.restore();
+   }else ctx.drawImage(image,ground.x-META.width/2*sx,ground.y-META.anchorY*sy-lift,META.width*sx,META.height*sy);
+   return true;
   }
   return {draw,dispose(){disposed=true;cache.clear();},get cacheSize(){return cache.size;}};
  }

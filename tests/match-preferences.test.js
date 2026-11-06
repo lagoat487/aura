@@ -4,7 +4,7 @@ const P=require("../match-preferences");
 const store=()=>{const map=new Map();return {getItem:k=>map.get(k)||null,setItem:(k,v)=>map.set(k,v),keys:()=>[...map.keys()]};};
 test("Match presets have valid durations, difficulty and camera",()=>{
  assert.equal(P.valid(P.DEFAULTS),true);
- for(const key of ["fast","classic","epic","vision","default"]){
+ for(const key of ["fast","classic","epic","vision","immersive","default"]){
   const p={...P.DEFAULTS,...P.preset(key)};
   assert.equal(P.valid(p),true,key);
  }
