@@ -252,8 +252,17 @@ const AuraGraphics=(()=>{
     const boneDefs=anatomical?.bones||[[-1,0,.86,0],[0,0,.22,0],[1,0,.25,0],[2,0,.18,0],[3,0,.16,0],
       [0,-.115,-.04,0],[5,0,-.39,0],[6,0,-.36,0],[0,.115,-.04,0],[8,0,-.39,0],[9,0,-.36,0],
       [2,-.285,.045,0],[11,0,-.29,0],[12,0,-.25,0],[2,.285,.045,0],[14,0,-.29,0],[15,0,-.25,0]];
-    function humanGeometry(style){
-      if(anatomical)return geometry('anatomical-human:'+style,()=>{
+    // Seven bounded, shareable 3D head-shape variants: no per-player mesh duplication.
+    const crownWidths=[1,1.055,.96,1.085,.945,1.025,.985];
+    const jawWidths=[1,.95,1.07,1.035,.92,1.065,.965];
+    function faceX(x,y,shape){
+      if(y<1.565||y>1.94)return x;
+      const i=Math.max(0,Math.min(6,shape|0));
+      const jaw=Math.max(0,Math.min(1,(1.715-y)/.13));
+      return x*(crownWidths[i]*(1-jaw)+jawWidths[i]*jaw);
+    }
+    function humanGeometry(style,faceShape=0){
+      if(anatomical)return geometry('anatomical-human:'+style+':'+faceShape,()=>{
         const data=anatomical,g=new T.BufferGeometry(),positions=new Float32Array(data.positions);
         if(style===1)for(let i=0;i<positions.length;i+=3)if(positions[i+1]>1.82)positions[i+1]+=(positions[i+1]-1.82)*.25;
         g.setAttribute('position',new T.BufferAttribute(positions,3));g.setAttribute('normal',new T.Float32BufferAttribute(data.normals,3));
@@ -262,6 +271,17 @@ const AuraGraphics=(()=>{
         // Material detail is baked once into shared geometry, without extra draw calls.
         const shades=new Float32Array(positions.length),slots=new Uint8Array(data.vertexCount);
         data.groups.forEach(([start,count,slot])=>{for(let i=start;i<start+count;i++)slots[data.indices[i]]=slot;});
+        // Modify only face, hair and eyelid vertices; leave joints and 17-bone rig intact.
+        for(let i=0;i<data.vertexCount;i++){
+          const slot=slots[i],offset=i*3,y=positions[offset+1],x=positions[offset],z=positions[offset+2];
+          if((slot===2||slot===5||slot===7)&&y>1.565){
+            positions[offset]=faceX(x,y,faceShape);
+            if(slot===2&&z>.055&&y>1.615&&y<1.745&&Math.abs(x)<.037){
+              const bridge=Math.max(0,1-Math.abs(x)/.037)*Math.max(0,1-Math.abs(y-1.683)/.065);
+              positions[offset+2]+=bridge*[0,.0025,.006,-.002,.004,.005,-.001][faceShape];
+            }
+          }
+        }
         for(let i=0;i<data.vertexCount;i++){
           const x=positions[i*3],y=positions[i*3+1],z=positions[i*3+2],ny=data.normals[i*3+1],slot=slots[i];
           const cloth=slot===0||slot===1||slot===3;
@@ -318,13 +338,13 @@ const AuraGraphics=(()=>{
       const club=p.team===0?options.home:options.away,shirtMap=shirtTexture(colors,club,keeper,p),shirt=material(0xffffff,{map:shirtMap,...cloth});
       const surface={vertexColors:!!anatomical};
       const mats=[shirt,material(colors[1],cloth),material(look.skin,{...surface,roughness:.46,metalness:.015}),material(colors[0],cloth),material(p.index%3===0?0xefebe3:p.index%3===1?0xe49a55:0x182436,{...surface,roughness:.48}),material(look.hair,{...surface,roughness:.96}),material(colors[2],surface),material(anatomical?0xe8e6df:0x17202a,surface),M?.design(club,keeper,p.team===1&&kits[1][0]!==kit(options.away)[0])==='sleeves'?material(colors[1],cloth):shirt];
-      const body=new T.SkinnedMesh(humanGeometry(look.hairStyle),mats),bones=boneDefs.map(()=>new T.Bone());
+      const body=new T.SkinnedMesh(humanGeometry(look.hairStyle,look.faceShape||0),mats),bones=boneDefs.map(()=>new T.Bone());
       boneDefs.forEach(([parent,x,y,z],i)=>{bones[i].position.set(x,y,z);if(parent>=0)bones[parent].add(bones[i]);});
       body.add(bones[0]);body.updateMatrixWorld(true);const skeleton=new T.Skeleton(bones);skeletons.add(skeleton);body.bind(skeleton);
       if(anatomical){
         const group=anatomical.groups.find(g=>g[2]===7),eyes=[[],[]];
         if(group){const indices=new Set(anatomical.indices.slice(group[0],group[0]+group[1]));
-          for(const index of indices){const x=anatomical.positions[index*3];eyes[x<0?0:1].push([x,anatomical.positions[index*3+1],anatomical.positions[index*3+2]]);}
+          for(const index of indices){const x=anatomical.positions[index*3];eyes[x<0?0:1].push([faceX(x,anatomical.positions[index*3+1],look.faceShape||0),anatomical.positions[index*3+1],anatomical.positions[index*3+2]]);}
           const head=boneDefs.slice(0,5).reduce((p,b)=>p.map((v,i)=>v+b[i+1]),[0,0,0]);
           for(const vertices of eyes)if(vertices.length){const centre=vertices.reduce((p,v)=>p.map((n,i)=>n+v[i]/vertices.length),[0,0,0]);
             const z=Math.max(...vertices.map(v=>v[2]));
