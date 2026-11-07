@@ -1,4 +1,7 @@
-# AURA 27 / VISION 9.4
+# AURA 27 / VISION 9.7
+
+**VISION 9.7 — identidad facial (fase 1):** siete variantes geométricas para rostros 3D, nuevas combinaciones de peinado/barba para todo el catálogo y perfiles aproximados para varias estrellas, incluido Messi. Se mantiene Three.js/WebGL y el enlace de AURA. **No son rostros fotorrealistas, escaneados ni semejanzas exactas**; la revisión visual acelerada en Mac sigue pendiente. Véase [docs/vision-9.7.md](docs/vision-9.7.md).
+
 
 **VISION 9.4 — jugadores y estadio:** animaciones compatibles regeneradas a 128 × 224 píxeles, doce poses de carrera y estados propios para entradas, control y atajadas. Se añaden detalles faciales aproximados, giro de cadera y torso, respiración en reposo, banderas con los colores de los equipos y pasillos entre las gradas. Entra con tus perfiles habituales; se conserva la cámara Estadio. Detalles: [docs/vision-9.4.md](docs/vision-9.4.md).
 
