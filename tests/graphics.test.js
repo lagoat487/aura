@@ -11,12 +11,12 @@ test("WebGL scene construction produces finite stadium and player geometry in al
    setPixelRatio(){}setSize(){}dispose(){}forceContextLoss(){}
    render(scene,camera){
      renders++;this.scene=scene;latestScene=scene;scene.updateMatrixWorld(true);camera.updateMatrixWorld(true);
-     let meshCount=0;const geometries=new Set();scene.traverse(o=>{if(o.isMesh){meshCount++;geometries.add(o.geometry);const array=o.geometry.attributes.position?.array;assert.ok(!array||array.every(Number.isFinite));assert.ok(o.position.toArray().every(Number.isFinite));assert.ok(o.scale.toArray().every(Number.isFinite));if(o.isSkinnedMesh){assert.equal(o.geometry.attributes.position.count,13660);assert.equal(o.geometry.index.count,27228*3);const colors=o.geometry.attributes.color;assert.equal(colors.count,13660);assert.ok(colors.array.every(n=>Number.isFinite(n)&&n>=0&&n<=1));assert.ok(colors.array.some(n=>Math.abs(n-.86)>.02));assert.equal(o.material[2].vertexColors,true);o.skeleton.update();assert.ok(o.skeleton.boneMatrices.every(Number.isFinite));const weights=o.geometry.attributes.skinWeight;for(let i=0;i<weights.count;i++)assert.ok(Math.abs(weights.getX(i)+weights.getY(i)+weights.getZ(i)+weights.getW(i)-1)<.00001);}}});
-     assert.ok(meshCount>100);assert.ok(Number.isFinite(camera.projectionMatrix.elements[0]));
+     let meshCount=0;const geometries=new Set();scene.traverse(o=>{if(o.isMesh){meshCount++;geometries.add(o.geometry);const array=o.geometry.attributes.position?.array;assert.ok(!array||array.every(Number.isFinite));assert.ok(o.position.toArray().every(Number.isFinite));assert.ok(o.scale.toArray().every(Number.isFinite));if(o.isSkinnedMesh){assert.equal(o.geometry.attributes.position.count,13660);assert.equal(o.geometry.index.count,27228*3);assert.equal(o.geometry.groups.reduce((n,g)=>n+g.count,0),o.geometry.index.count);assert.ok(o.geometry.groups.some(g=>g.materialIndex===8),'shirt sleeves have a distinct material group');assert.ok(o.material[0].map);assert.equal(o.material[0].map.image.width,256);const colors=o.geometry.attributes.color;assert.equal(colors.count,13660);assert.ok(colors.array.every(n=>Number.isFinite(n)&&n>=0&&n<=1));assert.ok(colors.array.some(n=>Math.abs(n-.86)>.02));assert.equal(o.material[2].vertexColors,true);o.skeleton.update();assert.ok(o.skeleton.boneMatrices.every(Number.isFinite));const weights=o.geometry.attributes.skinWeight;for(let i=0;i<weights.count;i++)assert.ok(Math.abs(weights.getX(i)+weights.getY(i)+weights.getZ(i)+weights.getW(i)-1)<.00001);}}});
+     const ball=scene.getObjectByName('match-ball');assert.ok(ball.material.map);assert.equal(!!ball.material.bumpMap,ball.castShadow);assert.ok(meshCount>100);assert.ok(Number.isFinite(camera.projectionMatrix.elements[0]));
      assert.ok(geometries.size<meshCount/3,'footballers share geometry rather than allocating every joint');
    }
  }
- const context=vm.createContext({THREE:{...THREE,WebGLRenderer:Renderer},AuraHumanMesh:require('../assets/models/footballer-mesh.js'),document:{createElement:canvas}});
+ const context=vm.createContext({THREE:{...THREE,WebGLRenderer:Renderer},AuraMaterials:require('../match-materials'),AuraHumanMesh:require('../assets/models/footballer-mesh.js'),document:{createElement:canvas}});
  vm.runInContext(fs.readFileSync(path.join(__dirname,"..","match-presentation.js"),"utf8"),context);
  vm.runInContext(fs.readFileSync(path.join(__dirname,"..","match-graphics.js"),"utf8"),context);
  const make=id=>({id,name:id,players:Match.SHAPE.map((s,i)=>({id:id+i,name:id+i,pos:s[0],overall:80}))});
@@ -36,7 +36,7 @@ test('compatible renderer draws finite frames for portrait and landscape, every 
  const grad={addColorStop(){}};
  const context2d=new Proxy({createLinearGradient:()=>grad,createRadialGradient:()=>grad,createPattern:()=>({})},{get:(obj,key)=>key in obj?obj[key]:(...args)=>{draws++;for(const value of args)if(typeof value==='number')assert.ok(Number.isFinite(value),key+' received a non-finite coordinate');},set:(obj,key,value)=>{if(typeof value==='number')assert.ok(Number.isFinite(value));obj[key]=value;return true;}});
  const canvas=()=>({width:1,height:1,style:{},getContext:()=>context2d,remove(){removed++;}});
- const context=vm.createContext({document:{createElement:canvas},devicePixelRatio:2,AuraPresentation:require('../match-presentation'),AuraGraphics:{kit:()=>['#e7e7dd','#192844','#efeddd']},AuraHumanSprites:{create:()=>({draw:()=>false,dispose(){}}),assets:()=>({grass:{width:256,height:256},terrace:{width:512,height:256},epoch:1})}});
+ const context=vm.createContext({document:{createElement:canvas},devicePixelRatio:2,AuraPresentation:require('../match-presentation'),AuraMaterials:require('../match-materials'),AuraGraphics:{kit:()=>['#e7e7dd','#192844','#efeddd']},AuraHumanSprites:{create:()=>({draw:()=>false,dispose(){}}),assets:()=>({ball:{width:1536,height:128},ballMeta:{frames:24},grass:{width:256,height:256},terrace:{width:512,height:256},epoch:1})}});
  vm.runInContext(fs.readFileSync(path.join(__dirname,'..','software-graphics.js'),'utf8'),context);
  const make=id=>({id,name:id,players:Match.SHAPE.map((s,i)=>({id:id+i,name:id+i,pos:s[0],overall:80}))});
  context.game=Match.create({home:make('home'),away:make('away'),seed:48});
@@ -55,7 +55,7 @@ test('stadium corner cameras cannot generate oversized canvas strokes',()=>{
   set:(o,k,v)=>{if(typeof v==='number')assert.ok(Number.isFinite(v));if(k==='lineWidth'){maxStroke=Math.max(maxStroke,v);assert.ok(v<=12,'no scene stroke may expand across the pitch');}o[k]=v;return true;}
  });
  const canvas=()=>({width:1,height:1,style:{},getContext:()=>ctx,remove(){}});
- const context=vm.createContext({document:{createElement:canvas},devicePixelRatio:1,AuraPresentation:require('../match-presentation'),AuraGraphics:{kit:()=>['#bb3344','#112244','#eeeeee']}});
+ const context=vm.createContext({document:{createElement:canvas},devicePixelRatio:1,AuraPresentation:require('../match-presentation'),AuraMaterials:require('../match-materials'),AuraGraphics:{kit:()=>['#bb3344','#112244','#eeeeee']}});
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../software-graphics.js'),'utf8'),context);
  for(const [width,height] of [[1280,720],[390,844]])for(const half of [1,2])for(const [x,z] of [[-45,-25],[-52,-35],[-52,35],[52,-35],[52,35]]){
   context.container={clientWidth:width,clientHeight:height,appendChild(){}};

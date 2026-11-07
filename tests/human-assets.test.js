@@ -48,5 +48,8 @@ test('compatible sprites recolour the actual atlas and bound their cache across 
  const factory=vm.runInContext('AuraHumanSprites',context),s=factory.create({quality:'low',home:{id:'home'},away:{id:'away'},kits:[['#ee2233','#122244','#eeddcc'],['#eeeeee','#ddddee','#333344']]});
  let draw=0;const ctx={drawImage(image,...coords){draw++;assert.ok(coords.every(Number.isFinite));const data=image.getContext('2d').last;if(data)assert.ok(data.data[0]>data.data[1]);}},p={index:1,team:0,x:0,z:0,faceX:0,faceZ:1},pose={speed:0,save:0,kick:0,celebrate:0,jump:0,saveLift:0,crouch:0};
  for(let i=0;i<80;i++)assert.equal(s.draw(ctx,p,pose,{skin:'#'+(0x809080+i).toString(16),hair:'#222222',height:1.8,build:1},[0,20,40],{x:200,y:300,scale:25}),true);
- assert.equal(draw,80);assert.equal(s.cacheSize,64);s.dispose();assert.equal(s.cacheSize,0);assert.equal(s.draw(ctx,p,pose,{},[0,20,40],{x:0,y:0,scale:1}),false);
+ assert.equal(draw,80);assert.equal(s.cacheSize,64);
+ const shadowCtx={save(){},restore(){},transform(...matrix){assert.ok(matrix.every(Number.isFinite));},drawImage(){}};
+ for(let i=0;i<192;i++)assert.equal(s.drawShadow(shadowCtx,p,{...pose,speed:1,cycle:Math.floor(i/16)*Math.PI*2/12},{build:1},[Math.sin(i%16*Math.PI/8)*30,20,Math.cos(i%16*Math.PI/8)*30],{x:200,y:300},{x:230,y:310},{x:225,y:300},.2),true);
+ assert.equal(s.shadowCacheSize,64);s.dispose();assert.equal(s.shadowCacheSize,0);assert.equal(s.cacheSize,0);assert.equal(s.draw(ctx,p,pose,{},[0,20,40],{x:0,y:0,scale:1}),false);
 });

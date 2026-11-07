@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser()
 parser.add_argument('mesh', nargs='?')
 parser.add_argument('--page', type=int, choices=range(4))
+parser.add_argument('--landmarks-only', action='store_true')
 args = parser.parse_args()
 if args.mesh:
     data = json.loads(Path(args.mesh).read_text())
@@ -42,7 +43,7 @@ def euler(x=0., y=0., z=0.):
     cx, sx, cy, sy, cz, sz = math.cos(x), math.sin(x), math.cos(y), math.sin(y), math.cos(z), math.sin(z)
     return np.array([[cz, -sz, 0], [sz, cz, 0], [0, 0, 1]]) @ np.array([[cy, 0, sy], [0, 1, 0], [-sy, 0, cy]]) @ np.array([[1, 0, 0], [0, cx, -sx], [0, sx, cx]])
 
-def pose_vertices(frame):
+def pose_vertices(frame, extra_points=None, extra_weights=None):
     R = np.repeat(np.eye(3)[None], len(parents), axis=0)
     phase = (frame - 1) / 12 * math.tau
     speed = 1 if 1 <= frame <= 12 else 0
@@ -84,6 +85,11 @@ def pose_vertices(frame):
         b, w = ids[:, k], weights[:, k, None]
         out += (np.einsum('nij,nj->ni', worldR[b], V - bind[b]) + worldP[b]) * w
         normals += np.einsum('nij,nj->ni', worldR[b], N) * w
+    if extra_points is not None:
+        extra = np.zeros_like(extra_points)
+        for bone in range(len(parents)):
+            extra += ((extra_points - bind[bone]) @ worldR[bone].T + worldP[bone]) * extra_weights[:, bone, None]
+        return out, normals, extra
     return out, normals
 
 def antialias(image):
@@ -115,6 +121,34 @@ def antialias(image):
             if np.linalg.norm(np.array([y, x]) - centre) <= radius:
                 out[y, x, 2] = 2
     return Image.fromarray(out)
+
+if args.landmarks_only:
+    targets = np.array([[-.22,1.54,.15],[.22,1.54,.15],[.19,1.035,.15],[-.19,1.035,.15],
+                        [.22,1.54,-.095],[-.22,1.54,-.095],[-.19,1.035,-.095],[.19,1.035,-.095]])
+    vertices = np.unique(F[slots == 0])
+    vertices = vertices[ids[vertices,0] < 4]
+    # Use torso-centre weights on each horizontal edge, excluding arms and legs.
+    # Shirt corners must not follow a raised sleeve or a kicking thigh.
+    centres = targets.copy();centres[:,0] = 0
+    nearest = [vertices[np.argmin(np.linalg.norm(V[vertices] - p, axis=1))] for p in centres]
+    extra_weights = np.zeros((len(targets),len(parents)))
+    for i,index in enumerate(nearest):
+        for bone,w in zip(ids[index],weights[index]):
+            if bone < 4:extra_weights[i,bone] += w
+        extra_weights[i] /= extra_weights[i].sum()
+    quads = []
+    for frame in range(POSES):
+        _,_,points = pose_vertices(frame,targets,extra_weights)
+        for direction in range(DIRECTIONS):
+            yaw = direction * math.tau / DIRECTIONS
+            camera = np.array([math.sin(yaw)*math.cos(ELEVATION),math.sin(ELEVATION),math.cos(yaw)*math.cos(ELEVATION)])
+            right = np.array([math.cos(yaw),0,-math.sin(yaw)]);up = np.cross(camera,right)
+            projected = np.column_stack((WIDTH/2+(points@right)*PPM,ANCHOR-(points@up)*PPM))
+            quads.append(np.round(projected,3).ravel().tolist())
+    text = "/* Shirt coordinates projected from the same clothed CC0 mesh and animation. */\n(function(root){const data="+json.dumps({'poses':POSES,'directions':DIRECTIONS,'quads':quads},separators=(',',':'))+";if(typeof module==='object'&&module.exports)module.exports=data;else root.AuraKitLandmarks=data;})(typeof globalThis!=='undefined'?globalThis:this);\n"
+    (ROOT/'assets/models/jersey-landmarks-95.js').write_text(text)
+    print('Generated projected shirt coordinates:',len(quads))
+    sys.exit()
 
 pages = [Image.new('RGBA', (WIDTH * DIRECTIONS, HEIGHT * min(ROWS, POSES - p * ROWS))) for p in range(math.ceil(POSES / ROWS))]
 for frame in range(POSES) if args.page is None else range(args.page * ROWS, min(POSES, (args.page + 1) * ROWS)):

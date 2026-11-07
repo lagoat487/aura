@@ -24,7 +24,7 @@ const AuraGraphics=(()=>{
   }
   function create(container,options={}){
     if(!globalThis.THREE||webglUnavailable)throw Error('WebGL no está disponible.');
-    const T=THREE,P=AuraPresentation,quality=options.quality||'medium',preview=!!options.preview;
+    const T=THREE,P=AuraPresentation,M=typeof AuraMaterials!=='undefined'?AuraMaterials:null,quality=options.quality||'medium',preview=!!options.preview;
     const low=quality==='low',ultra=quality==='ultra',high=ultra||quality==='high';
     const raining=options.weather==='rain',day=options.stadium==='day',sunset=options.stadium==='sunset';
     const profile={pixel:ultra?2:high?1.75:low?1:1.5,texture:ultra?4096:low?1024:2048,rows:ultra?16:high?13:low?5:9,columns:ultra?172:high?150:low?76:124};
@@ -233,20 +233,16 @@ const AuraGraphics=(()=>{
     const weaveCanvas=canvas(128,128),weaveCtx=weaveCanvas.getContext('2d');weaveCtx.fillStyle='#808080';weaveCtx.fillRect(0,0,128,128);
     for(let y=0;y<128;y+=2)for(let x=0;x<128;x+=2){weaveCtx.fillStyle=(x+y)%4?'#a2a2a2':'#646464';weaveCtx.fillRect(x,y,1,2);}
     const weaveMap=texture(weaveCanvas,false);weaveMap.wrapS=weaveMap.wrapT=T.RepeatWrapping;weaveMap.repeat.set(10,10);
-    function shirtTexture(colors,club,keeper){const c=canvas(512,512),cx=c.getContext('2d');cx.fillStyle=colors[0];cx.fillRect(0,0,512,512);
-      const name=String(club?.id||club?.name||'').toLowerCase(),striped=!keeper&&/barcelona|boca|milan|juventus|atletico/.test(name);
-      if(striped){cx.fillStyle=colors[1];for(let x=0;x<512;x+=128)cx.fillRect(x,0,56,512);}
-      else {cx.fillStyle=colors[1]+'30';cx.fillRect(0,0,40,512);cx.fillRect(256,0,40,512);}
-      for(let y=0;y<512;y+=3){cx.fillStyle=y%2?'#ffffff09':'#0000000c';cx.fillRect(0,y,512,1);}
-      cx.fillStyle=colors[2];cx.fillRect(0,16,512,5);cx.fillStyle=colors[2]+'d0';cx.font='italic bold 22px Arial';cx.textAlign='center';cx.fillText('AURA',256,245);
-      const map=texture(c),crest=typeof AuraBadges!=='undefined'&&!keeper?AuraBadges.get(club):null;
-      if(crest&&typeof Image==='function'){const image=new Image();image.onload=()=>{if(disposed)return;cx.drawImage(image,293,151,29,34);map.needsUpdate=true;};image.src=crest;}
-      return map;}
-    const teamMaps=kits.map((c,i)=>shirtTexture(c,i===0?options.home:options.away,false));
     const keeperColors=[['#4cafbd','#183845','#f3ecdc'],['#e1ac3c','#26312b','#fbf2d6']];
-    const keeperMaps=keeperColors.map((c,i)=>shirtTexture(c,null,true));
+    function shirtTexture(colors,club,keeper,player){
+      const c=canvas(256,256),cx=c.getContext('2d'),pair=M?M.jersey({club,colors,player,keeper,alternate:player?.team===1&&kits[1][0]!==kit(options.away)[0],canvas,crest:typeof AuraBadges!=='undefined'&&!keeper?AuraBadges.get(club):null,Image:typeof Image!=='undefined'?Image:null}):null;
+      if(pair)M.wrapJersey(pair,c);else{cx.fillStyle=colors[0];cx.fillRect(0,0,c.width,c.height);}
+      const map=texture(c);
+      if(pair)pair.onChange=()=>{if(disposed||!textures.has(map))return;M.wrapJersey(pair,c);map.needsUpdate=true;};
+      return map;
+    }
     const joint=geometry('anatomy-sphere',()=>new T.SphereGeometry(1,low?8:12,low?6:10));
-    // A single shared skinned geometry per hairstyle; eight material groups per athlete.
+    // A single shared skinned geometry per hairstyle; nine material groups per athlete.
     // Limbs use bones instead of dozens of independently submitted cylinder meshes.
     const anatomical=typeof AuraHumanMesh!=='undefined'?AuraHumanMesh:null;
     const boneDefs=anatomical?.bones||[[-1,0,.86,0],[0,0,.22,0],[1,0,.25,0],[2,0,.18,0],[3,0,.16,0],
@@ -271,7 +267,12 @@ const AuraGraphics=(()=>{
           shades[i*3]=Math.min(1,ambient+cheek);shades[i*3+1]=ambient-cheek*.5;shades[i*3+2]=ambient-cheek;
         }
         g.setAttribute('color',new T.Float32BufferAttribute(shades,3));
-        data.groups.forEach(([start,count,mat])=>g.addGroup(start,count,mat));return g;
+        const index=[],sleeves=[];
+        for(const [start,count,mat] of data.groups){const offset=index.length;
+          for(let i=start;i<start+count;i+=3){const tri=[data.indices[i],data.indices[i+1],data.indices[i+2]],arm=mat===0&&tri.filter(v=>data.skinIndices[v*4]>=11).length>=2;(arm?sleeves:index).push(...tri);}
+          if(index.length>offset)g.addGroup(offset,index.length-offset,mat);
+        }
+        const offset=index.length;index.push(...sleeves);if(sleeves.length)g.addGroup(offset,sleeves.length,8);g.setIndex(new T.BufferAttribute(new Uint16Array(index),1));return g;
       });
       return geometry('human:'+style,()=>{
       const buckets=Array.from({length:8},()=>({p:[],n:[],uv:[],si:[],sw:[]})),matrix=new T.Matrix4(),q=new T.Quaternion();
@@ -301,12 +302,11 @@ const AuraGraphics=(()=>{
       buckets.forEach((b,index)=>{g.addGroup(start,b.p.length/3,index);start+=b.p.length/3;for(const key of Object.keys(out))out[key].push(...b[key]);});
       g.setAttribute('position',new T.Float32BufferAttribute(out.p,3));g.setAttribute('normal',new T.Float32BufferAttribute(out.n,3));g.setAttribute('uv',new T.Float32BufferAttribute(out.uv,2));g.setAttribute('skinIndex',new T.Uint16BufferAttribute(out.si,4));g.setAttribute('skinWeight',new T.Float32BufferAttribute(out.sw,4));return g;
     });}
-    const labelGeometry=geometry('shirt-label',()=>new T.PlaneGeometry(.33,.36));
     function footballer(p){const root=new T.Group(),look=P.appearance(p),keeper=p.index===0,colors=keeper?keeperColors[p.team]:kits[p.team];root.name='player:'+p.id;scene.add(root);
       const cloth={bumpMap:low?null:weaveMap,bumpScale:.009,roughness:.91,vertexColors:!!anatomical};
-      const shirt=material(0xffffff,{map:keeper?keeperMaps[p.team]:teamMaps[p.team],...cloth});
+      const club=p.team===0?options.home:options.away,shirtMap=shirtTexture(colors,club,keeper,p),shirt=material(0xffffff,{map:shirtMap,...cloth});
       const surface={vertexColors:!!anatomical};
-      const mats=[shirt,material(colors[1],cloth),material(look.skin,{...surface,roughness:.57}),material(colors[0],cloth),material(p.index%3===0?0xefebe3:p.index%3===1?0xe49a55:0x182436,{...surface,roughness:.48}),material(look.hair,{...surface,roughness:.96}),material(colors[2],surface),material(anatomical?0xe8e6df:0x17202a,surface)];
+      const mats=[shirt,material(colors[1],cloth),material(look.skin,{...surface,roughness:.57}),material(colors[0],cloth),material(p.index%3===0?0xefebe3:p.index%3===1?0xe49a55:0x182436,{...surface,roughness:.48}),material(look.hair,{...surface,roughness:.96}),material(colors[2],surface),material(anatomical?0xe8e6df:0x17202a,surface),M?.design(club,keeper,p.team===1&&kits[1][0]!==kit(options.away)[0])==='sleeves'?material(colors[1],cloth):shirt];
       const body=new T.SkinnedMesh(humanGeometry(look.hairStyle),mats),bones=boneDefs.map(()=>new T.Bone());
       boneDefs.forEach(([parent,x,y,z],i)=>{bones[i].position.set(x,y,z);if(parent>=0)bones[parent].add(bones[i]);});
       body.add(bones[0]);body.updateMatrixWorld(true);const skeleton=new T.Skeleton(bones);skeletons.add(skeleton);body.bind(skeleton);
@@ -323,24 +323,25 @@ const AuraGraphics=(()=>{
         }
       }
       body.castShadow=!low;body.receiveShadow=!low;body.frustumCulled=false;root.add(body);
-      const label=canvas(128,160),cx=label.getContext('2d');cx.clearRect(0,0,128,160);cx.fillStyle=colors[2];cx.textAlign='center';cx.font='bold 17px Arial';cx.fillText(String(p.name).split(' ').at(-1).toUpperCase().slice(0,12),64,24);cx.font='bold 102px Arial';cx.fillText(String(p.number||p.index+1),64,129);
-      const labelMap=texture(label),labelMat=basic({map:labelMap,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2});
-      const back=mesh(labelGeometry,labelMat,0,-.145,anatomical?-.127:-.177,bones[2]);back.rotation.y=Math.PI;
       root.scale.set(look.build,look.height/1.88,look.build);
-      return {id:p.id,root,body,bones,skeleton,labelMap,labelMat,shirt,yaw:Math.atan2(p.faceX,p.faceZ)};
+      return {id:p.id,root,body,bones,skeleton,shirtMap,shirt,yaw:Math.atan2(p.faceX,p.faceZ)};
     }
     let actors=[];
-    function releaseActor(a){scene.remove(a.root);a.skeleton.dispose();skeletons.delete(a.skeleton);a.labelMap.dispose();textures.delete(a.labelMap);a.labelMat.dispose();materials.delete(a.labelMat);a.shirt.dispose();materials.delete(a.shirt);}
+    function releaseActor(a){scene.remove(a.root);a.skeleton.dispose();skeletons.delete(a.skeleton);a.shirtMap.dispose();textures.delete(a.shirtMap);a.shirt.dispose();materials.delete(a.shirt);}
     // Shared soft contact shadows work at every quality, including without shadow maps.
     const shadowCanvas=canvas(64,64),sc=shadowCanvas.getContext('2d'),sg=sc.createRadialGradient(32,32,3,32,32,31);
     sg.addColorStop(0,'#0000008f');sg.addColorStop(.45,'#00000052');sg.addColorStop(1,'#00000000');sc.fillStyle=sg;sc.fillRect(0,0,64,64);
     const shadowMat=basic({map:texture(shadowCanvas),transparent:true,depthWrite:false,toneMapped:false});
     const actorShadows=new T.InstancedMesh(geometry('soft-shadow',()=>new T.PlaneGeometry(1.4,1.4)),shadowMat,22);actorShadows.frustumCulled=false;scene.add(actorShadows);
-    const ball=mesh(geometry('ball',()=>new T.SphereGeometry(.18,low?12:24,low?8:16)),material(0xf8f6ef,{roughness:raining?.24:.46}));ball.name='match-ball';ball.castShadow=!low;
-    const ico=geometry('patch-directions',()=>new T.IcosahedronGeometry(1,0)),seen=new Set(),v=ico.attributes.position,patchGeo=geometry('ball-panel',()=>new T.CircleGeometry(.065,5));
-    for(let i=0;i<v.count;i++){const n=new T.Vector3(v.getX(i),v.getY(i),v.getZ(i)).normalize(),key=n.toArray().map(x=>x.toFixed(3)).join(':');if(seen.has(key))continue;seen.add(key);
-      const patch=mesh(patchGeo,material(0x182334,{roughness:.51}),0,0,0,ball);patch.position.copy(n).multiplyScalar(.181);patch.quaternion.setFromUnitVectors(new T.Vector3(0,0,1),n);}
-    const ballShadow=mesh(geometry('ball-shadow',()=>new T.PlaneGeometry(.7,.7)),shadowMat,0,.04,0);ballShadow.rotation.x=-Math.PI/2;
+    const ballCanvas=canvas(512,256),ballCtx=ballCanvas.getContext('2d'),seamCanvas=canvas(512,256),seamCtx=seamCanvas.getContext('2d');
+    ballCtx.fillStyle='#f3f4e9';ballCtx.fillRect(0,0,512,256);seamCtx.fillStyle='#b4b4b4';seamCtx.fillRect(0,0,512,256);
+    const ballMap=texture(ballCanvas),seamMap=texture(seamCanvas,false);
+    if(typeof Image==='function')for(const [path,context,map] of [['ball-albedo-95.png',ballCtx,ballMap],['ball-seams-95.png',seamCtx,seamMap]]){
+      const image=new Image();image.onload=()=>{if(disposed)return;context.drawImage(image,0,0,512,256);map.needsUpdate=true;};image.src='./assets/textures/'+path;
+    }
+    const ball=mesh(geometry('ball',()=>new T.SphereGeometry(.18,low?16:32,low?12:24)),material(0xffffff,{map:ballMap,bumpMap:low?null:seamMap,bumpScale:.0017,roughness:raining?.24:.46}));ball.name='match-ball';ball.castShadow=!low;ball.receiveShadow=!low;
+    const ballShadowMat=basic({map:shadowMat.map,transparent:true,depthWrite:false,toneMapped:false});
+    const ballShadow=mesh(geometry('ball-shadow',()=>new T.PlaneGeometry(.7,.7)),ballShadowMat,0,.04,0);ballShadow.rotation.x=-Math.PI/2;let ballSpin=null;
     // Real geometry gives the close camera a grass silhouette without burdening low/medium.
     let nearGrass=null,grassCell='';
     if(high&&!preview){
@@ -389,8 +390,8 @@ const AuraGraphics=(()=>{
           dummy.position.set(p.x,.038,p.z);dummy.rotation.set(-Math.PI/2,0,0);const size=p.sentOff?0:Math.max(.3,1-pose.jump);dummy.scale.set(size,size*.7,1);dummy.updateMatrix();actorShadows.setMatrixAt(i,dummy.matrix);
         });actorShadows.instanceMatrix.needsUpdate=true;
         const visualTime=Number.isFinite(game.visualTime)?game.visualTime:now*.001,spinDt=lastVisualTime===null?0:Math.max(-.12,Math.min(.12,visualTime-lastVisualTime));lastVisualTime=visualTime;
-        ball.position.set(game.ball.x,game.ball.y,game.ball.z);ball.rotation.z-=game.ball.vx*spinDt/.18;ball.rotation.x+=game.ball.vz*spinDt/.18;
-        ballShadow.position.set(game.ball.x,.04,game.ball.z);const bs=1+Math.max(0,game.ball.y-.2)*.13;ballShadow.scale.set(bs,bs,1);
+        ball.position.set(game.ball.x,game.ball.y,game.ball.z);if(M){ballSpin=M.ballSpin(ballSpin,game.ball,visualTime);ball.rotation.x=ballSpin.x;ball.rotation.z=ballSpin.z;}else{ball.rotation.z-=game.ball.vx*spinDt/.18;ball.rotation.x+=game.ball.vz*spinDt/.18;}
+        ballShadow.position.set(game.ball.x,.04,game.ball.z);const shadow=M?M.ballShadow(game.ball.y):{spread:1,opacity:.6};ballShadow.scale.set(shadow.spread,shadow.spread,1);ballShadowMat.opacity=shadow.opacity;
         for(const [indicator,index,enabled] of [[selection,game.controlled,true],[awaySelection,game.awayControlled,game.localTwoPlayer]]){
           const p=game.players[index];indicator.ring.visible=indicator.marker.visible=!!enabled&&!!p&&!p.sentOff;if(p){indicator.ring.position.set(p.x,.052,p.z);indicator.marker.position.set(p.x,2.26,p.z);}}
       }else {actorShadows.count=0;selection.ring.visible=selection.marker.visible=awaySelection.ring.visible=awaySelection.marker.visible=false;}

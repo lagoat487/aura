@@ -6,15 +6,15 @@ const AuraSoftwareGraphics=(()=>{
   const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
   function create(container,options={}){
     const canvas=document.createElement("canvas"),ctx=canvas.getContext("2d",{alpha:false});container.appendChild(canvas);
-    const P=AuraPresentation,preview=!!options.preview,night=options.stadium!=="day",sunset=options.stadium==="sunset",raining=options.weather==="rain";
-    let width=1,height=1,focal=1,camera=[0,63,88],right=[1,0,0],up=[0,1,0],forward=[0,0,-1],disposed=false,backgroundKey="",cameraState=null,lastTime=null;
+    const P=AuraPresentation,M=typeof AuraMaterials!=='undefined'?AuraMaterials:null,preview=!!options.preview,night=options.stadium!=="day",sunset=options.stadium==="sunset",raining=options.weather==="rain";
+    let width=1,height=1,focal=1,camera=[0,63,88],right=[1,0,0],up=[0,1,0],forward=[0,0,-1],disposed=false,backgroundKey="",cameraState=null,lastTime=null,ballSpin=null,ballAxis=0;
     const background=document.createElement("canvas"),backgroundCtx=background.getContext("2d");
     const kits=P.separateKits(AuraGraphics.kit(options.home),AuraGraphics.kit(options.away));
     const detailed=options.quality==='high'||options.quality==='ultra',low=options.quality==='low';
     const grass=document.createElement('canvas');grass.width=256;grass.height=256;const gc=grass.getContext('2d');let seed=416;
     for(let i=0;i<14000;i++){seed=(Math.imul(seed,1664525)+1013904223)>>>0;const x=seed%256,y=(seed>>>8)%256;gc.fillStyle=i%2?'#c5d9902c':'#1227122a';gc.fillRect(x,y,.7,1.5);}
     const grain=ctx.createPattern(grass,'repeat');
-    const human=typeof AuraHumanSprites!=='undefined'?AuraHumanSprites.create({home:options.home,away:options.away,kits,quality:options.quality}):null;
+    const human=typeof AuraHumanSprites!=='undefined'?AuraHumanSprites.create({home:options.home,away:options.away,kits,quality:options.quality,awayAlternate:kits[1][0]!==AuraGraphics.kit(options.away)[0]}):null;
     const elements=[],seats=[],ads=[],terraceBanks=[];let terrain=null,terrainEpoch=-1;
     function setCamera(position,target){camera=position;forward=norm(target.map((n,i)=>n-camera[i]));right=norm(cross(forward,[0,1,0]));up=norm(cross(right,forward));}
     function screen(v){const scale=focal/(Math.abs(v.depth)<.0001?.0001:v.depth);return {...v,x:width/2+v.vx*scale,y:height/2-v.vy*scale,scale};}
@@ -159,12 +159,13 @@ const AuraSoftwareGraphics=(()=>{
       }
     }
     function castShadow(p,game){
-      const ground=point(p.x,.03,p.z);if(ground.depth<.7)return;
-      const pose=P.pose(p,game),dx=p.x+57,dz=p.z+43,length=Math.hypot(dx,dz)||1;
-      const reach=(night?3.6:2.4)*(1+pose.jump*.3),sx=dx/length,sz=dz/length;
-      const tip=point(p.x+sx*reach,.035,p.z+sz*reach);if(tip.depth<.7)return;
+      const ground=point(p.x,.03,p.z);if(ground.depth<.7||ground.x<-180||ground.x>width+180||ground.y<-180||ground.y>height+180)return;
+      const pose=P.pose(p,game),look=P.appearance(p),light=M?M.shadowVector(options.stadium,look.height):{x:1.2,z:1.1,opacity:.2};
+      const tip=point(p.x+light.x,.035,p.z+light.z),edge=point(p.x+right[0],.03,p.z+right[2]);
+      if(tip.depth<.7||edge.depth<.7||Math.hypot(tip.x-ground.x,tip.y-ground.y)>180)return;
+      if(human?.drawShadow?.(ctx,p,pose,look,camera,ground,tip,edge,light.opacity))return;
       const fade=ctx.createLinearGradient(ground.x,ground.y,tip.x,tip.y);fade.addColorStop(0,night?'#08151d44':'#10251a55');fade.addColorStop(1,'#14221e00');
-      ctx.save();ctx.lineCap='round';ctx.strokeStyle=fade;ctx.lineWidth=Math.min(45,ground.scale*.34);ctx.beginPath();ctx.moveTo(ground.x,ground.y);ctx.lineTo(tip.x,tip.y);ctx.stroke();ctx.restore();
+      ctx.save();ctx.lineCap='round';ctx.strokeStyle=fade;ctx.lineWidth=Math.min(12,ground.scale*.34);ctx.beginPath();ctx.moveTo(ground.x,ground.y);ctx.lineTo(tip.x,tip.y);ctx.stroke();ctx.restore();
     }
     function player(p,selected,game){
       const pose=P.pose(p,game),look=P.appearance(p),keeper=p.index===0,scale=look.height/1.88;
@@ -176,8 +177,6 @@ const AuraSoftwareGraphics=(()=>{
       const shade=ctx.createRadialGradient(ground.x,ground.y,0,ground.x,ground.y,size*2.2);shade.addColorStop(0,'#0920167a');shade.addColorStop(1,'#09201600');ctx.save();ctx.translate(ground.x,ground.y);ctx.scale(1,.38);ctx.fillStyle=shade;ctx.beginPath();ctx.arc(0,0,size*2.1,0,Math.PI*2);ctx.fill();ctx.restore();
       if(selected){ctx.strokeStyle=p.team===1?'#ad9aff':'#45e5e5';ctx.lineWidth=1.7;ctx.beginPath();ctx.ellipse(ground.x,ground.y,size*2.25,size*.66,0,0,Math.PI*2);ctx.stroke();}
       if(human?.draw(ctx,p,pose,look,camera,ground)){
-        const facing=p.faceX*(camera[0]-p.x)+p.faceZ*(camera[2]-p.z);
-        if(facing<-.1){const label=point(...world(0,1.29,-.13));ctx.fillStyle=colors[2];ctx.textAlign='center';ctx.font='700 '+Math.max(4,label.scale*.19)+'px Arial';ctx.fillText(String(p.number),label.x,label.y);}
         if(selected){const h=point(p.x,2.10,p.z);ctx.fillStyle=p.team===1?'#ad9aff':'#45e5e5';ctx.beginPath();ctx.moveTo(h.x-3,h.y-4);ctx.lineTo(h.x+3,h.y-4);ctx.lineTo(h.x,h.y+1);ctx.fill();}
         return;
       }
@@ -222,14 +221,22 @@ const AuraSoftwareGraphics=(()=>{
       }else ctx.drawImage(background,0,0,width,height);
       flags(game?.visualTime??now*.001);
       if(game){
+        if(M)ballSpin=M.ballSpin(ballSpin,game.ball,game.visualTime||0);
         game.players.filter(p=>!p.sentOff).forEach(p=>castShadow(p,game));
         const entities=game.players.filter(p=>!p.sentOff).map(p=>({depth:point(p.x,0,p.z).depth,draw:()=>player(p,game.players[game.controlled]===p||(game.localTwoPlayer&&game.players[game.awayControlled]===p),game)}));
         entities.push({depth:point(game.ball.x,game.ball.y,game.ball.z).depth,draw:()=>{
-          const ball=game.ball,b=point(ball.x,ball.y,ball.z),shadow=point(ball.x,0,ball.z),radius=Math.max(2.2,b.scale*.18);
+          const ball=game.ball,b=point(ball.x,ball.y,ball.z),shadow=point(ball.x,.025,ball.z),radius=Math.max(2.2,b.scale*.18);
           if(b.depth<.35)return;
-          ctx.fillStyle='#0e271b66';ctx.beginPath();ctx.ellipse(shadow.x,shadow.y,radius*1.1,radius*.4,0,0,Math.PI*2);ctx.fill();
+          if(shadow.depth>.7){const cast=M?M.ballShadow(ball.y):{spread:1,opacity:.4},r=Math.max(2.2,shadow.scale*.18)*cast.spread;ctx.save();ctx.globalAlpha=cast.opacity;ctx.fillStyle='#0e271b';ctx.beginPath();ctx.ellipse(shadow.x,shadow.y,r*1.1,r*.4,0,0,Math.PI*2);ctx.fill();ctx.restore();}
+          const assets=typeof AuraHumanSprites!=='undefined'?AuraHumanSprites.assets():null;
+          if(assets?.ball&&ballSpin){
+            const vx=(ball.vx||0)*right[0]+(ball.vz||0)*right[2],vz=(ball.vx||0)*forward[0]+(ball.vz||0)*forward[2];
+            if(Math.hypot(vx,vz)>.02)ballAxis=Math.abs(vx)>=Math.abs(vz)?0:1;
+            const axis=ballAxis===0?right:forward,phase=-ballSpin.z*axis[0]+ballSpin.x*axis[2],frames=assets.ballMeta.frames,frame=((Math.floor(phase/(Math.PI*2)*frames)%frames)+frames)%frames;
+            ctx.drawImage(assets.ball,frame*64,ballAxis*64,64,64,b.x-radius,b.y-radius,radius*2,radius*2);return;
+          }
           const light=ctx.createRadialGradient(b.x-radius*.35,b.y-radius*.35,.1,b.x,b.y,radius);light.addColorStop(0,'#fffef0');light.addColorStop(.7,'#e5e9da');light.addColorStop(1,'#a1b3a1');ctx.fillStyle=light;ctx.beginPath();ctx.arc(b.x,b.y,radius,0,Math.PI*2);ctx.fill();
-          ctx.save();ctx.translate(b.x,b.y);ctx.rotate((game.visualTime||0)*1.8);ctx.fillStyle='#263834';ctx.beginPath();for(let j=0;j<5;j++){const angle=j*Math.PI*2/5;const x=Math.cos(angle)*radius*.43,y=Math.sin(angle)*radius*.43;j?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.closePath();ctx.fill();ctx.restore();
+          ctx.save();ctx.translate(b.x,b.y);ctx.rotate(ballSpin?ballSpin.x-ballSpin.z:(game.visualTime||0)*1.8);ctx.fillStyle='#263834';ctx.beginPath();for(let j=0;j<5;j++){const angle=j*Math.PI*2/5;const x=Math.cos(angle)*radius*.43,y=Math.sin(angle)*radius*.43;j?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.closePath();ctx.fill();ctx.restore();
         }});
         entities.sort((a,b)=>b.depth-a.depth).forEach(e=>e.draw());
       }
