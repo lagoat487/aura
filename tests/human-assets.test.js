@@ -42,7 +42,7 @@ test('compatible sprites recolour the actual atlas and bound their cache across 
  const pixels=new Uint8ClampedArray(128*16*224*6*4);for(let i=0;i<pixels.length;i+=4){pixels[i]=1;pixels[i+1]=205;pixels[i+3]=255;}
  const context2d={drawImage(){},getImageData:()=>({data:pixels}),createImageData:(w,h)=>({data:new Uint8ClampedArray(w*h*4)}),putImageData(image){this.last=image;}};
  const canvas=()=>{const ctx={...context2d};return {width:1,height:1,getContext:()=>ctx};};
- class FakeImage{constructor(){this.width=128*16;this.height=224*6;}set src(v){this.onload();}}
+ class FakeImage{constructor(){this.width=128*16;this.height=224*6;}set src(v){assert.equal(this.crossOrigin,'anonymous','redirected animation pages must remain readable by Canvas');this.onload();}}
  const context=vm.createContext({Image:FakeImage,document:{createElement:canvas}});
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../human-sprites.js'),'utf8'),context);
  const factory=vm.runInContext('AuraHumanSprites',context),s=factory.create({quality:'low',home:{id:'home'},away:{id:'away'},kits:[['#ee2233','#122244','#eeddcc'],['#eeeeee','#ddddee','#333344']]});

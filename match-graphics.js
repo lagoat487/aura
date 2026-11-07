@@ -86,7 +86,7 @@ const AuraGraphics=(()=>{
     }
     const turfMap=texture(turf);
     if(typeof Image==='function'){
-      const photo=new Image();photo.onload=()=>{if(disposed)return;const tile=tw/28;
+      const photo=new Image();photo.crossOrigin='anonymous';photo.onload=()=>{if(disposed)return;const tile=tw/28;
         ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
         for(let x=0;x<tw;x+=tile)for(let y=0;y<th;y+=tile)ctx.drawImage(photo,x,y,tile+1,tile+1);
         ctx.fillStyle='#3c492b48';ctx.fillRect(0,0,tw,th);
@@ -156,7 +156,7 @@ const AuraGraphics=(()=>{
         dummy.rotation.set(0,yaw,0);dummy.scale.set(1,1,1);dummy.position.set(x,y+.38+bounce,z);dummy.updateMatrix();crowdBodies.setMatrixAt(i,dummy.matrix);dummy.position.y=y+.72+bounce;dummy.scale.set(1,1.1,1);dummy.updateMatrix();crowdHeads.setMatrixAt(i,dummy.matrix);}
       crowdBodies.instanceMatrix.needsUpdate=true;crowdHeads.instanceMatrix.needsUpdate=true;}
     if(typeof Image==='function'){
-      const terrace=new Image();terrace.onload=()=>{if(disposed)return;
+      const terrace=new Image();terrace.crossOrigin='anonymous';terrace.onload=()=>{if(disposed)return;
         const image=typeof AuraHumanSprites!=='undefined'?AuraHumanSprites.tileCrowd(terrace):terrace;
         const terraceMap=texture(image),m=material(0xffffff,{map:terraceMap,roughness:1,side:T.DoubleSide}),aisles=[];
         function bank(points){const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(points,3));g.setAttribute('uv',new T.Float32BufferAttribute([0,0,1,0,1,1,0,0,1,1,0,1],2));g.computeVertexNormals();mesh(g,m);
@@ -211,7 +211,7 @@ const AuraGraphics=(()=>{
       cx.fillStyle=colors[1];for(let x=0;x<256;x+=64)cx.fillRect(x,0,32,160);
       cx.fillStyle=colors[2];cx.font='italic bold 28px Arial';cx.textAlign='center';cx.fillText('AURA',128,95);
       const map=texture(c),crest=typeof AuraBadges!=='undefined'?AuraBadges.get(team===0?options.home:options.away):null;
-      if(crest&&typeof Image==='function'){const badge=new Image();badge.onload=()=>{if(disposed)return;cx.drawImage(badge,103,46,50,62);map.needsUpdate=true;};badge.src=crest;}
+      if(crest&&typeof Image==='function'){const badge=new Image();badge.crossOrigin='anonymous';badge.onload=()=>{if(disposed)return;cx.drawImage(badge,103,46,50,62);map.needsUpdate=true;};badge.src=crest;}
       return map;
     });
     for(const sign of [-1,1])for(const x of (low?[-34,34]:[-44,-22,22,44])){
@@ -337,7 +337,7 @@ const AuraGraphics=(()=>{
     ballCtx.fillStyle='#f3f4e9';ballCtx.fillRect(0,0,512,256);seamCtx.fillStyle='#b4b4b4';seamCtx.fillRect(0,0,512,256);
     const ballMap=texture(ballCanvas),seamMap=texture(seamCanvas,false);
     if(typeof Image==='function')for(const [path,context,map] of [['ball-albedo-95.png',ballCtx,ballMap],['ball-seams-95.png',seamCtx,seamMap]]){
-      const image=new Image();image.onload=()=>{if(disposed)return;context.drawImage(image,0,0,512,256);map.needsUpdate=true;};image.src='./assets/textures/'+path;
+      const image=new Image();image.crossOrigin='anonymous';image.onload=()=>{if(disposed)return;context.drawImage(image,0,0,512,256);map.needsUpdate=true;};image.src='./assets/textures/'+path;
     }
     const ball=mesh(geometry('ball',()=>new T.SphereGeometry(.18,low?16:32,low?12:24)),material(0xffffff,{map:ballMap,bumpMap:low?null:seamMap,bumpScale:.0017,roughness:raining?.24:.46}));ball.name='match-ball';ball.castShadow=!low;ball.receiveShadow=!low;
     const ballShadowMat=basic({map:shadowMat.map,transparent:true,depthWrite:false,toneMapped:false});

@@ -34,7 +34,7 @@
   const read=ctx=>{try{const pixels=ctx.getImageData?.(0,0,size,size)?.data;return pixels?.length===size*size*4?pixels:null;}catch{return null;}};
   const result={front,back,size,style,frontPixels:read(f),backPixels:read(b),revision:0,onChange:null};
   if(crest&&typeof ImageType==='function'){
-   const image=new ImageType();image.onload=()=>{f.drawImage(image,size*.65,size*.15,size*.16,size*.21);result.frontPixels=read(f);result.revision++;result.onChange?.();};image.src=crest;
+   const image=new ImageType();image.crossOrigin='anonymous';image.onload=()=>{f.drawImage(image,size*.65,size*.15,size*.16,size*.21);result.frontPixels=read(f);result.revision++;result.onChange?.();};image.src=crest;
   }
   return result;
  }

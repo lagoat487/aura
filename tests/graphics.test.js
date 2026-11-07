@@ -5,7 +5,8 @@ test("WebGL scene construction produces finite stadium and player geometry in al
  const gradient={addColorStop(){}};
  const context2d=new Proxy({createLinearGradient:()=>gradient,createRadialGradient:()=>gradient},{get:(o,k)=>k in o?o[k]:()=>{}});
  const canvas=()=>({width:1,height:1,getContext:()=>context2d,setAttribute(){},remove(){}});
- let renders=0,latestScene=null;
+ let renders=0,latestScene=null,imageRequests=0;
+ class FakeImage{set src(value){assert.equal(this.crossOrigin,'anonymous','redirected textures must remain uploadable by WebGL');imageRequests++;}}
  class Renderer{
    constructor(){this.domElement=canvas();this.shadowMap={};this.capabilities={getMaxAnisotropy:()=>4};}
    setPixelRatio(){}setSize(){}dispose(){}forceContextLoss(){}
@@ -16,7 +17,7 @@ test("WebGL scene construction produces finite stadium and player geometry in al
      assert.ok(geometries.size<meshCount/3,'footballers share geometry rather than allocating every joint');
    }
  }
- const context=vm.createContext({THREE:{...THREE,WebGLRenderer:Renderer},AuraMaterials:require('../match-materials'),AuraHumanMesh:require('../assets/models/footballer-mesh.js'),document:{createElement:canvas}});
+ const context=vm.createContext({Image:FakeImage,THREE:{...THREE,WebGLRenderer:Renderer},AuraMaterials:require('../match-materials'),AuraHumanMesh:require('../assets/models/footballer-mesh.js'),document:{createElement:canvas}});
  vm.runInContext(fs.readFileSync(path.join(__dirname,"..","match-presentation.js"),"utf8"),context);
  vm.runInContext(fs.readFileSync(path.join(__dirname,"..","match-graphics.js"),"utf8"),context);
  const make=id=>({id,name:id,players:Match.SHAPE.map((s,i)=>({id:id+i,name:id+i,pos:s[0],overall:80}))});
@@ -29,7 +30,7 @@ test("WebGL scene construction produces finite stadium and player geometry in al
    assert.equal(latestScene.children.filter(o=>o.name.startsWith("player:")).length,22,"substitutions remove the previous actor from the scene");
    assert.equal(latestScene.getObjectsByProperty("isSkinnedMesh",true).length,22);
  }
- assert.equal(renders,56);
+ assert.equal(renders,56);assert.ok(imageRequests>=16);
 });
 test('compatible renderer draws finite frames for portrait and landscape, every camera and action, and releases its canvas',()=>{
  let draws=0,removed=0;

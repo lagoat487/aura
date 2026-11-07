@@ -7,7 +7,7 @@
  function tileCrowd(image){const c=document.createElement('canvas');c.width=4096;c.height=512;const ctx=c.getContext('2d');for(let y=0;y<2;y++)for(let i=0;i<8;i++)ctx.drawImage(image,i*512,y*256,512,256);return c;}
  function start(){
   if(started||typeof Image!=='function'||typeof document==='undefined')return;started=true;
-  function load(src,receive){const image=new Image();image.onload=()=>{try{receive(image);epoch++;}catch{}};image.src=src;}
+  function load(src,receive){const image=new Image();image.crossOrigin='anonymous';image.onload=()=>{try{receive(image);epoch++;}catch{}};image.src=src;}
   for(let page=0;page<META.pages;page++)load('./assets/models/human-motion-94-'+page+'.png',image=>{
    const c=document.createElement('canvas');c.width=image.width;c.height=image.height;const ctx=c.getContext('2d',{willReadFrequently:true});ctx.drawImage(image,0,0);atlas[page]={width:c.width,pixels:ctx.getImageData(0,0,c.width,c.height).data};
   });
