@@ -13,7 +13,7 @@ test('anatomical player mesh has complete normalized skinning, valid indices and
  assert.equal(mesh.bones.length,17);mesh.bones.forEach(([parent,...xyz],i)=>{assert.ok(parent<i);assert.ok(xyz.every(Number.isFinite));});
  assert.equal(mesh.groups.reduce((n,g)=>n+g[1],0),mesh.indices.length);
  for(let page=0;page<sprites.meta.pages;page++){
-  const png=fs.readFileSync(path.join(__dirname,'../assets/models/human-motion-94-'+page+'.png'));
+  const png=fs.readFileSync(path.join(__dirname,'../assets/models/human-motion-96-'+page+'.png'));
   assert.equal(png.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
   const chunks=[];let offset=8,ended=false;
   while(offset+12<=png.length){

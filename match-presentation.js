@@ -3,7 +3,7 @@
   'use strict';
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),finite=(n,f=0)=>Number.isFinite(n)?n:f;
   function hash(id){let n=2166136261;for(const c of String(id))n=Math.imul(n^c.charCodeAt(0),16777619);return n>>>0;}
-  function appearance(p){const n=hash(p.id);return {skin:['#c6926c','#9a6547','#e2b28b','#754a34','#c9a17d','#573b2d'][n%6],hair:['#201c19','#34271e','#191c20','#72513a'][n%4],height:1.74+(n%18)/100,build:.94+(n%12)/100,hairStyle:n%4,eye:['#43382b','#34423a','#45516a'][n%3],beard:n%5===0};}
+  function appearance(p){const n=hash(p.id),base={skin:['#c6926c','#9a6547','#e2b28b','#754a34','#c9a17d','#573b2d'][n%6],hair:['#201c19','#34271e','#191c20','#72513a'][n%4],height:1.74+(n%18)/100,build:.94+(n%12)/100,hairStyle:n%4,eye:['#43382b','#34423a','#45516a'][n%3],beard:n%5===0};return typeof AuraLook!=='undefined'?AuraLook.avatar(p,base):base;}
   function cameraFrame(game,mode='broadcast',aspect=16/9,preview=false){
     const b=game?.ball||{},x=clamp(finite(b.x),-53,53),z=clamp(finite(b.z),-35,35),vx=clamp(finite(b.vx),-35,35);
     const look=clamp(x+vx*.18,-46,46),portrait=aspect<1?1.52:aspect<1.3?1.17:1;
@@ -15,9 +15,11 @@
     if(mode==='stadium'){
       // Diagonal sideline framing of the original concept, with space ahead of the ball.
       // Screen-relative controls use this very same smoothed camera in both renderers.
-      const d=game?.half===2?-1:1,space=aspect<1?1.55:aspect<1.3?1.18:1;
-      const lead=clamp(finite(b.vx)*.14,-3,3),az=z*.83;
-      return {position:[x-d*11.5*space,19.8*space,az+25*space],target:[x+d*3.5+lead,.6,az-2.5],fov:48+tracking};
+      const d=game?.half===2?-1:1,space=aspect<1?1.2:aspect<1.3?1.1:1;
+      const lead=clamp(finite(b.vx)*.10,-2,2),az=z*.88,focus=aspect>=1.3?-4.2:aspect<1?1.5:0;
+      const rawX=x-d*15.5*space,rawZ=az+23.8*space,cx=clamp(rawX,-56,56),cz=Math.min(35.5,rawZ);
+      const constrained=cx!==rawX||cz!==rawZ||aspect<1;
+      return {position:[cx,13.8*space,cz],target:constrained?[x,.6,z]:[x+d*focus+lead,.6,az-2.5],fov:49+tracking};
     }
     if(mode==='immersive'){
       const player=game?.players?.[game.controlled],d=game?.half===2?-1:1;
@@ -61,7 +63,7 @@
     const view=frame.target.map((n,i)=>n-frame.position[i]),length=Math.hypot(...view);
     if(!Number.isFinite(length)||length<.001)return false;
     const depth=position.reduce((n,value,i)=>n+(value-frame.position[i])*view[i],0)/length;
-    return Number.isFinite(depth)&&depth>18;
+    return Number.isFinite(depth)&&depth>24;
   }
   function flagWave(u,v,time,phase=0){
     const x=clamp(finite(u),0,1),y=clamp(finite(v),0,1),t=finite(time),p=finite(phase);

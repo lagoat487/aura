@@ -6,7 +6,7 @@ const AuraSoftwareGraphics=(()=>{
   const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
   function create(container,options={}){
     const canvas=document.createElement("canvas"),ctx=canvas.getContext("2d",{alpha:false});container.appendChild(canvas);
-    const P=AuraPresentation,M=typeof AuraMaterials!=='undefined'?AuraMaterials:null,preview=!!options.preview,night=options.stadium!=="day",sunset=options.stadium==="sunset",raining=options.weather==="rain";
+    const P=AuraPresentation,M=typeof AuraMaterials!=='undefined'?AuraMaterials:null,L=typeof AuraLook!=='undefined'?AuraLook:null,preview=!!options.preview,night=options.stadium!=="day",sunset=options.stadium==="sunset",raining=options.weather==="rain";
     let width=1,height=1,focal=1,camera=[0,63,88],right=[1,0,0],up=[0,1,0],forward=[0,0,-1],disposed=false,backgroundKey="",cameraState=null,lastTime=null,ballSpin=null,ballAxis=0;
     const background=document.createElement("canvas"),backgroundCtx=background.getContext("2d");
     const kits=P.separateKits(AuraGraphics.kit(options.home),AuraGraphics.kit(options.away));
@@ -15,6 +15,7 @@ const AuraSoftwareGraphics=(()=>{
     for(let i=0;i<14000;i++){seed=(Math.imul(seed,1664525)+1013904223)>>>0;const x=seed%256,y=(seed>>>8)%256;gc.fillStyle=i%2?'#c5d9902c':'#1227122a';gc.fillRect(x,y,.7,1.5);}
     const grain=ctx.createPattern(grass,'repeat');
     const human=typeof AuraHumanSprites!=='undefined'?AuraHumanSprites.create({home:options.home,away:options.away,kits,quality:options.quality,awayAlternate:kits[1][0]!==AuraGraphics.kit(options.away)[0]}):null;
+    const led=L?L.board((w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;}):null;
     const elements=[],seats=[],ads=[],terraceBanks=[];let terrain=null,terrainEpoch=-1;
     function setCamera(position,target){camera=position;forward=norm(target.map((n,i)=>n-camera[i]));right=norm(cross(forward,[0,1,0]));up=norm(cross(right,forward));}
     function screen(v){const scale=focal/(Math.abs(v.depth)<.0001?.0001:v.depth);return {...v,x:width/2+v.vx*scale,y:height/2-v.vy*scale,scale};}
@@ -88,6 +89,7 @@ const AuraSoftwareGraphics=(()=>{
       }
     }
     function photographicTerrain(assets){
+      if(assets.pitch)return assets.pitch;
       if(!assets.grass)return null;if(terrain&&terrainEpoch===assets.epoch)return terrain;
       terrainEpoch=assets.epoch;terrain=document.createElement('canvas');terrain.width=2048;terrain.height=1326;const tc=terrain.getContext('2d'),tile=terrain.width/28;
       for(let x=0;x<terrain.width;x+=tile)for(let y=0;y<terrain.height;y+=tile)tc.drawImage(assets.grass,x,y,tile+1,tile+1);
@@ -128,9 +130,14 @@ const AuraSoftwareGraphics=(()=>{
         polygon([[a[0]+ox,a[1],a[2]+oz],[b[0]+ox,b[1],b[2]+oz],[b[0]-ox,b[1],b[2]-oz],[a[0]-ox,a[1],a[2]-oz]],'#edf1d9c9');
       }
       for(const sign of [-1,1]){
-        polygon([[-55,.1,sign*37],[55,.1,sign*37],[55,1,sign*37],[-55,1,sign*37]],"#142c3d");
-        for(let x=-45;x<50;x+=22){const p=point(x,.8,sign*37);if(p.depth<1)continue;ctx.save();ctx.translate(p.x,p.y);ctx.fillStyle='#b8f6f1dc';ctx.font='700 '+Math.max(6,p.scale*.55)+'px Arial';ctx.fillText('AURA   /   VISION',0,0);ctx.restore();}
-        for(const x of [-52.5,52.5]){segment([x,0,sign*34],[x,1.5,sign*34],"#dacb8b",1);polygon([[x,1.5,sign*34],[x+.65,1.45,sign*34],[x,1.1,sign*34]],"#d1ff7c");}
+        if(led){
+          for(let x=-55;x<55;x+=11)texturedSurface(led,[[x,1.12,sign*36.9],[x+11,1.12,sign*36.9],[x+11,.12,sign*36.9],[x,.12,sign*36.9]],1,1);
+          for(let z=-36;z<36;z+=12)texturedSurface(led,[[sign*58,1.12,z],[sign*58,1.12,z+12],[sign*58,.12,z+12],[sign*58,.12,z]],1,1);
+        }else polygon([[-55,.1,sign*37],[55,.1,sign*37],[55,1,sign*37],[-55,1,sign*37]],'#142c3d');
+        segment([-67,1.55,sign*41.2],[67,1.55,sign*41.2],'#89959ba3',.7);
+        segment([-67,2.1,sign*41.2],[67,2.1,sign*41.2],'#8b999ea3',.7);
+        for(let x=-66;x<=66;x+=6)segment([x,1.1,sign*41.2],[x,2.1,sign*41.2],'#68777fa3',.6);
+        for(const x of [-52.5,52.5]){segment([x,0,sign*34],[x,1.5,sign*34],'#dacb8b',1);polygon([[x,1.5,sign*34],[x+.65,1.45,sign*34],[x,1.1,sign*34]],'#d1ff7c');}
       }
       for(const x of [-62,62])for(const z of [-43,43]){
         segment([x,0,z],[x,22,z],"#526779",Math.max(1,height/500));const p=point(x,22,z);segment([x,22,z],[x+7,22,z],"#f4f6eb",3);

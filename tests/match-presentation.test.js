@@ -7,7 +7,7 @@ test('stadium and immersive framing keep the ball visible at both ends and prese
  const T=require('../vendor/three.min.js');
  for(const mode of ['immersive','stadium'])for(const half of [1,2])for(const aspect of [.45,.8,1.4,2.3])for(const x of [-53,0,53])for(const z of [-35,0,35]){
   const g={half,controlled:0,players:[{x:x-3,z:z+2}],ball:{x,z,vx:20}},before=JSON.stringify(g);
-  const frame=P.cameraFrame(g,mode,aspect),camera=new T.PerspectiveCamera(frame.fov,aspect,.1,400);
+  const frame=P.cameraFrame(g,mode,aspect);if(mode==='stadium'){assert.ok(Math.abs(frame.position[0])<=56);assert.ok(frame.position[2]<=35.5,'camera stays in front of the near crowd instead of looking through it');}const camera=new T.PerspectiveCamera(frame.fov,aspect,.1,400);
   camera.position.fromArray(frame.position);camera.lookAt(new T.Vector3().fromArray(frame.target));camera.updateMatrixWorld(true);
   const ball=new T.Vector3(x,.3,z).project(camera);
   assert.ok(Math.abs(ball.x)<.95&&Math.abs(ball.y)<.95&&ball.z<1,'the ball stays in the playable frame');
@@ -33,6 +33,16 @@ test('camera follow converges without teleporting or moving at zero delta',()=>{
  assert.deepEqual(P.smoothCamera(first,next,0),first);
  let c=P.smoothCamera(first,next,.016);assert.ok(c.position[0]>first.position[0]&&c.position[0]<next.position[0]);
  for(let i=0;i<200;i++)c=P.smoothCamera(c,next,.016);assert.ok(Math.abs(c.position[0]-next.position[0])<.001);assert.equal(JSON.stringify(first),old);
+});
+test('reference sideline framing shows the attacker and the goal together in the final third',()=>{
+ const T=require('../vendor/three.min.js');
+ for(const half of [1,2]){
+  const sign=half===1?1:-1,g={half,ball:{x:sign*34,z:16,vx:sign*4}},f=P.cameraFrame(g,'stadium',16/9),c=new T.PerspectiveCamera(f.fov,16/9,.1,400);
+  c.position.fromArray(f.position);c.lookAt(new T.Vector3().fromArray(f.target));c.updateMatrixWorld(true);
+  const ball=new T.Vector3(g.ball.x,.3,g.ball.z).project(c),goal=new T.Vector3(sign*52.5,1.2,0).project(c);
+  for(const point of [ball,goal])assert.ok(Math.abs(point.x)<.95&&Math.abs(point.y)<.95&&point.z<1);
+  assert.ok((goal.x-ball.x)*sign>0);assert.ok(goal.y>ball.y);
+ }
 });
 test('replay frames interpolate ball and player positions while keeping substitutions discrete and results untouched',()=>{
  const g=game(),a=P.capture(g);g.players[9].x+=10;g.ball.x+=20;g.visualTime+=2;const b=P.capture(g),before=JSON.stringify(g),middle=P.interpolate(a,b,.5);
