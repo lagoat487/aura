@@ -3,7 +3,7 @@
   'use strict';
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),finite=(n,f=0)=>Number.isFinite(n)?n:f;
   function hash(id){let n=2166136261;for(const c of String(id))n=Math.imul(n^c.charCodeAt(0),16777619);return n>>>0;}
-  function appearance(p){const n=hash(p.id);return {skin:['#c6926c','#9a6547','#e2b28b','#754a34','#c9a17d','#573b2d'][n%6],hair:['#201c19','#34271e','#191c20','#72513a'][n%4],height:1.74+(n%18)/100,build:.94+(n%12)/100,hairStyle:n%4};}
+  function appearance(p){const n=hash(p.id);return {skin:['#c6926c','#9a6547','#e2b28b','#754a34','#c9a17d','#573b2d'][n%6],hair:['#201c19','#34271e','#191c20','#72513a'][n%4],height:1.74+(n%18)/100,build:.94+(n%12)/100,hairStyle:n%4,eye:['#43382b','#34423a','#45516a'][n%3],beard:n%5===0};}
   function cameraFrame(game,mode='broadcast',aspect=16/9,preview=false){
     const b=game?.ball||{},x=clamp(finite(b.x),-53,53),z=clamp(finite(b.z),-35,35),vx=clamp(finite(b.vx),-35,35);
     const look=clamp(x+vx*.18,-46,46),portrait=aspect<1?1.52:aspect<1.3?1.17:1;
@@ -50,11 +50,15 @@
     const active=finite(p.actionTime)>0,progress=active?1-clamp(p.actionTime/(p.actionDuration||.4),0,1):1,pulse=active?Math.sin(progress*Math.PI):0;
     const kick=['shoot','pass'].includes(p.action)&&active?pulse:0,save=['save','dive','parry','smother'].includes(p.action)&&active?pulse:0,celebrate=p.action==='celebrate'&&active?1:0;
     const keeper=p.index===0,smother=p.action==='smother'?save:0,height=clamp(finite(p.saveHeight,1.7),.22,2.8);
-    return {stride,kneeLeft:Math.max(0,-Math.cos(cycle))*.9*speed,kneeRight:Math.max(0,Math.cos(cycle))*.9*speed,kick,save,celebrate,
+    return {cycle,hipTwist:Math.cos(cycle)*.045*speed,chestTwist:-Math.cos(cycle)*.09*speed,breath:Math.sin(finite(game?.visualTime)*2.2+(hash(p.id)%13))*.003*(1-speed),headYaw:Math.sin(finite(game?.visualTime)*.7+(hash(p.id)%9))*.035*(1-speed),stride,kneeLeft:Math.max(0,-Math.cos(cycle))*.9*speed,kneeRight:Math.max(0,Math.cos(cycle))*.9*speed,kick,save,celebrate,
       lean:speed*.12+turn*.12,jump:celebrate?Math.max(0,Math.sin(finite(game?.visualTime)*9))*.16:Math.abs(Math.sin(cycle*2))*.025*speed,
       turn,control,
       dive:save*finite(p.diveSide,1)*(p.action==='save'?.35:p.action==='smother'?.25:1),crouch:keeper?.12+smother*.5:0,
       saveLift:keeper?save*clamp((height-1.4)*.25,0,.35):0,highSave:save*clamp(height/2.3,.15,1),tackle:p.action==='tackle'&&active?pulse:0,speed};
+  }
+  function flagWave(u,v,time,phase=0){
+    const x=clamp(finite(u),0,1),y=clamp(finite(v),0,1),t=finite(time),p=finite(phase);
+    return x*(Math.sin(x*7-y*2-t*2.6+p)*.16+Math.sin(x*12-t*4+p)*.05);
   }
   function goalNetImpulse(game,sign){
     if(game?.phase!=="goal")return 0;
@@ -76,5 +80,5 @@
     return {...a,score:a.score.slice(),visualTime:mix(a.visualTime,b.visualTime),elapsed:mix(a.elapsed,b.elapsed),ball:{...a.ball,...Object.fromEntries(['x','y','z','vx','vy','vz'].map(k=>[k,mix(a.ball[k],b.ball[k])]))},
       players:a.players.map((p,i)=>{const q=b.players[i];if(!q||q.id!==p.id)return {...p};return {...p,...Object.fromEntries(['x','z','vx','vz','faceX','faceZ','run','actionTime','turn','dribbleTime'].map(k=>[k,mix(p[k],q[k])]))};})};
   }
-  return {cameraFrame,smoothCamera,cameraInput,appearance,pose,goalNetImpulse,separateKits,capture,interpolate};
+  return {cameraFrame,smoothCamera,cameraInput,appearance,pose,flagWave,goalNetImpulse,separateKits,capture,interpolate};
 });

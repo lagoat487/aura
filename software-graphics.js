@@ -111,7 +111,13 @@ const AuraSoftwareGraphics=(()=>{
         ctx.fillStyle=s.color;ctx.fillRect(p.x,p.y,Math.max(1,p.scale*.7),Math.max(1,p.scale*.45));
         if(i%19!==0){const r=Math.max(.7,p.scale*.16);ctx.fillStyle=['#b99b7c','#85634b','#d1b598'][i%3];ctx.beginPath();ctx.arc(p.x+p.scale*.35,p.y-p.scale*.39,r,0,Math.PI*2);ctx.fill();ctx.fillStyle=['#b0b5bb','#783145','#273c5d','#777f75'][i%4];ctx.fillRect(p.x+p.scale*.11,p.y-p.scale*.21,p.scale*.48,p.scale*.5);}
       });
-      if(assets.terrace)for(const bank of terraceBanks)texturedSurface(assets.terrace,bank,12,3);
+      if(assets.terrace)for(const bank of terraceBanks){
+        texturedSurface(assets.terrace,bank,12,3);
+        const [a,b,c,d]=bank,at=(u,v)=>a.map((n,k)=>(n*(1-u)+b[k]*u)*(1-v)+(d[k]*(1-u)+c[k]*u)*v+(k===1?.045:0));
+        for(const u of [.14,.35,.57,.79]){polygon([at(u-.004,0),at(u+.004,0),at(u+.004,1),at(u-.004,1)],'#727d77');
+          if(detailed)for(let v=.1;v<1;v+=.1)segment(at(u-.004,v),at(u+.004,v),'#b3bab36b',.65);
+        }
+      }
       quad(-58,-39,58,39,-.02,"#244d37");
       const turf=photographicTerrain(assets);
       if(turf)texturedSurface(turf,[[-52.5,.006,-34],[52.5,.006,-34],[52.5,.006,34],[-52.5,.006,34]],low?12:22,low?8:14);
@@ -126,6 +132,14 @@ const AuraSoftwareGraphics=(()=>{
       for(const x of [-62,62])for(const z of [-43,43]){
         segment([x,0,z],[x,22,z],"#526779",Math.max(1,height/500));const p=point(x,22,z);segment([x,22,z],[x+7,22,z],"#f4f6eb",3);
         if(night&&p.depth>1){const radius=Math.min(80,12+p.scale*1.7),glow=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,radius);glow.addColorStop(0,"#f3f8ffaf");glow.addColorStop(.12,"#e7f0ff55");glow.addColorStop(1,"#eff6ff00");ctx.fillStyle=glow;ctx.fillRect(p.x-radius,p.y-radius,radius*2,radius*2);}
+      }
+    }
+    function flags(time){
+      for(const sign of [-1,1])for(const x of (low?[-34,34]:[-44,-22,22,44])){
+        const z=sign*43,anchor=point(x,5.7,z);if(anchor.depth<.7||anchor.x<-150||anchor.x>width+150||anchor.y<-100||anchor.y>height+100)continue;
+        const colors=kits[sign<0?0:1],at=(u,v)=>[x+u*2.6,5.7+(v-.5)*1.5-.09*u*u,z+P.flagWave(u,v,time,x*.27+sign)];
+        segment([x,2.4,z],[x,6.45,z],'#b7c2c0',Math.max(.7,anchor.scale*.035));
+        for(let i=0;i<8;i++){const u=i/8,v=(i+1)/8;polygon([at(u,0),at(v,0),at(v,1),at(u,1)],colors[i%2]);}
       }
     }
     function goals(game){
@@ -203,6 +217,7 @@ const AuraSoftwareGraphics=(()=>{
       if(key!==backgroundKey){
         stadium();if(background.width!==canvas.width||background.height!==canvas.height){background.width=canvas.width;background.height=canvas.height;}backgroundCtx.drawImage(canvas,0,0);backgroundKey=key;
       }else ctx.drawImage(background,0,0,width,height);
+      flags(game?.visualTime??now*.001);
       if(game){
         game.players.filter(p=>!p.sentOff).forEach(p=>castShadow(p,game));
         const entities=game.players.filter(p=>!p.sentOff).map(p=>({depth:point(p.x,0,p.z).depth,draw:()=>player(p,game.players[game.controlled]===p||(game.localTwoPlayer&&game.players[game.awayControlled]===p),game)}));

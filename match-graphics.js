@@ -158,14 +158,19 @@ const AuraGraphics=(()=>{
     if(typeof Image==='function'){
       const terrace=new Image();terrace.onload=()=>{if(disposed)return;
         const image=typeof AuraHumanSprites!=='undefined'?AuraHumanSprites.tileCrowd(terrace):terrace;
-        const terraceMap=texture(image),m=material(0xffffff,{map:terraceMap,roughness:1,side:T.DoubleSide});
-        function bank(points){const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(points,3));g.setAttribute('uv',new T.Float32BufferAttribute([0,0,1,0,1,1,0,0,1,1,0,1],2));g.computeVertexNormals();mesh(g,m);}
+        const terraceMap=texture(image),m=material(0xffffff,{map:terraceMap,roughness:1,side:T.DoubleSide}),aisles=[];
+        function bank(points){const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(points,3));g.setAttribute('uv',new T.Float32BufferAttribute([0,0,1,0,1,1,0,0,1,1,0,1],2));g.computeVertexNormals();mesh(g,m);
+          const a=points.slice(0,3),b=points.slice(3,6),c=points.slice(6,9),d=points.slice(15,18);
+          const at=(u,v)=>a.map((n,k)=>(n*(1-u)+b[k]*u)*(1-v)+(d[k]*(1-u)+c[k]*u)*v+(k===1?.045:0));
+          for(const u of [.14,.35,.57,.79]){const p=at(u-.004,0),q=at(u+.004,0),r=at(u+.004,1),t=at(u-.004,1);aisles.push(...p,...q,...r,...p,...r,...t);}
+        }
         for(const sign of [-1,1])for(let tier=0;tier<tiers;tier++){
           const y=1.1+tier*(rows*.43+1.7),top=y+rows*.43+.8,z=sign*(41.75+tier*(rows*.72+2)),back=z+sign*(rows*.72);
           bank([-68,y,z,68,y,z,68,top,back,-68,y,z,68,top,back,-68,top,back]);
           const x=sign*(61.75+tier*(rows*.72+2)),far=x+sign*rows*.72;
           bank([x,y,-39,x,y,39,far,top,39,x,y,-39,far,top,39,far,top,-39]);
         }
+        if(aisles.length){const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(aisles,3));g.computeVertexNormals();mesh(g,material(0x727d77,{side:T.DoubleSide,roughness:1}));}
         crowdBodies.visible=crowdHeads.visible=seats.visible=false;
       };terrace.src='./assets/textures/crowd-photo.webp';
     }
@@ -200,6 +205,29 @@ const AuraGraphics=(()=>{
       screenCtx.fillStyle='#0a1428';screenCtx.fillRect(0,0,512,256);screenCtx.textAlign='center';screenCtx.fillStyle='#50e6e0';screenCtx.font='bold 28px Arial';screenCtx.fillText('AURA VISION',256,49);screenCtx.fillStyle='#ffffff';screenCtx.font='bold 112px Arial';screenCtx.fillText(score[0]+' – '+score[1],256,177);screenCtx.font='18px Arial';screenCtx.fillText('EL FÚTBOL SE SIENTE.',256,224);screenMap.needsUpdate=true;}
     for(const x of [-52.5,52.5])for(const z of [-34,34]){cylinder(.025,1.45,postMat,x,.725,z);const f=mesh(geometry('flag',()=>new T.PlaneGeometry(.55,.35)),material(0xecd868,{side:T.DoubleSide}),x+.25,1.25,z);f.rotation.y=.4;}
     const kits=P.separateKits(kit(options.home),kit(options.away));
+    const supporterFlags=[];
+    const flagMaps=kits.map((colors,team)=>{
+      const c=canvas(256,160),cx=c.getContext('2d');cx.fillStyle=colors[0];cx.fillRect(0,0,256,160);
+      cx.fillStyle=colors[1];for(let x=0;x<256;x+=64)cx.fillRect(x,0,32,160);
+      cx.fillStyle=colors[2];cx.font='italic bold 28px Arial';cx.textAlign='center';cx.fillText('AURA',128,95);
+      const map=texture(c),crest=typeof AuraBadges!=='undefined'?AuraBadges.get(team===0?options.home:options.away):null;
+      if(crest&&typeof Image==='function'){const badge=new Image();badge.onload=()=>{if(disposed)return;cx.drawImage(badge,103,46,50,62);map.needsUpdate=true;};badge.src=crest;}
+      return map;
+    });
+    for(const sign of [-1,1])for(const x of (low?[-34,34]:[-44,-22,22,44])){
+      const z=sign*43,team=sign<0?0:1;
+      cylinder(.028,4.05,rail,x,4.425,z);
+      const g=new T.PlaneGeometry(2.6,1.5,8,4),flag=mesh(g,material(0xffffff,{map:flagMaps[team],side:T.DoubleSide,roughness:.95}),x+1.3,5.7,z);
+      flag.name='supporter-flag';flag.castShadow=!low;
+      supporterFlags.push({geometry:g,base:new Float32Array(g.attributes.position.array),phase:x*.27+sign});
+    }
+    let flagTime=null;
+    function updateFlags(time){if(time===flagTime)return;flagTime=time;
+      for(const flag of supporterFlags){const a=flag.geometry.attributes.position.array;
+        for(let i=0;i<a.length;i+=3){const u=(flag.base[i]+1.3)/2.6,v=(flag.base[i+1]+.75)/1.5;a[i+1]=flag.base[i+1]-.09*u*u;a[i+2]=P.flagWave(u,v,time,flag.phase);}
+        flag.geometry.attributes.position.needsUpdate=true;flag.geometry.computeVertexNormals();
+      }
+    }
     const weaveCanvas=canvas(128,128),weaveCtx=weaveCanvas.getContext('2d');weaveCtx.fillStyle='#808080';weaveCtx.fillRect(0,0,128,128);
     for(let y=0;y<128;y+=2)for(let x=0;x<128;x+=2){weaveCtx.fillStyle=(x+y)%4?'#a2a2a2':'#646464';weaveCtx.fillRect(x,y,1,2);}
     const weaveMap=texture(weaveCanvas,false);weaveMap.wrapS=weaveMap.wrapT=T.RepeatWrapping;weaveMap.repeat.set(10,10);
@@ -287,7 +315,7 @@ const AuraGraphics=(()=>{
           const head=boneDefs.slice(0,5).reduce((p,b)=>p.map((v,i)=>v+b[i+1]),[0,0,0]);
           for(const vertices of eyes)if(vertices.length){const centre=vertices.reduce((p,v)=>p.map((n,i)=>n+v[i]/vertices.length),[0,0,0]);
             const z=Math.max(...vertices.map(v=>v[2]));
-            const iris=mesh(geometry('human-iris',()=>new T.SphereGeometry(.0055,8,6)),material(0x34382b),centre[0]-head[0],centre[1]-head[1],z-head[2],bones[4]);iris.scale.z=.2;
+            const iris=mesh(geometry('human-iris',()=>new T.SphereGeometry(.0055,8,6)),material(look.eye||0x34382b),centre[0]-head[0],centre[1]-head[1],z-head[2],bones[4]);iris.scale.z=.2;
             const pupil=mesh(geometry('human-pupil',()=>new T.SphereGeometry(.0028,6,4)),material(0x10151b),centre[0]-head[0],centre[1]-head[1],z-head[2]+.001,bones[4]);pupil.scale.z=.2;
           }
         }
@@ -349,6 +377,7 @@ const AuraGraphics=(()=>{
         game.players.forEach((p,i)=>{if(actors[i].id!==p.id){releaseActor(actors[i]);actors[i]=footballer(p);}
           const a=actors[i],pose=P.pose(p,game),b=a.bones,angle=Math.atan2(p.faceX,p.faceZ);a.yaw+=Math.atan2(Math.sin(angle-a.yaw),Math.cos(angle-a.yaw))*(1-Math.exp(-dt*14));
           a.root.position.set(p.x,pose.jump+pose.saveLift-pose.crouch,p.z);a.root.rotation.set(0,a.yaw,pose.dive*1.12);a.root.visible=!p.sentOff;
+          b[0].rotation.y=pose.hipTwist;b[2].rotation.y=pose.chestTwist;b[4].rotation.y=pose.headYaw;b[1].scale.y=1+pose.breath;
           b[1].rotation.x=pose.lean-pose.kick*.13+pose.crouch*.30;b[2].rotation.z=pose.turn*.10*(p.faceZ>=0?1:-1);
           b[5].rotation.x=pose.stride-pose.kick*1.25-pose.tackle*.8-pose.crouch*.6;b[8].rotation.x=-pose.stride-pose.crouch*.6;
           b[6].rotation.x=pose.kneeLeft+pose.kick*.4+pose.crouch;b[9].rotation.x=pose.kneeRight+pose.crouch;
@@ -366,7 +395,7 @@ const AuraGraphics=(()=>{
       const desired=P.cameraFrame(game,cam,camera.aspect,preview);cameraState=P.smoothCamera(cameraState,desired,dt);camera.position.fromArray(cameraState.position);camera.lookAt(new T.Vector3().fromArray(cameraState.target));
       if(Math.abs(camera.fov-cameraState.fov)>.01){camera.fov=cameraState.fov;camera.updateProjectionMatrix();}lastTime=now;
       if(scene.fog){const distance=Math.hypot(...cameraState.position);scene.fog.near=cam==='tactical'?distance+20:(raining?90:155);scene.fog.far=cam==='tactical'?distance+160:(raining?240:350);}
-      cheerCrowd(now,game?.score);updateScreen(game);updateGoalNets(game);updateRain(now);updateGrass(game,cam);renderer.render(scene,camera);
+      updateFlags(game?.visualTime??now*.001);cheerCrowd(now,game?.score);updateScreen(game);updateGoalNets(game);updateRain(now);updateGrass(game,cam);renderer.render(scene,camera);
     }
     function project(p){const v=new T.Vector3(p.x,2.2,p.z).project(camera);return {x:(v.x*.5+.5)*container.clientWidth,y:(-.5*v.y+.5)*container.clientHeight,visible:v.z>-1&&v.z<1&&Math.abs(v.x)<1&&Math.abs(v.y)<1};}
     function dispose(){if(disposed)return;disposed=true;observer?.disconnect();skeletons.forEach(s=>s.dispose());geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());textures.forEach(t=>t.dispose());

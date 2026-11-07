@@ -1,4 +1,6 @@
-# AURA 27 / VISION 9.3
+# AURA 27 / VISION 9.4
+
+**VISION 9.4 — jugadores y estadio:** animaciones compatibles regeneradas a 128 × 224 píxeles, doce poses de carrera y estados propios para entradas, control y atajadas. Se añaden detalles faciales aproximados, giro de cadera y torso, respiración en reposo, banderas con los colores de los equipos y pasillos entre las gradas. Entra con tus perfiles habituales; se conserva la cámara Estadio. Detalles: [docs/vision-9.4.md](docs/vision-9.4.md).
 
 **VISION 9.3 — vista de estadio:** el perfil **🏟 Imagen inicial** selecciona una cámara diagonal desde la banda y calidad Alto; **✦ AURA VISION · Máximo** usa esa misma vista con calidad Ultra. Movimiento y pases siguen los ejes de la pantalla. Se añade detalle de material a piel y tejido, sombras concentradas sobre la jugada, tonos naturales y desgaste suave en el césped, y redes más definidas en el modo compatible. Los ajustes anteriores se conservan. Alcance y verificación: [docs/vision-9.3.md](docs/vision-9.3.md).
 

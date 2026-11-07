@@ -65,3 +65,11 @@ test('keeper poses distinguish held catches, lateral parries, high dives and low
  Object.assign(p,{action:'smother',saveHeight:.22});const low=P.pose(p,g);assert.ok(low.crouch>held.crouch);assert.equal(low.saveLift,0);
  for(const pose of [held,parry,high,low])assert.ok(Object.values(pose).every(Number.isFinite));
 });
+
+test('supporter flags remain attached to their poles and stop at a frozen match time',()=>{
+ for(const time of [-100,0,2,100])for(const v of [0,.5,1])assert.equal(Math.abs(P.flagWave(0,v,time,4)),0);
+ for(let u=0;u<=1;u+=.1)for(let t=0;t<10;t+=.37){const v=P.flagWave(u,.5,t,1);assert.ok(Number.isFinite(v)&&Math.abs(v)<=.211);assert.equal(P.flagWave(u,.5,t,1),v);}
+ assert.notEqual(P.flagWave(1,.5,1,0),P.flagWave(1,.5,2,0));
+ const g=game(),p=g.players[2],still=P.pose(p,g);g.visualTime+=.2;assert.notEqual(P.pose(p,g).breath,still.breath);
+ const running=P.pose({...p,vx:8,vz:0},g);assert.equal(running.breath,0);assert.ok(Number.isFinite(running.hipTwist)&&Number.isFinite(running.chestTwist));
+});
