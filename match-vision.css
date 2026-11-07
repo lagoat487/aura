@@ -47,3 +47,17 @@
 }
 @media(max-height:530px) and (min-width:621px){#arena .controlled-card{min-width:185px;max-width:225px}#arena .arena-bottom>canvas{width:108px;height:69px}#arena .opponent-card{min-width:155px}#arena .arena-bottom{bottom:128px}}
 @media(prefers-reduced-transparency:reduce){#arena .match-scoreboard,#arena .controlled-card,#arena .opponent-card{background:#101b30;backdrop-filter:none}}
+
+/* Original-concept sideline view: leave the playing surface open around the ball. */
+.prematch-presets [data-match-preset="concept"]{background:#113b43;color:#ddfffb;border-color:#5addd2}
+#arena[data-camera="stadium"] .arena-label{display:none}
+#arena[data-camera="stadium"] .arena-commentary{opacity:.84}
+@media(min-width:801px){
+ #arena[data-camera="stadium"] .match-scoreboard{border-radius:5px;transform:scale(.93);transform-origin:top left}
+ #arena[data-camera="stadium"] .arena-bottom>canvas{width:170px;height:108px}
+ #arena[data-camera="stadium"] .arena-commentary{bottom:119px}
+ #arena[data-camera="stadium"] .controlled-card{max-width:290px;min-width:235px}
+}
+@media(max-width:620px) and (min-height:650px){
+ #arena[data-camera="stadium"] .arena-bottom>canvas{bottom:130px}
+}

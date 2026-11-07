@@ -3,11 +3,11 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const P=require('../match-presentation'),M=require('../match-engine');
 const team=id=>({id,name:id,players:M.SHAPE.map((s,i)=>({id:id+i,name:id+' '+i,pos:s[0],overall:80}))});
 const game=()=>M.create({home:team('home'),away:team('away'),seed:21});
-test('immersive framing keeps the ball visible at both ends and preserves camera-relative input strength',()=>{
+test('stadium and immersive framing keep the ball visible at both ends and preserves camera-relative input strength',()=>{
  const T=require('../vendor/three.min.js');
- for(const half of [1,2])for(const aspect of [.45,.8,1.4,2.3])for(const x of [-53,0,53])for(const z of [-35,0,35]){
+ for(const mode of ['immersive','stadium'])for(const half of [1,2])for(const aspect of [.45,.8,1.4,2.3])for(const x of [-53,0,53])for(const z of [-35,0,35]){
   const g={half,controlled:0,players:[{x:x-3,z:z+2}],ball:{x,z,vx:20}},before=JSON.stringify(g);
-  const frame=P.cameraFrame(g,'immersive',aspect),camera=new T.PerspectiveCamera(frame.fov,aspect,.1,400);
+  const frame=P.cameraFrame(g,mode,aspect),camera=new T.PerspectiveCamera(frame.fov,aspect,.1,400);
   camera.position.fromArray(frame.position);camera.lookAt(new T.Vector3().fromArray(frame.target));camera.updateMatrixWorld(true);
   const ball=new T.Vector3(x,.3,z).project(camera);
   assert.ok(Math.abs(ball.x)<.95&&Math.abs(ball.y)<.95&&ball.z<1,'the ball stays in the playable frame');

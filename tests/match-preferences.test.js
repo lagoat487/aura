@@ -4,7 +4,7 @@ const P=require("../match-preferences");
 const store=()=>{const map=new Map();return {getItem:k=>map.get(k)||null,setItem:(k,v)=>map.set(k,v),keys:()=>[...map.keys()]};};
 test("Match presets have valid durations, difficulty and camera",()=>{
  assert.equal(P.valid(P.DEFAULTS),true);
- for(const key of ["fast","classic","epic","vision","immersive","default"]){
+ for(const key of ["fast","classic","epic","vision","concept","immersive","default"]){
   const p={...P.DEFAULTS,...P.preset(key)};
   assert.equal(P.valid(p),true,key);
  }
@@ -21,4 +21,10 @@ test("Preferences persist independently and reject malformed values",()=>{
  st.setItem(P.KEY,"bad-json");assert.deepEqual(P.load(st),P.DEFAULTS);
  assert.equal(P.save({setItem(){throw Error("blocked")}},custom),false);
  assert.deepEqual(P.load({getItem(){throw Error("blocked")}}),P.DEFAULTS);
+});
+
+test("saved old camera choices survive the stadium update and concept presets round-trip",()=>{
+ const st=store(),old={...P.DEFAULTS,quality:'medium',camera:'immersive'};
+ st.setItem(P.KEY,JSON.stringify({version:1,settings:old}));assert.deepEqual(P.load(st),old);
+ const concept={...P.DEFAULTS,...P.preset('concept')};assert.equal(concept.camera,'stadium');assert.equal(P.save(st,concept),true);assert.deepEqual(P.load(st),concept);
 });

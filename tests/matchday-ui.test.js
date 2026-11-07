@@ -79,9 +79,9 @@ test('restart setup explains the dead ball, discards old input and blocks queued
  assert.equal(g.phase,'playing');shot.fire('pointerup',pointer);a.key('keyup','j');assert.equal(g.stats[0].shots,0);
  a.click('pause');a.click('exit');a.click('confirm-exit');
 });
-test('automatic replay finishes and camera selection cycles through five working views',()=>{
+test('automatic replay finishes and camera selection cycles through six working views',()=>{
  const a=boot(),g=a.session.game;g.phase='playing';for(let i=0;i<10;i++)a.frame();
- const camera=a.run('AuraArena.settings.camera');for(let i=0;i<5;i++)a.click('camera');assert.equal(a.run('AuraArena.settings.camera'),camera);
+ const camera=a.run('AuraArena.settings.camera');for(let i=0;i<6;i++)a.click('camera');assert.equal(a.run('AuraArena.settings.camera'),camera);
  g.players.forEach(p=>{p.x=-40;p.z=25;});Object.assign(g.ball,{owner:null,x:52.4,y:.3,z:0,vx:25,vy:0,vz:0,lastTouch:0,lastKicker:9});a.frame(50);assert.ok(a.session.replay);
  for(let i=0;i<36;i++)a.frame(100);assert.equal(a.session.replay,null);assert.deepEqual(g.score,[1,0]);a.click('pause');a.click('exit');a.click('confirm-exit');assert.equal(a.commits(),0);
 });
@@ -420,10 +420,10 @@ test('pause discards held touch buttons and old releases cannot interrupt fresh 
  }
 });
 
-test('immersive keyboard, touch and gamepads map movement and action aiming once for both local players',()=>{
+test('sideline and immersive keyboard, touch and gamepads map movement and action aiming once for both local players',()=>{
  const frame={position:[-7,5,8],target:[5,1,-2],fov:52};
- for(const source of ['keyboard','touch','gamepad']){
-  const a=boot({local:true,camera:'immersive',cameraFrame:frame}),g=a.session.game;g.phase='playing';
+ for(const camera of ['immersive','stadium'])for(const source of ['keyboard','touch','gamepad']){
+  const a=boot({local:true,camera,cameraFrame:frame}),g=a.session.game;g.phase='playing';
   const pads=arenaGamepads(a);a.run("globalThis.aims=[];const aimAction=AuraMatch.action;globalThis.AuraMatch={...AuraMatch,action:(game,type,input)=>{aims.push({type,...input});return aimAction(game,type,input)}}");
   let amount=1;
   if(source==='keyboard'){a.key('keydown','d');a.key('keydown','arrowright');}

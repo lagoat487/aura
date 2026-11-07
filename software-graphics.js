@@ -91,8 +91,14 @@ const AuraSoftwareGraphics=(()=>{
       if(!assets.grass)return null;if(terrain&&terrainEpoch===assets.epoch)return terrain;
       terrainEpoch=assets.epoch;terrain=document.createElement('canvas');terrain.width=2048;terrain.height=1326;const tc=terrain.getContext('2d'),tile=terrain.width/28;
       for(let x=0;x<terrain.width;x+=tile)for(let y=0;y<terrain.height;y+=tile)tc.drawImage(assets.grass,x,y,tile+1,tile+1);
-      tc.fillStyle='#315d3940';tc.fillRect(0,0,terrain.width,terrain.height);
+      tc.fillStyle='#3c492b48';tc.fillRect(0,0,terrain.width,terrain.height);
       for(let i=0;i<20;i++){tc.fillStyle=i%2?'#d0dcba13':'#102f1b1a';tc.fillRect(i*terrain.width/20,0,terrain.width/20+1,terrain.height);}
+      let wearSeed=8721;
+      const rnd=()=>{wearSeed=(Math.imul(wearSeed,1664525)+1013904223)>>>0;return wearSeed/4294967296;};
+      for(let i=0;i<160;i++){
+        const x=rnd()*terrain.width,y=rnd()*terrain.height,r=terrain.width*(.006+rnd()*.02),fade=tc.createRadialGradient(x,y,0,x,y,r);
+        fade.addColorStop(0,i%3?'#0e241b18':'#c2af611c');fade.addColorStop(1,'#33452a00');tc.fillStyle=fade;tc.fillRect(x-r,y-r,r*2,r*2);
+      }
       return terrain;
     }
     function stadium(){
@@ -122,13 +128,17 @@ const AuraSoftwareGraphics=(()=>{
         if(night&&p.depth>1){const radius=Math.min(80,12+p.scale*1.7),glow=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,radius);glow.addColorStop(0,"#f3f8ffaf");glow.addColorStop(.12,"#e7f0ff55");glow.addColorStop(1,"#eff6ff00");ctx.fillStyle=glow;ctx.fillRect(p.x-radius,p.y-radius,radius*2,radius*2);}
       }
     }
-    function goals(){
+    function goals(game){
       for(const s of [-1,1]){
-        const x=s*52.6,back=s*55;
+        const x=s*52.6,back=s*55+s*P.goalNetImpulse(game,s);
         polygon([[x,0,-3.66],[back,0,-3.66],[back,2.44,-3.66],[x,2.44,-3.66]],"#ccd9c815");
-        for(let z=-3.66;z<=3.7;z+=.5){segment([back,0,z],[back,2.44,z],"#e4ead440",.55);segment([x,2.44,z],[back,2.44,z],"#e4ead440",.55);}
-        for(let y=0;y<=2.45;y+=.4)segment([back,y,-3.66],[back,y,3.66],"#e4ead440",.55);
-        segment([x,0,-3.66],[x,2.44,-3.66],"#edf0dc",1.6);segment([x,0,3.66],[x,2.44,3.66],"#edf0dc",1.6);segment([x,2.44,-3.66],[x,2.44,3.66],"#edf0dc",1.6);
+        for(let z=-3.66;z<=3.7;z+=(detailed?.24:.5)){segment([back,0,z],[back,2.44,z],"#e4ead466",.65);segment([x,2.44,z],[back,2.44,z],"#e4ead466",.65);}
+        for(let y=0;y<=2.45;y+=(detailed?.24:.4))segment([back,y,-3.66],[back,y,3.66],"#e4ead466",.65);
+        for(const side of [-1,1])for(let i=0;i<9;i++){
+          const xx=x+(back-x)*i/8;segment([xx,0,side*3.66],[xx,2.44,side*3.66],"#e4ead455",.65);
+        }
+        const postWidth=Math.max(1.4,point(x,1,0).scale*.13);
+        segment([x,0,-3.66],[x,2.44,-3.66],"#edf0dc",postWidth);segment([x,0,3.66],[x,2.44,3.66],"#edf0dc",postWidth);segment([x,2.44,-3.66],[x,2.44,3.66],"#edf0dc",postWidth);
       }
     }
     function castShadow(p,game){
@@ -205,7 +215,7 @@ const AuraSoftwareGraphics=(()=>{
         }});
         entities.sort((a,b)=>b.depth-a.depth).forEach(e=>e.draw());
       }
-      goals();
+      goals(game);
       if(raining&&!preview){
         // Screen-space rain: fixed budget, no per-frame textures or DOM nodes.
         ctx.save();ctx.strokeStyle="rgba(215,230,242,.34)";ctx.lineWidth=.85;

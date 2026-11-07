@@ -12,6 +12,13 @@
     // A little wider in transitional play and tighter in the final third.
     const dynamicFov=clamp(44+tracking*1.2-urgency*1.8,41.5,45.2);
     if(preview)return {position:[72,73,98],target:[0,0,-2],fov:44};
+    if(mode==='stadium'){
+      // Diagonal sideline framing of the original concept, with space ahead of the ball.
+      // Screen-relative controls use this very same smoothed camera in both renderers.
+      const d=game?.half===2?-1:1,space=aspect<1?1.55:aspect<1.3?1.18:1;
+      const lead=clamp(finite(b.vx)*.14,-3,3),az=z*.83;
+      return {position:[x-d*11.5*space,19.8*space,az+25*space],target:[x+d*3.5+lead,.6,az-2.5],fov:48+tracking};
+    }
     if(mode==='immersive'){
       const player=game?.players?.[game.controlled],d=game?.half===2?-1:1;
       // Keep the ball in view even after a long pass or a change of possession.

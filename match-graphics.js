@@ -64,6 +64,10 @@ const AuraGraphics=(()=>{
     sun.position.set(day?-38:-24,day?62:48,day?30:-25);scene.add(sun);
     if(!low){sun.castShadow=true;sun.shadow.mapSize.set(ultra?3072:high?2048:1024,ultra?3072:high?2048:1024);
       Object.assign(sun.shadow.camera,{left:-66,right:66,top:49,bottom:-49,near:1,far:150});sun.shadow.bias=-.00018;sun.shadow.normalBias=.035;sun.shadow.radius=3;}
+    // Follow the action so shadow texels cover the players rather than the whole empty pitch.
+    const shadowTarget=new T.Object3D();scene.add(shadowTarget);sun.target=shadowTarget;
+    const shadowReach=high?29:39;
+    if(!low)Object.assign(sun.shadow.camera,{left:-shadowReach,right:shadowReach,top:shadowReach,bottom:-shadowReach});
     const fill=new T.DirectionalLight(day?0xbdd9fc:0xd5e3ff,day?.5:.42);fill.position.set(32,34,35);scene.add(fill);
     const rim=new T.DirectionalLight(0xd2e4ff,.62);rim.position.set(0,24,-44);scene.add(rim);
     box(270,1.2,210,material(0x132329),0,-.8,0);
@@ -85,8 +89,10 @@ const AuraGraphics=(()=>{
       const photo=new Image();photo.onload=()=>{if(disposed)return;const tile=tw/28;
         ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
         for(let x=0;x<tw;x+=tile)for(let y=0;y<th;y+=tile)ctx.drawImage(photo,x,y,tile+1,tile+1);
-        ctx.fillStyle='#315d393d';ctx.fillRect(0,0,tw,th);
+        ctx.fillStyle='#3c492b48';ctx.fillRect(0,0,tw,th);
         for(let i=0;i<20;i++){ctx.fillStyle=i%2?'#d2deb914':'#092b1816';ctx.fillRect(i*tw/20,0,tw/20+1,th);}
+        for(let i=0;i<160;i++){const x=rnd()*tw,y=rnd()*th,r=tw*(.006+rnd()*.02),patch=ctx.createRadialGradient(x,y,0,x,y,r);
+          patch.addColorStop(0,i%3?'#0e241b18':'#c2af611c');patch.addColorStop(1,'#33452a00');ctx.fillStyle=patch;ctx.fillRect(x-r,y-r,r*2,r*2);}
         turfMap.needsUpdate=true;};photo.src='./assets/textures/turf-photo.webp';
     }
     const fibres=canvas(256,256),fc=fibres.getContext('2d');fc.fillStyle='#808080';fc.fillRect(0,0,256,256);
@@ -223,6 +229,18 @@ const AuraGraphics=(()=>{
         g.setAttribute('position',new T.BufferAttribute(positions,3));g.setAttribute('normal',new T.Float32BufferAttribute(data.normals,3));
         g.setAttribute('uv',new T.Float32BufferAttribute(data.uv,2));g.setAttribute('skinIndex',new T.Uint16BufferAttribute(data.skinIndices,4));
         g.setAttribute('skinWeight',new T.Float32BufferAttribute(data.skinWeights,4));g.setIndex(new T.BufferAttribute(data.indices,1));
+        // Material detail is baked once into shared geometry, without extra draw calls.
+        const shades=new Float32Array(positions.length),slots=new Uint8Array(data.vertexCount);
+        data.groups.forEach(([start,count,slot])=>{for(let i=start;i<start+count;i++)slots[data.indices[i]]=slot;});
+        for(let i=0;i<data.vertexCount;i++){
+          const x=positions[i*3],y=positions[i*3+1],z=positions[i*3+2],ny=data.normals[i*3+1],slot=slots[i];
+          const cloth=slot===0||slot===1||slot===3;
+          const fold=cloth?Math.sin(y*79+x*23)*Math.sin(z*63-y*17)*.036:0;
+          const ambient=.86+Math.max(0,ny)*.12+fold;
+          const cheek=slot===2&&y>1.58&&y<1.72&&z>.07?.035:0;
+          shades[i*3]=Math.min(1,ambient+cheek);shades[i*3+1]=ambient-cheek*.5;shades[i*3+2]=ambient-cheek;
+        }
+        g.setAttribute('color',new T.Float32BufferAttribute(shades,3));
         data.groups.forEach(([start,count,mat])=>g.addGroup(start,count,mat));return g;
       });
       return geometry('human:'+style,()=>{
@@ -255,9 +273,10 @@ const AuraGraphics=(()=>{
     });}
     const labelGeometry=geometry('shirt-label',()=>new T.PlaneGeometry(.33,.36));
     function footballer(p){const root=new T.Group(),look=P.appearance(p),keeper=p.index===0,colors=keeper?keeperColors[p.team]:kits[p.team];root.name='player:'+p.id;scene.add(root);
-      const cloth={bumpMap:low?null:weaveMap,bumpScale:.009,roughness:.91};
+      const cloth={bumpMap:low?null:weaveMap,bumpScale:.009,roughness:.91,vertexColors:!!anatomical};
       const shirt=material(0xffffff,{map:keeper?keeperMaps[p.team]:teamMaps[p.team],...cloth});
-      const mats=[shirt,material(colors[1],cloth),material(look.skin,{roughness:.64}),material(colors[0],cloth),material(p.index%3===0?0xefebe3:p.index%3===1?0xe49a55:0x182436,{roughness:.48}),material(look.hair),material(colors[2]),material(anatomical?0xe8e6df:0x17202a)];
+      const surface={vertexColors:!!anatomical};
+      const mats=[shirt,material(colors[1],cloth),material(look.skin,{...surface,roughness:.57}),material(colors[0],cloth),material(p.index%3===0?0xefebe3:p.index%3===1?0xe49a55:0x182436,{...surface,roughness:.48}),material(look.hair,{...surface,roughness:.96}),material(colors[2],surface),material(anatomical?0xe8e6df:0x17202a,surface)];
       const body=new T.SkinnedMesh(humanGeometry(look.hairStyle),mats),bones=boneDefs.map(()=>new T.Bone());
       boneDefs.forEach(([parent,x,y,z],i)=>{bones[i].position.set(x,y,z);if(parent>=0)bones[parent].add(bones[i]);});
       body.add(bones[0]);body.updateMatrixWorld(true);const skeleton=new T.Skeleton(bones);skeletons.add(skeleton);body.bind(skeleton);
@@ -273,7 +292,7 @@ const AuraGraphics=(()=>{
           }
         }
       }
-      body.castShadow=!low;body.frustumCulled=false;root.add(body);
+      body.castShadow=!low;body.receiveShadow=!low;body.frustumCulled=false;root.add(body);
       const label=canvas(128,160),cx=label.getContext('2d');cx.clearRect(0,0,128,160);cx.fillStyle=colors[2];cx.textAlign='center';cx.font='bold 17px Arial';cx.fillText(String(p.name).split(' ').at(-1).toUpperCase().slice(0,12),64,24);cx.font='bold 102px Arial';cx.fillText(String(p.number||p.index+1),64,129);
       const labelMap=texture(label),labelMat=basic({map:labelMap,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2});
       const back=mesh(labelGeometry,labelMat,0,-.145,anatomical?-.127:-.177,bones[2]);back.rotation.y=Math.PI;
@@ -299,7 +318,7 @@ const AuraGraphics=(()=>{
       nearGrass=new T.InstancedMesh(blade,material(0x638847,{side:T.DoubleSide,roughness:1}),ultra?6000:2600);nearGrass.name='near-turf-blades';nearGrass.frustumCulled=false;nearGrass.receiveShadow=true;scene.add(nearGrass);geometries.add(blade);
     }
     function updateGrass(game,cam){
-      if(!nearGrass)return;nearGrass.visible=cam==='immersive'||cam==='tele'||cam==='replay';if(!nearGrass.visible)return;
+      if(!nearGrass)return;nearGrass.visible=cam==='immersive'||cam==='tele'||cam==='replay'||cam==='stadium';if(!nearGrass.visible)return;
       const x=Math.round((game?.ball.x||0)/3)*3,z=Math.round((game?.ball.z||0)/3)*3,key=x+':'+z;if(key===grassCell)return;grassCell=key;
       for(let i=0;i<nearGrass.count;i++){
         const u=((i*0.61803398875)%1-.5)*24,v=((i*0.754877666)%1-.5)*20,px=x+u,pz=z+v;
@@ -322,6 +341,9 @@ const AuraGraphics=(()=>{
     observer=typeof ResizeObserver!=='undefined'?new ResizeObserver(resize):null;observer?.observe(container);resize();
     function render(game,cam=lastCamera,now=0){if(disposed)return;lastCamera=cam;const frameMs=lastTime===null?16.7:Math.max(0,now-lastTime),dt=Math.min(.1,frameMs/1000);optimizeResolution(frameMs);
       if(game){
+        const sx=Math.max(-48,Math.min(48,game.ball.x)),sz=Math.max(-29,Math.min(29,game.ball.z));
+        const snap=2*shadowReach/(ultra?3072:high?2048:1024),tx=Math.round(sx/snap)*snap,tz=Math.round(sz/snap)*snap;
+        shadowTarget.position.set(tx,0,tz);sun.position.set(tx+(day?-38:-24),day?62:48,tz+(day?30:-25));
         if(!actors.length)actors=game.players.map(footballer);
         actorShadows.count=game.players.length;
         game.players.forEach((p,i)=>{if(actors[i].id!==p.id){releaseActor(actors[i]);actors[i]=footballer(p);}

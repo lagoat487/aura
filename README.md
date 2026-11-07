@@ -1,4 +1,6 @@
-# AURA 27 / VISION 9.2
+# AURA 27 / VISION 9.3
+
+**VISION 9.3 — vista de estadio:** el perfil **🏟 Imagen inicial** selecciona una cámara diagonal desde la banda y calidad Alto; **✦ AURA VISION · Máximo** usa esa misma vista con calidad Ultra. Movimiento y pases siguen los ejes de la pantalla. Se añade detalle de material a piel y tejido, sombras concentradas sobre la jugada, tonos naturales y desgaste suave en el césped, y redes más definidas en el modo compatible. Los ajustes anteriores se conservan. Alcance y verificación: [docs/vision-9.3.md](docs/vision-9.3.md).
 
 **Liga Argentina finalizada:** el evento deja de aparecer en el inicio y en Eventos actuales. No admite compras ni partidos nuevos. Las cartas ya adquiridas, incluidos titulares, suplentes y duplicados, mantienen su identidad, media, diseño y valor. Los guardados y respaldos antiguos siguen siendo válidos; una pestaña guardada del evento abre Eventos actuales sin cambiar el club.
 

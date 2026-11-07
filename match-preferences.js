@@ -7,19 +7,20 @@
  "use strict";
  const KEY="aura-match-preferences-v1",VERSION=1,MAX_BYTES=2000;
  const DEFAULTS=Object.freeze({seconds:180,difficulty:1,stadium:"night",weather:"clear",
-  quality:"medium",camera:"broadcast",sound:true,localTwoPlayer:false});
+  quality:"high",camera:"stadium",sound:true,localTwoPlayer:false});
  const presets=Object.freeze({
   fast:Object.freeze({seconds:120,difficulty:1,stadium:"day",weather:"clear",quality:"low",camera:"wide"}),
   classic:Object.freeze({seconds:180,difficulty:1,stadium:"night",weather:"clear",quality:"medium",camera:"broadcast"}),
   epic:Object.freeze({seconds:480,difficulty:1.16,stadium:"sunset",weather:"clear",quality:"high",camera:"tele"}),
-  vision:Object.freeze({seconds:180,difficulty:1,stadium:"night",weather:"clear",quality:"ultra",camera:"immersive"}),
+  vision:Object.freeze({seconds:180,difficulty:1,stadium:"night",weather:"clear",quality:"ultra",camera:"stadium"}),
+  concept:Object.freeze({seconds:180,difficulty:1,stadium:"night",weather:"clear",quality:"high",camera:"stadium"}),
   immersive:Object.freeze({seconds:180,difficulty:1,stadium:"night",weather:"clear",quality:"high",camera:"immersive"}),
   default:DEFAULTS
  });
  const choices=Object.freeze({
   seconds:[120,180,300,480],difficulty:[.68,.82,1,1.16,1.34],
   stadium:["night","sunset","day"],weather:["clear","rain"],
-  quality:["low","medium","high","ultra"],camera:["broadcast","tele","wide","tactical","immersive"],
+  quality:["low","medium","high","ultra"],camera:["broadcast","tele","wide","tactical","immersive","stadium"],
   sound:[true,false],localTwoPlayer:[true,false]
  });
  function valid(data){
