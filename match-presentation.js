@@ -56,6 +56,13 @@
       dive:save*finite(p.diveSide,1)*(p.action==='save'?.35:p.action==='smother'?.25:1),crouch:keeper?.12+smother*.5:0,
       saveLift:keeper?save*clamp((height-1.4)*.25,0,.35):0,highSave:save*clamp(height/2.3,.15,1),tackle:p.action==='tackle'&&active?pulse:0,speed};
   }
+  function flagVisible(position,frame){
+    if(!frame)return false;
+    const view=frame.target.map((n,i)=>n-frame.position[i]),length=Math.hypot(...view);
+    if(!Number.isFinite(length)||length<.001)return false;
+    const depth=position.reduce((n,value,i)=>n+(value-frame.position[i])*view[i],0)/length;
+    return Number.isFinite(depth)&&depth>18;
+  }
   function flagWave(u,v,time,phase=0){
     const x=clamp(finite(u),0,1),y=clamp(finite(v),0,1),t=finite(time),p=finite(phase);
     return x*(Math.sin(x*7-y*2-t*2.6+p)*.16+Math.sin(x*12-t*4+p)*.05);
@@ -80,5 +87,5 @@
     return {...a,score:a.score.slice(),visualTime:mix(a.visualTime,b.visualTime),elapsed:mix(a.elapsed,b.elapsed),ball:{...a.ball,...Object.fromEntries(['x','y','z','vx','vy','vz'].map(k=>[k,mix(a.ball[k],b.ball[k])]))},
       players:a.players.map((p,i)=>{const q=b.players[i];if(!q||q.id!==p.id)return {...p};return {...p,...Object.fromEntries(['x','z','vx','vz','faceX','faceZ','run','actionTime','turn','dribbleTime'].map(k=>[k,mix(p[k],q[k])]))};})};
   }
-  return {cameraFrame,smoothCamera,cameraInput,appearance,pose,flagWave,goalNetImpulse,separateKits,capture,interpolate};
+  return {cameraFrame,smoothCamera,cameraInput,appearance,pose,flagVisible,flagWave,goalNetImpulse,separateKits,capture,interpolate};
 });

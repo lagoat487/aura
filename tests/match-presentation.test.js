@@ -73,3 +73,11 @@ test('supporter flags remain attached to their poles and stop at a frozen match 
  const g=game(),p=g.players[2],still=P.pose(p,g);g.visualTime+=.2;assert.notEqual(P.pose(p,g).breath,still.breath);
  const running=P.pose({...p,vx:8,vz:0},g);assert.equal(running.breath,0);assert.ok(Number.isFinite(running.hipTwist)&&Number.isFinite(running.chestTwist));
 });
+
+test('supporter flags stay outside the foreground of playable cameras',()=>{
+ const frame={position:[0,5,0],target:[0,5,30]};
+ assert.equal(P.flagVisible([0,5,2],frame),false);assert.equal(P.flagVisible([0,5,-40],frame),false);
+ assert.equal(P.flagVisible([0,5,30],frame),true);assert.equal(P.flagVisible([0,5,30],null),false);
+ const camera=P.cameraFrame({half:1,ball:{x:-45,z:25,vx:0}},'stadium',16/9);
+ assert.equal(P.flagVisible([-44,5.7,43],camera),false);
+});

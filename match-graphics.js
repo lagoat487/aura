@@ -219,11 +219,13 @@ const AuraGraphics=(()=>{
       cylinder(.028,4.05,rail,x,4.425,z);
       const g=new T.PlaneGeometry(2.6,1.5,8,4),flag=mesh(g,material(0xffffff,{map:flagMaps[team],side:T.DoubleSide,roughness:.95}),x+1.3,5.7,z);
       flag.name='supporter-flag';flag.castShadow=!low;
-      supporterFlags.push({geometry:g,base:new Float32Array(g.attributes.position.array),phase:x*.27+sign});
+      supporterFlags.push({mesh:flag,position:flag.position.toArray(),geometry:g,base:new Float32Array(g.attributes.position.array),phase:x*.27+sign,time:null});
     }
-    let flagTime=null;
-    function updateFlags(time){if(time===flagTime)return;flagTime=time;
-      for(const flag of supporterFlags){const a=flag.geometry.attributes.position.array;
+    function updateFlags(time){
+      for(const flag of supporterFlags){
+        flag.mesh.visible=P.flagVisible(flag.position,cameraState);
+        if(!flag.mesh.visible||flag.time===time)continue;flag.time=time;
+        const a=flag.geometry.attributes.position.array;
         for(let i=0;i<a.length;i+=3){const u=(flag.base[i]+1.3)/2.6,v=(flag.base[i+1]+.75)/1.5;a[i+1]=flag.base[i+1]-.09*u*u;a[i+2]=P.flagWave(u,v,time,flag.phase);}
         flag.geometry.attributes.position.needsUpdate=true;flag.geometry.computeVertexNormals();
       }

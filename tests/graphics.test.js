@@ -47,3 +47,20 @@ test('compatible renderer draws finite frames for portrait and landscape, every 
  }
  assert.ok(draws>1000);assert.equal(removed,3);
 });
+
+test('stadium corner cameras cannot generate oversized canvas strokes',()=>{
+ const gradient={addColorStop(){}};let maxStroke=0,draws=0;
+ const ctx=new Proxy({createLinearGradient:()=>gradient,createRadialGradient:()=>gradient,createPattern:()=>null},{
+  get:(o,k)=>k in o?o[k]:()=>{draws++;},
+  set:(o,k,v)=>{if(typeof v==='number')assert.ok(Number.isFinite(v));if(k==='lineWidth'){maxStroke=Math.max(maxStroke,v);assert.ok(v<=12,'no scene stroke may expand across the pitch');}o[k]=v;return true;}
+ });
+ const canvas=()=>({width:1,height:1,style:{},getContext:()=>ctx,remove(){}});
+ const context=vm.createContext({document:{createElement:canvas},devicePixelRatio:1,AuraPresentation:require('../match-presentation'),AuraGraphics:{kit:()=>['#bb3344','#112244','#eeeeee']}});
+ vm.runInContext(fs.readFileSync(path.join(__dirname,'../software-graphics.js'),'utf8'),context);
+ for(const [width,height] of [[1280,720],[390,844]])for(const half of [1,2])for(const [x,z] of [[-45,-25],[-52,-35],[-52,35],[52,-35],[52,35]]){
+  context.container={clientWidth:width,clientHeight:height,appendChild(){}};
+  context.game={players:[],ball:{x,z,y:.22,vx:0,vz:0},score:[0,0],half,phase:'playing',visualTime:1};
+  vm.runInContext("(()=>{const g=AuraSoftwareGraphics.create(container,{quality:'low'});g.render(game,'stadium',100);g.dispose();})()",context);
+ }
+ assert.ok(maxStroke>0);assert.ok(draws>1000);
+});

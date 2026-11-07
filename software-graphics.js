@@ -22,7 +22,7 @@ const AuraSoftwareGraphics=(()=>{
     function crossing(a,b){const t=(.35-a.depth)/(b.depth-a.depth);return screen({vx:a.vx+(b.vx-a.vx)*t,vy:a.vy+(b.vy-a.vy)*t,depth:.35,u:(a.u||0)+((b.u||0)-(a.u||0))*t,v:(a.v||0)+((b.v||0)-(a.v||0))*t});}
     function clipped(vertices){const out=[];let previous=vertices.at(-1);for(const current of vertices){if((previous.depth>=.35)!==(current.depth>=.35))out.push(crossing(previous,current));if(current.depth>=.35)out.push(current);previous=current;}return out;}
     function polygon(vertices,color,stroke){const points=clipped(vertices.map(p=>point(...p)));if(points.length<3)return;ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();ctx.fillStyle=color;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=.5;ctx.stroke();}}
-    function segment(a,b,color,lineWidth=1){let p=point(...a),q=point(...b);if(p.depth<.35&&q.depth<.35)return;if(p.depth<.35)p=crossing(p,q);if(q.depth<.35)q=crossing(q,p);ctx.strokeStyle=color;ctx.lineWidth=lineWidth;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();}
+    function segment(a,b,color,lineWidth=1){let p=point(...a),q=point(...b);if(p.depth<.35&&q.depth<.35)return;if(p.depth<.35)p=crossing(p,q);if(q.depth<.35)q=crossing(q,p);ctx.strokeStyle=color;ctx.lineWidth=Math.max(.25,Math.min(12,Number.isFinite(lineWidth)?lineWidth:1));ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();}
     function quad(x1,z1,x2,z2,y,color){polygon([[x1,y,z1],[x2,y,z1],[x2,y,z2],[x1,y,z2]],color);}
     function addBox(w,h,d,x,y,z,colors){
       const a=x-w/2,b=x+w/2,c=z-d/2,e=z+d/2,lo=y-h/2,hi=y+h/2;
@@ -123,7 +123,10 @@ const AuraSoftwareGraphics=(()=>{
       if(turf)texturedSurface(turf,[[-52.5,.006,-34],[52.5,.006,-34],[52.5,.006,34],[-52.5,.006,34]],low?12:22,low?8:14);
       else {for(let i=0;i<18;i++)quad(-52.5+i*105/18,-34,-52.5+(i+1)*105/18,34,0,i%2?'#426e30':'#385f2b');ctx.globalAlpha=.15;quad(-52.5,-34,52.5,34,.002,grain);ctx.globalAlpha=1;}
       const light=ctx.createRadialGradient(width*.48,height*.42,0,width*.48,height*.42,width*.72);light.addColorStop(0,night?'#f0f4d006':'#fff8cd10');light.addColorStop(1,'#081d152d');quad(-52.5,-34,52.5,34,.008,light);
-      pitchLines.forEach(([a,b])=>segment(a,b,'#edf1d9c9',Math.max(.8,point(...a).scale*.10)));
+      // Paint has a physical width on the turf; projected endpoint scales can diverge at the near plane.
+      for(const [a,b] of pitchLines){const dx=b[0]-a[0],dz=b[2]-a[2],length=Math.hypot(dx,dz)||1,ox=dz/length*.0525,oz=-dx/length*.0525;
+        polygon([[a[0]+ox,a[1],a[2]+oz],[b[0]+ox,b[1],b[2]+oz],[b[0]-ox,b[1],b[2]-oz],[a[0]-ox,a[1],a[2]-oz]],'#edf1d9c9');
+      }
       for(const sign of [-1,1]){
         polygon([[-55,.1,sign*37],[55,.1,sign*37],[55,1,sign*37],[-55,1,sign*37]],"#142c3d");
         for(let x=-45;x<50;x+=22){const p=point(x,.8,sign*37);if(p.depth<1)continue;ctx.save();ctx.translate(p.x,p.y);ctx.fillStyle='#b8f6f1dc';ctx.font='700 '+Math.max(6,p.scale*.55)+'px Arial';ctx.fillText('AURA   /   VISION',0,0);ctx.restore();}
@@ -136,7 +139,7 @@ const AuraSoftwareGraphics=(()=>{
     }
     function flags(time){
       for(const sign of [-1,1])for(const x of (low?[-34,34]:[-44,-22,22,44])){
-        const z=sign*43,anchor=point(x,5.7,z);if(anchor.depth<.7||anchor.x<-150||anchor.x>width+150||anchor.y<-100||anchor.y>height+100)continue;
+        const z=sign*43,anchor=point(x,5.7,z);if(!P.flagVisible([x+1.3,5.7,z],cameraState)||anchor.x<-150||anchor.x>width+150||anchor.y<-100||anchor.y>height+100)continue;
         const colors=kits[sign<0?0:1],at=(u,v)=>[x+u*2.6,5.7+(v-.5)*1.5-.09*u*u,z+P.flagWave(u,v,time,x*.27+sign)];
         segment([x,2.4,z],[x,6.45,z],'#b7c2c0',Math.max(.7,anchor.scale*.035));
         for(let i=0;i<8;i++){const u=i/8,v=(i+1)/8;polygon([at(u,0),at(v,0),at(v,1),at(u,1)],colors[i%2]);}
