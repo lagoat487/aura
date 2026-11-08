@@ -1,3 +1,7 @@
+## AURA VISION 9.9 · Máscaras de foto y cabezas grandes
+
+Lamine usa la fotografía adjunta por el usuario como máscara, y las cabezas crecen un 40 %. El sistema carga retratos para todos los jugadores con foto disponible en el catálogo. [Alcance y validación](docs/vision-9.9.md).
+
 ## AURA VISION 9.8 · Caras durante los partidos
 
 Cinco cabezas con texturas fotográficas locales (Lamine, Messi, Mbappé, Vinícius y Haaland), rasgos geométricos propios y pelo ajustado. Funcionan en el modelo animado y en el modo compatible; no son los modelos escaneados de EA. [Detalle y validación](docs/vision-9.8.md).

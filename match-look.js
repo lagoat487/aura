@@ -1,5 +1,5 @@
 /* Shared physical lighting, avatar styling and perspective LED board artwork. */
-(function(root,factory){const api=factory(typeof module==='object'&&module.exports?require('./match-faces-98'):root.AuraFaces);if(typeof module==='object'&&module.exports)module.exports=api;else root.AuraLook=api;})(typeof globalThis!=='undefined'?globalThis:this,function(F){
+(function(root,factory){const api=factory(typeof module==='object'&&module.exports?require('./match-faces-98'):root.AuraFaces,typeof module==='object'&&module.exports?require('./match-face-masks-99'):root.AuraFaceMasks);if(typeof module==='object'&&module.exports)module.exports=api;else root.AuraLook=api;})(typeof globalThis!=='undefined'?globalThis:this,function(F,FM){
  'use strict';
  const normalize=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
  const hash=s=>{let n=2166136261;for(const c of String(s))n=Math.imul(n^c.charCodeAt(0),16777619);return n>>>0;};
@@ -40,6 +40,9 @@
   const preset=heroProfiles.find(([pattern])=>pattern.test(name));
   if(preset)Object.assign(look,preset[1]);
   if(F)Object.assign(look,F.appearance(player));
+  look.headScale=FM?.headScale||1.4;
+  const mask=FM?.resolve(player);look.faceMaskKey=mask?.key||null;
+  if(mask?.id==='277643')Object.assign(look,{hair:'#1c1b18',hairTop:null,hairStyle:4});
   return look;
  }
  function light(stadium,weather){

@@ -211,7 +211,7 @@ const AuraSoftwareGraphics=(()=>{
         if(keeper)limb(world(...hand),world(hand[0],hand[1]-.04,hand[2]+.04),'#e6e5cf',.14);
       }
       const neck=world(0,1.48,0);limb(neck,world(0,1.57,0),look.skin,.12);
-      const r=Math.max(1.5,head.scale*.16),face=ctx.createRadialGradient(head.x-r*.35,head.y-r*.4,.2,head.x,head.y,r*1.4);face.addColorStop(0,look.skin);face.addColorStop(1,'#654638');ctx.fillStyle=face;ctx.beginPath();ctx.ellipse(head.x,head.y,r,r*1.19,0,0,Math.PI*2);ctx.fill();
+      const r=Math.max(1.5,head.scale*.16*(look.headScale||1.4)),face=ctx.createRadialGradient(head.x-r*.35,head.y-r*.4,.2,head.x,head.y,r*1.4);face.addColorStop(0,look.skin);face.addColorStop(1,'#654638');ctx.fillStyle=face;ctx.beginPath();ctx.ellipse(head.x,head.y,r,r*1.19,0,0,Math.PI*2);ctx.fill();
       ctx.fillStyle=look.hair;ctx.beginPath();ctx.ellipse(head.x,head.y-r*.35,r*1.01,r*.76,0,Math.PI,Math.PI*2);ctx.fill();
       const label=point(...world(0,1.15,front?.19:-.19));ctx.fillStyle=colors[2];ctx.textAlign='center';ctx.font='700 '+Math.max(5,label.scale*(front?.11:.27))+'px Arial';ctx.fillText(front?'A':String(p.number),label.x,label.y+label.scale*.10);
       if(selected){const h=point(p.x,2.22,p.z);ctx.fillStyle=p.team===1?'#ad9aff':'#45e5e5';ctx.beginPath();ctx.moveTo(h.x-4,h.y-5);ctx.lineTo(h.x+4,h.y-5);ctx.lineTo(h.x,h.y+1);ctx.fill();}

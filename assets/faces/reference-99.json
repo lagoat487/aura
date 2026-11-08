@@ -1,0 +1,15 @@
+{
+  "subject": "Lamine Yamal",
+  "kind": "Exact photographic cutout supplied by the user for an in-game mask",
+  "source_filename": "IMG_3497.jpeg",
+  "source_sha256": "ecc984ed856f582302831b19a9c9a7a18b8cbed8fb523af30ad6d2a3dbfdc604",
+  "crop": {
+    "left": 250,
+    "top": 207,
+    "width": 173,
+    "height": 193
+  },
+  "output": "lamine-reference-99.png",
+  "output_sha256": "e89d85ac3aeceddfeceff1bf404b09abf7a08cc1e375ecc9ab874d03ea536b0a",
+  "processing": "crop and transparent silhouette; no generated face, retouching or facial warping"
+}

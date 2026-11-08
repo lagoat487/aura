@@ -23,7 +23,7 @@ def euler(x=0,y=0,z=0):
  cx,sx,cy,sy,cz,sz=math.cos(x),math.sin(x),math.cos(y),math.sin(y),math.cos(z),math.sin(z)
  return np.array([[cz,-sz,0],[sz,cz,0],[0,0,1]])@np.array([[cy,0,sy],[0,1,0],[-sy,0,cy]])@np.array([[1,0,0],[0,cx,-sx],[0,sx,cx]])
 
-def pose(frame):
+def pose(frame,points=None):
  R=np.repeat(np.eye(3)[None],len(parents),axis=0);phase=(frame-1)/12*math.tau;speed=int(1<=frame<=12)
  stride=math.sin(phase)*.72*speed;k1=max(0,-math.cos(phase))*.9*speed;k2=max(0,math.cos(phase))*.9*speed
  R[0]=euler(y=math.cos(phase)*.045*speed);R[1]=euler(.12*speed);R[2]=euler(y=-math.cos(phase)*.09*speed,z=math.sin(phase)*.018*speed);R[4]=euler(y=math.cos(phase)*.035*speed)
@@ -41,25 +41,27 @@ def pose(frame):
  worldR,worldP=np.array(worldR),np.array(worldP);out=np.zeros_like(V);normals=np.zeros_like(N)
  for k in range(4):
   b=ids[:,k];w=weights[:,k,None];out+=(np.einsum('nij,nj->ni',worldR[b],V-bind[b])+worldP[b])*w;normals+=np.einsum('nij,nj->ni',worldR[b],N)*w
+ if points is not None:return out,normals,(points-bind[4])@worldR[4].T+worldP[4]
  return out,normals
 
-with tempfile.TemporaryDirectory(prefix='aura-face-uv-') as directory:
- library=Path(directory)/'uv.so';subprocess.run(['g++','-std=c++17','-O3','-shared','-fPIC',str(ROOT/'scripts/raster-face-uv.cpp'),'-o',str(library)],check=True)
- raster=ctypes.CDLL(str(library)).raster;ptr=ctypes.c_void_p;raster.argtypes=[ptr,ptr,ptr,ptr,ptr,ctypes.c_int,ctypes.c_int,ctypes.c_int,ptr,ptr]
- rest=np.ascontiguousarray(V,dtype=np.float32);faces=np.ascontiguousarray(F,dtype=np.int32);mats=np.ascontiguousarray(slots,dtype=np.int32)
- for page in range(4):
-  rows=min(6,22-page*6);atlas=Image.new('RGBA',(64*16,96*rows));origins=json.loads((ROOT/f'assets/models/human-origins-96-{page}.json').read_text())
-  for row in range(rows):
-   posed,normals=pose(page*6+row);normals=np.ascontiguousarray(normals,dtype=np.float32)
-   for direction in range(16):
-    yaw=direction*math.tau/16;cam=np.array([math.sin(yaw)*math.cos(ELEVATION),math.sin(ELEVATION),math.cos(yaw)*math.cos(ELEVATION)])
-    right=np.array([math.cos(yaw),0,-math.sin(yaw)]);up=np.cross(cam,right);axes=np.ascontiguousarray([right,up,cam],dtype=np.float32)
-    screen=np.ascontiguousarray(np.column_stack(((WIDTH/2+posed@right*PPM)*SS,(ANCHOR-posed@up*PPM)*SS,posed@cam)),dtype=np.float32)
-    raw=np.zeros((HEIGHT*SS,WIDTH*SS,4),dtype=np.uint8)
-    raster(screen.ctypes.data,normals.ctypes.data,rest.ctypes.data,faces.ctypes.data,mats.ctypes.data,len(F),WIDTH*SS,HEIGHT*SS,axes.ctypes.data,raw.ctypes.data)
-    block=raw.reshape(HEIGHT,SS,WIDTH,SS,4).transpose(0,2,1,3,4).reshape(HEIGHT,WIDTH,SS*SS,4)
-    selected=block[:,:,:,3]>0;count=np.maximum(1,selected.sum(2));out=np.zeros((HEIGHT,WIDTH,4),dtype=np.uint8)
-    for k in range(3):out[:,:,k]=np.rint((block[:,:,:,k]*selected).sum(2)/count).astype(np.uint8)
-    out[:,:,3]=np.rint(selected.sum(2)*255/(SS*SS)).astype(np.uint8)
-    x,y=origins[row*16+direction];crop=Image.fromarray(out).crop((x,y,x+64,y+96));atlas.paste(crop,(direction*64,row*96))
-  dest=ROOT/f'assets/models/human-face-uv-98-{page}.png';atlas.save(dest,optimize=True);print('Baked face UV page',page,flush=True)
+if __name__=='__main__':
+ with tempfile.TemporaryDirectory(prefix='aura-face-uv-') as directory:
+  library=Path(directory)/'uv.so';subprocess.run(['g++','-std=c++17','-O3','-shared','-fPIC',str(ROOT/'scripts/raster-face-uv.cpp'),'-o',str(library)],check=True)
+  raster=ctypes.CDLL(str(library)).raster;ptr=ctypes.c_void_p;raster.argtypes=[ptr,ptr,ptr,ptr,ptr,ctypes.c_int,ctypes.c_int,ctypes.c_int,ptr,ptr]
+  rest=np.ascontiguousarray(V,dtype=np.float32);faces=np.ascontiguousarray(F,dtype=np.int32);mats=np.ascontiguousarray(slots,dtype=np.int32)
+  for page in range(4):
+   rows=min(6,22-page*6);atlas=Image.new('RGBA',(64*16,96*rows));origins=json.loads((ROOT/f'assets/models/human-origins-96-{page}.json').read_text())
+   for row in range(rows):
+    posed,normals=pose(page*6+row);normals=np.ascontiguousarray(normals,dtype=np.float32)
+    for direction in range(16):
+     yaw=direction*math.tau/16;cam=np.array([math.sin(yaw)*math.cos(ELEVATION),math.sin(ELEVATION),math.cos(yaw)*math.cos(ELEVATION)])
+     right=np.array([math.cos(yaw),0,-math.sin(yaw)]);up=np.cross(cam,right);axes=np.ascontiguousarray([right,up,cam],dtype=np.float32)
+     screen=np.ascontiguousarray(np.column_stack(((WIDTH/2+posed@right*PPM)*SS,(ANCHOR-posed@up*PPM)*SS,posed@cam)),dtype=np.float32)
+     raw=np.zeros((HEIGHT*SS,WIDTH*SS,4),dtype=np.uint8)
+     raster(screen.ctypes.data,normals.ctypes.data,rest.ctypes.data,faces.ctypes.data,mats.ctypes.data,len(F),WIDTH*SS,HEIGHT*SS,axes.ctypes.data,raw.ctypes.data)
+     block=raw.reshape(HEIGHT,SS,WIDTH,SS,4).transpose(0,2,1,3,4).reshape(HEIGHT,WIDTH,SS*SS,4)
+     selected=block[:,:,:,3]>0;count=np.maximum(1,selected.sum(2));out=np.zeros((HEIGHT,WIDTH,4),dtype=np.uint8)
+     for k in range(3):out[:,:,k]=np.rint((block[:,:,:,k]*selected).sum(2)/count).astype(np.uint8)
+     out[:,:,3]=np.rint(selected.sum(2)*255/(SS*SS)).astype(np.uint8)
+     x,y=origins[row*16+direction];crop=Image.fromarray(out).crop((x,y,x+64,y+96));atlas.paste(crop,(direction*64,row*96))
+   dest=ROOT/f'assets/models/human-face-uv-98-{page}.png';atlas.save(dest,optimize=True);print('Baked face UV page',page,flush=True)

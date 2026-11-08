@@ -6,11 +6,11 @@ test("mobile.html is a separate production entry to seven independent mode scree
  const mobile=read("mobile.html"),desktop=read("index.html");
  assert.match(mobile,/<meta name="viewport" content="width=device-width, initial-scale=1">/);
  assert.match(mobile,/<body class="aura-mobile-entry">/);
- assert.match(mobile,/AURA VISION 9\.8 · VERSIÓN MÓVIL/);
+ assert.match(mobile,/AURA VISION 9\.9 · VERSIÓN MÓVIL/);
  assert.match(mobile,/7 modos separados/);
  assert.match(mobile,/href="\.\/mode-hub\.css(?:\?[^"\s]*)?"/);
- assert.match(mobile,/src="\.\/evolution-ui-98\.js(?:\?[^"\s]*)?"/);
- assert.match(mobile,/src="\.\/game-98\.js\?v=9\.8-faces"/);
+ assert.match(mobile,/src="\.\/evolution-ui-99\.js(?:\?[^"\s]*)?"/);
+ assert.match(mobile,/src="\.\/game-99\.js\?v=9\.9-masks"/);
  const assets=html=>Array.from(html.matchAll(/(?:src|href)="\.\/([^"?#]+)/g),m=>m[1]);
  assert.deepEqual(assets(mobile),assets(desktop),"mobile must load the same game code and assets");
  assert.match(read("evolution-ui.js"),/function modeHub\(\)/);

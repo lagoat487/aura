@@ -25,7 +25,7 @@ const AuraGraphics=(()=>{
   function create(container,options={}){
     if(!globalThis.THREE||webglUnavailable)throw Error('WebGL no está disponible.');
     const T=THREE,P=AuraPresentation,M=typeof AuraMaterials!=='undefined'?AuraMaterials:null,L=typeof AuraLook!=='undefined'?AuraLook:null,lighting=L?L.light(options.stadium,options.weather):null,quality=options.quality||'medium',preview=!!options.preview;
-    const F=typeof AuraFaces!=='undefined'?AuraFaces:null;
+    const F=typeof AuraFaces!=='undefined'?AuraFaces:null,FM=typeof AuraFaceMasks!=='undefined'?AuraFaceMasks:null;
     const low=quality==='low',ultra=quality==='ultra',high=ultra||quality==='high';
     const raining=options.weather==='rain',day=options.stadium==='day',sunset=options.stadium==='sunset';
     const profile={pixel:ultra?2:high?1.75:low?1:1.5,texture:ultra?4096:low?1024:2048,rows:ultra?16:high?13:low?5:9,columns:ultra?172:high?150:low?76:124};
@@ -56,7 +56,13 @@ const AuraGraphics=(()=>{
     function cylinder(r,h,m,x,y,z,parent=scene){return mesh(geometry('c:'+r+':'+h,()=>new T.CylinderGeometry(r,r,h,low?8:12)),m,x,y,z,parent);}
     function texture(c,color=true){const t=new T.CanvasTexture(c);if(color)t.colorSpace=T.SRGBColorSpace;t.anisotropy=Math.min(high?16:4,renderer.capabilities.getMaxAnisotropy());textures.add(t);return t;}
     const canvas=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
-    const faceLibrary=F?.create(canvas),faceMaps=new Map();
+    const faceLibrary=F?.create(canvas,typeof Image==='function'?Image:null),faceMaps=new Map(),maskLibrary=FM?.create(canvas,typeof Image==='function'?Image:null),maskMaterials=new Map();
+    function photoMask(player){
+      const entry=maskLibrary?.get(player);if(!entry)return null;
+      if(!maskMaterials.has(entry.key)){const map=texture(entry.canvas),mat=basic({map,transparent:true,depthWrite:false,toneMapped:false,side:T.FrontSide});mat.visible=entry.ready;
+        maskLibrary.get(player,()=>{if(!disposed){map.needsUpdate=true;mat.visible=true;}});maskMaterials.set(entry.key,mat);}
+      const mat=maskMaterials.get(entry.key).clone();materials.add(mat);const mask=new T.Mesh(geometry('face-mask-plane',()=>new T.PlaneGeometry(FM.width,FM.height)),mat);mask.userData.entry=entry;return mask;
+    }
     function faceMaterial(key){
       if(!faceMaps.has(key)){const entry=faceLibrary.get(key),map=texture(entry.canvas);map.flipY=false;
         faceLibrary.get(key,()=>{if(!disposed)map.needsUpdate=true;});
@@ -269,8 +275,8 @@ const AuraGraphics=(()=>{
       const jaw=Math.max(0,Math.min(1,(1.715-y)/.13));
       return x*(crownWidths[i]*(1-jaw)+jawWidths[i]*jaw);
     }
-    function humanGeometry(style,faceShape=0,faceKey=null){
-      if(anatomical)return geometry('anatomical-human:'+style+':'+faceShape+':'+(faceKey||'base'),()=>{
+    function humanGeometry(style,faceShape=0,faceKey=null,replaceHead=false){
+      if(anatomical)return geometry('anatomical-human:'+style+':'+faceShape+':'+(faceKey||'base')+':'+replaceHead,()=>{
         const data=anatomical,g=new T.BufferGeometry(),positions=new Float32Array(data.positions);
         if(style===1)for(let i=0;i<positions.length;i+=3)if(positions[i+1]>1.82)positions[i+1]+=(positions[i+1]-1.82)*.25;
         g.setAttribute('position',new T.BufferAttribute(positions,3));g.setAttribute('normal',new T.Float32BufferAttribute(data.normals,3));
@@ -312,12 +318,12 @@ const AuraGraphics=(()=>{
           g.setAttribute('uv',new T.BufferAttribute(uv,2));g.computeVertexNormals();
         }
         g.setAttribute('color',new T.Float32BufferAttribute(shades,3));
-        const index=[],sleeves=[],face=[];
+        const index=[],sleeves=[],face=[],headParts=[[],[],[]];
         for(const [start,count,mat] of data.groups){const offset=index.length;
-          for(let i=start;i<start+count;i+=3){const tri=[data.indices[i],data.indices[i+1],data.indices[i+2]],arm=mat===0&&tri.filter(v=>data.skinIndices[v*4]>=11).length>=2;const portrait=faceKey&&F&&(mat===7||mat===2&&tri.every(v=>data.positions[v*3+1]>1.615)&&tri.reduce((n,v)=>n+data.positions[v*3+2]/3,0)>.070);(portrait?face:arm?sleeves:index).push(...tri);}
+          for(let i=start;i<start+count;i+=3){const tri=[data.indices[i],data.indices[i+1],data.indices[i+2]],arm=mat===0&&tri.filter(v=>data.skinIndices[v*4]>=11).length>=2;const portrait=faceKey&&F&&(mat===7||mat===2&&tri.every(v=>data.positions[v*3+1]>1.615)&&tri.reduce((n,v)=>n+data.positions[v*3+2]/3,0)>.070);const headPart=replaceHead&&[2,5,7].includes(mat)&&tri.every(v=>data.positions[v*3+1]>1.615)?[2,5,7].indexOf(mat):-1;(headPart>=0?headParts[headPart]:portrait?face:arm?sleeves:index).push(...tri);}
           if(index.length>offset)g.addGroup(offset,index.length-offset,mat);
         }
-        const offset=index.length;index.push(...sleeves);if(sleeves.length)g.addGroup(offset,sleeves.length,8);const faceOffset=index.length;index.push(...face);if(face.length)g.addGroup(faceOffset,face.length,9);g.setIndex(new T.BufferAttribute(new Uint16Array(index),1));return g;
+        const offset=index.length;index.push(...sleeves);if(sleeves.length)g.addGroup(offset,sleeves.length,8);const faceOffset=index.length;index.push(...face);if(face.length)g.addGroup(faceOffset,face.length,9);headParts.forEach((part,i)=>{const offset=index.length;index.push(...part);if(part.length)g.addGroup(offset,part.length,9+i);});g.setIndex(new T.BufferAttribute(new Uint16Array(index),1));return g;
       });
       return geometry('human:'+style,()=>{
       const buckets=Array.from({length:8},()=>({p:[],n:[],uv:[],si:[],sw:[]})),matrix=new T.Matrix4(),q=new T.Quaternion();
@@ -352,11 +358,15 @@ const AuraGraphics=(()=>{
       const club=p.team===0?options.home:options.away,shirtMap=shirtTexture(colors,club,keeper,p),shirt=material(0xffffff,{map:shirtMap,...cloth});
       const surface={vertexColors:!!anatomical};
       const mats=[shirt,material(colors[1],cloth),material(look.skin,{...surface,roughness:.46,metalness:.015}),material(colors[0],cloth),material(p.index%3===0?0xefebe3:p.index%3===1?0xe49a55:0x182436,{...surface,roughness:.48}),material(look.hairTop||look.hair,{...surface,roughness:.96}),material(colors[2],surface),material(anatomical?0xe8e6df:0x17202a,surface),M?.design(club,keeper,p.team===1&&kits[1][0]!==kit(options.away)[0])==='sleeves'?material(colors[1],cloth):shirt];
-      if(look.faceKey&&F)mats.push(faceMaterial(look.faceKey));
-      const body=new T.SkinnedMesh(humanGeometry(look.hairStyle,look.faceShape||0,look.faceKey),mats),bones=boneDefs.map(()=>new T.Bone());
+      const mask=photoMask(p),headMaterials=[];
+      if(mask)for(const slot of [2,5,7]){const mat=mats[slot].clone();mat.name='replaceable-head';mat.transparent=true;headMaterials.push(mat);materials.add(mat);mats.push(mat);}
+      else if(look.faceKey&&F)mats.push(faceMaterial(look.faceKey));
+      const body=new T.SkinnedMesh(humanGeometry(look.hairStyle,look.faceShape||0,mask?null:look.faceKey,!!mask),mats),bones=boneDefs.map(()=>new T.Bone());
       boneDefs.forEach(([parent,x,y,z],i)=>{bones[i].position.set(x,y,z);if(parent>=0)bones[parent].add(bones[i]);});
       body.add(bones[0]);body.updateMatrixWorld(true);const skeleton=new T.Skeleton(bones);skeletons.add(skeleton);body.bind(skeleton);
-      if(anatomical&&!look.faceKey){
+      bones[4].scale.setScalar(look.headScale||1.4);
+      if(mask){const head=boneDefs.slice(0,5).reduce((a,b)=>a.map((v,i)=>v+b[i+1]),[0,0,0]);mask.name='photo-face-mask:'+look.faceMaskKey;mask.position.set(...FM.center.map((n,i)=>n-head[i]));bones[4].add(mask);}
+      if(anatomical&&(!look.faceKey||mask)){
         const group=anatomical.groups.find(g=>g[2]===7),eyes=[[],[]];
         if(group){const indices=new Set(anatomical.indices.slice(group[0],group[0]+group[1]));
           for(const index of indices){const x=anatomical.positions[index*3];eyes[x<0?0:1].push([faceX(x,anatomical.positions[index*3+1],look.faceShape||0),anatomical.positions[index*3+1],anatomical.positions[index*3+2]]);}
@@ -385,10 +395,10 @@ const AuraGraphics=(()=>{
       }
       body.castShadow=!low;body.receiveShadow=!low;body.frustumCulled=false;root.add(body);
       root.scale.set(look.build,look.height/1.88,look.build);
-      return {id:p.id,root,body,bones,skeleton,shirtMap,shirt,yaw:Math.atan2(p.faceX,p.faceZ)};
+      return {id:p.id,root,body,bones,skeleton,shirtMap,shirt,mask,headMaterials,headObjects:bones[4].children.filter(o=>o!==mask),yaw:Math.atan2(p.faceX,p.faceZ)};
     }
     let actors=[];
-    function releaseActor(a){scene.remove(a.root);a.skeleton.dispose();skeletons.delete(a.skeleton);a.shirtMap.dispose();textures.delete(a.shirtMap);a.shirt.dispose();materials.delete(a.shirt);}
+    function releaseActor(a){scene.remove(a.root);for(const mat of [...a.headMaterials,...(a.mask?[a.mask.material]:[])]){mat.dispose();materials.delete(mat);}a.skeleton.dispose();skeletons.delete(a.skeleton);a.shirtMap.dispose();textures.delete(a.shirtMap);a.shirt.dispose();materials.delete(a.shirt);}
     // Shared soft contact shadows work at every quality, including without shadow maps.
     const shadowCanvas=canvas(64,64),sc=shadowCanvas.getContext('2d'),sg=sc.createRadialGradient(32,32,3,32,32,31);
     sg.addColorStop(0,'#0000008f');sg.addColorStop(.45,'#00000052');sg.addColorStop(1,'#00000000');sc.fillStyle=sg;sc.fillRect(0,0,64,64);
@@ -442,6 +452,12 @@ const AuraGraphics=(()=>{
           const a=actors[i],pose=P.pose(p,game),b=a.bones,angle=Math.atan2(p.faceX,p.faceZ);a.yaw+=Math.atan2(Math.sin(angle-a.yaw),Math.cos(angle-a.yaw))*(1-Math.exp(-dt*14));
           a.root.position.set(p.x,pose.jump+pose.saveLift-pose.crouch,p.z);a.root.rotation.set(0,a.yaw,pose.dive*1.12);a.root.visible=!p.sentOff;
           b[0].rotation.y=pose.hipTwist;b[2].rotation.y=pose.chestTwist;b[4].rotation.y=pose.headYaw;b[1].scale.y=1+pose.breath;
+          if(a.mask){const vx=camera.position.x-p.x,vz=camera.position.z-p.z,front=(vx*Math.sin(a.yaw+b[4].rotation.y)+vz*Math.cos(a.yaw+b[4].rotation.y))/(Math.hypot(vx,vz)||1);
+            const alpha=a.mask.userData.entry.ready?Math.max(0,Math.min(1,(front-.10)/.22)):0;
+            a.mask.material.visible=alpha>0;a.mask.material.opacity=alpha;
+            for(const mat of a.headMaterials){mat.opacity=1-alpha;mat.visible=alpha<1;mat.depthWrite=alpha===0;}
+            for(const object of a.headObjects)object.visible=alpha<.5;
+          }
           b[1].rotation.x=pose.lean-pose.kick*.13+pose.crouch*.30;b[2].rotation.z=pose.turn*.10*(p.faceZ>=0?1:-1);
           b[5].rotation.x=pose.stride-pose.kick*1.25-pose.tackle*.8-pose.crouch*.6;b[8].rotation.x=-pose.stride-pose.crouch*.6;
           b[6].rotation.x=pose.kneeLeft+pose.kick*.4+pose.crouch;b[9].rotation.x=pose.kneeRight+pose.crouch;
@@ -462,7 +478,7 @@ const AuraGraphics=(()=>{
       updateFlags(game?.visualTime??now*.001);cheerCrowd(now,game?.score);updateScreen(game);updateGoalNets(game);updateRain(now);updateGrass(game,cam);renderer.render(scene,camera);
     }
     function project(p){const v=new T.Vector3(p.x,2.2,p.z).project(camera);return {x:(v.x*.5+.5)*container.clientWidth,y:(-.5*v.y+.5)*container.clientHeight,visible:v.z>-1&&v.z<1&&Math.abs(v.x)<1&&Math.abs(v.y)<1};}
-    function dispose(){if(disposed)return;disposed=true;faceLibrary?.dispose();observer?.disconnect();skeletons.forEach(s=>s.dispose());geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());textures.forEach(t=>t.dispose());
+    function dispose(){if(disposed)return;disposed=true;faceLibrary?.dispose();maskLibrary?.dispose();observer?.disconnect();skeletons.forEach(s=>s.dispose());geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());textures.forEach(t=>t.dispose());
       scene.traverse(o=>{if(o.isInstancedMesh)o.dispose();});renderer.dispose();renderer.forceContextLoss();renderer.domElement.remove();}
     return {render,resize,dispose,project,mapInput:input=>P.cameraInput(input,cameraState),renderer,kits};
   }

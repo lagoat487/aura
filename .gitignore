@@ -1,3 +1,5 @@
 dist/
 node_modules/
 .openai/
+__pycache__/
+*.pyc

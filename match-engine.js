@@ -31,7 +31,7 @@
     if(sides.some(t=>new Set(t.players.map(p=>p.id)).size!==11))throw Error("Un once no puede tener jugadores duplicados.");
     const players=sides.flatMap((t,team)=>t.players.map((p,i)=>{
       const slot=t.slots?.[i],baseX=slot?(50-slot[2])*.96:SHAPE[i][1],baseZ=slot?(slot[1]-50)*.58:SHAPE[i][2];
-      return {id:p.id,name:p.name,number:i+1,team,index:i,pos:i===0?"POR":p.pos,overall:clamp(p.overall||70,1,99),
+      return {id:p.id,name:p.name,originalId:p.originalId||null,real:!!p.real,photo:p.photo||null,number:i+1,team,index:i,pos:i===0?"POR":p.pos,overall:clamp(p.overall||70,1,99),
         baseX,baseZ,x:0,z:0,vx:0,vz:0,faceX:team===0?1:-1,faceZ:0,stamina:clamp(Number.isFinite(p.fitness)?p.fitness:100,0,100),cooldown:0,skillTime:0,skillCooldown:0,yellows:0,sentOff:false,run:0,turn:0,dribbleTime:0,action:null,actionTime:0,actionDuration:0,diveSide:1};
     }));
     const game={players,ball:{x:0,y:.22,z:0,vx:0,vy:0,vz:0,spin:0,owner:null,lastTouch:0,freeTime:0,lastKicker:null},
@@ -184,7 +184,7 @@
     const change={team,out:p.id,in:candidate.id,outName:p.name,inName:candidate.name,minute:Math.min(90,Math.floor(game.elapsed/game.seconds*90))};
     const slotRating=Array.isArray(candidate.slotRatings)?candidate.slotRatings[p.index]:undefined;
     const overall=clamp(Number.isFinite(slotRating)?slotRating:candidate.overall,1,99);
-    Object.assign(p,{id:candidate.id,name:candidate.name,pos:p.index===0?"POR":candidate.pos,overall,stamina:clamp(Number.isFinite(candidate.fitness)?candidate.fitness:100,0,100),cooldown:.3,decision:0,action:null,actionTime:0,yellows:0,sentOff:false,skillTime:0,skillCooldown:0});
+    Object.assign(p,{id:candidate.id,name:candidate.name,originalId:candidate.originalId||null,real:!!candidate.real,photo:candidate.photo||null,pos:p.index===0?"POR":candidate.pos,overall,stamina:clamp(Number.isFinite(candidate.fitness)?candidate.fitness:100,0,100),cooldown:.3,decision:0,action:null,actionTime:0,yellows:0,sentOff:false,skillTime:0,skillCooldown:0});
     playerStat(game,p);
     bench.splice(bench.indexOf(candidate),1);game.participants[team].push(candidate.id);game.substitutions.push(change);
     event(game,"substitution",change.outName+" deja su sitio a "+change.inName,change);return true;
