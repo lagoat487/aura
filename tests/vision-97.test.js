@@ -35,5 +35,5 @@ test("WebGL 3D geometry uses face variant without altering the animation skeleto
  const s=fs.readFileSync(path.join(root,"match-graphics-96.js"),"utf8");
  assert.match(s,/humanGeometry\(look\.hairStyle,look\.faceShape\|\|0\)/);
  assert.match(s,/anatomical-human:'\+style\+':'\+faceShape/);
- assert.match(s,/const bones=boneDefs\.map/);
+ assert.match(s,/bones=boneDefs\.map/);
 });

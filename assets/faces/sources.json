@@ -1,0 +1,45 @@
+{
+  "kind": "FC27 player portrait reference photographs; not scanned head models",
+  "sources": [
+    {
+      "key": "lamine",
+      "player_id": "277643",
+      "file": "lamine-fc27.png",
+      "url": "https://cdn.fifacm.com/content/media/imgs/fc27/players/p277643.png?v=32",
+      "sha256": "a139f0c1d907d02e353e54103b35ccd49faed5dec886b123f739f9f0d6af52a6",
+      "retrieved": "2026-11-08"
+    },
+    {
+      "key": "messi",
+      "player_id": "158023",
+      "file": "messi-fc27.png",
+      "url": "https://cdn.fifacm.com/content/media/imgs/fc27/players/p158023.png?v=32",
+      "sha256": "7e20ead2b131da61857ed510e9955420db9cd33d3037f6f5d861748f548fd6d0",
+      "retrieved": "2026-11-08"
+    },
+    {
+      "key": "mbappe",
+      "player_id": "231747",
+      "file": "mbappe-fc27.png",
+      "url": "https://cdn.fifacm.com/content/media/imgs/fc27/players/p231747.png?v=32",
+      "sha256": "4e8df4c59e592c957c932e8b4480b2f5f4fbabf23f43cdee9b8346841d7dc380",
+      "retrieved": "2026-11-08"
+    },
+    {
+      "key": "vinicius",
+      "player_id": "238794",
+      "file": "vinicius-fc27.png",
+      "url": "https://cdn.fifacm.com/content/media/imgs/fc27/players/p238794.png?v=32",
+      "sha256": "f68a7034ab49e443eb066e1ba547488adb5fab0f4495b41f7c2efd8ba16ed141",
+      "retrieved": "2026-11-08"
+    },
+    {
+      "key": "haaland",
+      "player_id": "239085",
+      "file": "haaland-fc27.png",
+      "url": "https://cdn.fifacm.com/content/media/imgs/fc27/players/p239085.png?v=32",
+      "sha256": "c47a9a1982bba18a42abbdac02e13f9a7238dd2ceb2a4b45b408f30cdd267ef5",
+      "retrieved": "2026-11-08"
+    }
+  ]
+}

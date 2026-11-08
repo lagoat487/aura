@@ -3,10 +3,10 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const Look=require('../match-look'),curl=require('../assets/models/curly-hair-96'),boots=require('../assets/models/football-boots-96'),detail=require('../assets/models/human-details-96'),Sprites=require('../human-sprites');
 test('the new avatar art follows player identity without mutating the match player or fallback appearance',()=>{
  const p={id:'real:277643',name:'Lamine Yamal',overall:90,team:0},base={skin:'#e2b28b',hair:'#34271e',height:1.88,build:1,hairStyle:0,beard:true},snapshot=JSON.stringify([p,base]);
- const lamine=Look.avatar(p,base),pedri=Look.avatar({...p,name:'Pedri'},base);
+ const lamine=Look.avatar(p,base),pedri=Look.avatar({...p,id:'real:251854',name:'Pedri'},base);
  assert.equal(lamine.hairStyle,4);assert.equal(lamine.beard,false);assert.notEqual(lamine.skin,pedri.skin);assert.notEqual(lamine.hairStyle,pedri.hairStyle);
  assert.deepEqual(Look.avatar({...p,index:0},base),lamine);assert.equal(JSON.stringify([p,base]),snapshot);
- assert.deepEqual(Look.avatar({name:'Unknown player'},base),base);
+ const unknown=Look.avatar({name:'Unknown player'},base);assert.equal(unknown.skin,base.skin);assert.equal(unknown.height,base.height);assert.ok(unknown.faceShape>=0&&unknown.faceShape<=6);
 });
 test('night lighting keeps cool rim light and a distinct shadow key while daylight retains its brighter fill',()=>{
  const night=Look.light('night','clear'),day=Look.light('day','clear');

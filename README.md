@@ -1,3 +1,7 @@
+## AURA VISION 9.8 · Caras durante los partidos
+
+Cinco cabezas con texturas fotográficas locales (Lamine, Messi, Mbappé, Vinícius y Haaland), rasgos geométricos propios y pelo ajustado. Funcionan en el modelo animado y en el modo compatible; no son los modelos escaneados de EA. [Detalle y validación](docs/vision-9.8.md).
+
 # AURA 27 / VISION 9.7
 
 **VISION 9.7 — identidad facial (fase 1):** siete variantes geométricas para rostros 3D, nuevas combinaciones de peinado/barba para todo el catálogo y perfiles aproximados para varias estrellas, incluido Messi. Se mantiene Three.js/WebGL y el enlace de AURA. **No son rostros fotorrealistas, escaneados ni semejanzas exactas**; la revisión visual acelerada en Mac sigue pendiente. Véase [docs/vision-9.7.md](docs/vision-9.7.md).

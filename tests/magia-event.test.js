@@ -70,8 +70,8 @@ for(const runtime of ["ultimate-ui.js","ultimate-ui-61.js"]){
 }
 test("both entrypoints ship complete MAGIA assets and synchronized current controllers without requiring a cached old model",()=>{
  for(const name of ["ultimate-team","ultimate-save","ultimate-ui","evolution-ui","current-events"])assert.equal(read(name+".js"),read(name+"-61.js"));
- for(const file of ["index.html","mobile.html"]){const html=read(file);for(const name of ["ultimate-team","ultimate-save","ultimate-ui","evolution-ui","current-events"])assert.ok(html.includes('./'+name+(name==='evolution-ui'?'-97.js?v=9.6-cinema':'-66.js?v=6.6-champions')));
-  assert.ok(html.includes('./magia-event.css?v=6.1'));assert.ok(html.includes('./magia-event-65.js?v=6.5-unlimited'));assert.ok(html.indexOf('magia-event-65.js')<html.indexOf('./game-96.js'));
+ for(const file of ["index.html","mobile.html"]){const html=read(file);for(const name of ["ultimate-team","ultimate-save","ultimate-ui","evolution-ui","current-events"])assert.ok(html.includes('./'+name+(name==='evolution-ui'?'-98.js?v=9.8-faces':'-66.js?v=6.6-champions')));
+  assert.ok(html.includes('./magia-event.css?v=6.1'));assert.ok(html.includes('./magia-event-65.js?v=6.5-unlimited'));assert.ok(html.indexOf('magia-event-65.js')<html.indexOf('./game-98.js'));
  }
 });
 test("the updated event catalogue remains compatible with an already cached pre-MAGIA model",()=>{

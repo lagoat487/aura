@@ -25,6 +25,7 @@ const AuraGraphics=(()=>{
   function create(container,options={}){
     if(!globalThis.THREE||webglUnavailable)throw Error('WebGL no está disponible.');
     const T=THREE,P=AuraPresentation,M=typeof AuraMaterials!=='undefined'?AuraMaterials:null,L=typeof AuraLook!=='undefined'?AuraLook:null,lighting=L?L.light(options.stadium,options.weather):null,quality=options.quality||'medium',preview=!!options.preview;
+    const F=typeof AuraFaces!=='undefined'?AuraFaces:null;
     const low=quality==='low',ultra=quality==='ultra',high=ultra||quality==='high';
     const raining=options.weather==='rain',day=options.stadium==='day',sunset=options.stadium==='sunset';
     const profile={pixel:ultra?2:high?1.75:low?1:1.5,texture:ultra?4096:low?1024:2048,rows:ultra?16:high?13:low?5:9,columns:ultra?172:high?150:low?76:124};
@@ -55,6 +56,13 @@ const AuraGraphics=(()=>{
     function cylinder(r,h,m,x,y,z,parent=scene){return mesh(geometry('c:'+r+':'+h,()=>new T.CylinderGeometry(r,r,h,low?8:12)),m,x,y,z,parent);}
     function texture(c,color=true){const t=new T.CanvasTexture(c);if(color)t.colorSpace=T.SRGBColorSpace;t.anisotropy=Math.min(high?16:4,renderer.capabilities.getMaxAnisotropy());textures.add(t);return t;}
     const canvas=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
+    const faceLibrary=F?.create(canvas),faceMaps=new Map();
+    function faceMaterial(key){
+      if(!faceMaps.has(key)){const entry=faceLibrary.get(key),map=texture(entry.canvas);map.flipY=false;
+        faceLibrary.get(key,()=>{if(!disposed)map.needsUpdate=true;});
+        const mat=material(0xffffff,{map,roughness:.78,metalness:0});mat.name='portrait-face:'+key;faceMaps.set(key,mat);}
+      return faceMaps.get(key);
+    }
     let seed=8721;const rnd=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
     const concrete=material(0x28333d),rail=material(0x8b959a,{metalness:.55,roughness:.42}),black=material(0x111c29);
     const luminous=material(0xe8edfc,{emissive:0xc7ddff,emissiveIntensity:2.1,roughness:.4});
@@ -252,8 +260,17 @@ const AuraGraphics=(()=>{
     const boneDefs=anatomical?.bones||[[-1,0,.86,0],[0,0,.22,0],[1,0,.25,0],[2,0,.18,0],[3,0,.16,0],
       [0,-.115,-.04,0],[5,0,-.39,0],[6,0,-.36,0],[0,.115,-.04,0],[8,0,-.39,0],[9,0,-.36,0],
       [2,-.285,.045,0],[11,0,-.29,0],[12,0,-.25,0],[2,.285,.045,0],[14,0,-.29,0],[15,0,-.25,0]];
-    function humanGeometry(style){
-      if(anatomical)return geometry('anatomical-human:'+style,()=>{
+    // Seven bounded, shareable 3D head-shape variants: no per-player mesh duplication.
+    const crownWidths=[1,1.055,.96,1.085,.945,1.025,.985];
+    const jawWidths=[1,.95,1.07,1.035,.92,1.065,.965];
+    function faceX(x,y,shape){
+      if(y<1.565||y>1.94)return x;
+      const i=Math.max(0,Math.min(6,shape|0));
+      const jaw=Math.max(0,Math.min(1,(1.715-y)/.13));
+      return x*(crownWidths[i]*(1-jaw)+jawWidths[i]*jaw);
+    }
+    function humanGeometry(style,faceShape=0,faceKey=null){
+      if(anatomical)return geometry('anatomical-human:'+style+':'+faceShape+':'+(faceKey||'base'),()=>{
         const data=anatomical,g=new T.BufferGeometry(),positions=new Float32Array(data.positions);
         if(style===1)for(let i=0;i<positions.length;i+=3)if(positions[i+1]>1.82)positions[i+1]+=(positions[i+1]-1.82)*.25;
         g.setAttribute('position',new T.BufferAttribute(positions,3));g.setAttribute('normal',new T.Float32BufferAttribute(data.normals,3));
@@ -262,6 +279,17 @@ const AuraGraphics=(()=>{
         // Material detail is baked once into shared geometry, without extra draw calls.
         const shades=new Float32Array(positions.length),slots=new Uint8Array(data.vertexCount);
         data.groups.forEach(([start,count,slot])=>{for(let i=start;i<start+count;i++)slots[data.indices[i]]=slot;});
+        // Modify only face, hair and eyelid vertices; leave joints and 17-bone rig intact.
+        for(let i=0;i<data.vertexCount;i++){
+          const slot=slots[i],offset=i*3,y=positions[offset+1],x=positions[offset],z=positions[offset+2];
+          if((slot===2||slot===5||slot===7)&&y>1.565){
+            positions[offset]=faceX(x,y,faceShape);
+            if(slot===2&&z>.055&&y>1.615&&y<1.745&&Math.abs(x)<.037){
+              const bridge=Math.max(0,1-Math.abs(x)/.037)*Math.max(0,1-Math.abs(y-1.683)/.065);
+              positions[offset+2]+=bridge*[0,.0025,.006,-.002,.004,.005,-.001][faceShape];
+            }
+          }
+        }
         for(let i=0;i<data.vertexCount;i++){
           const x=positions[i*3],y=positions[i*3+1],z=positions[i*3+2],ny=data.normals[i*3+1],slot=slots[i];
           const cloth=slot===0||slot===1||slot===3;
@@ -277,13 +305,19 @@ const AuraGraphics=(()=>{
           if(slot===2&&z>.109&&Math.abs(x)>.022&&Math.abs(x)<.073&&y>1.733&&y<1.745)for(let k=0;k<3;k++)shades[i*3+k]*=.25;
           if(slot===2&&z>.125&&Math.abs(x)<.041&&y>1.673&&y<1.692){shades[i*3]*=.78;shades[i*3+1]*=.49;shades[i*3+2]*=.47;}
         }
+        if(faceKey&&F){const uv=new Float32Array(data.uv);
+          for(let i=0;i<data.vertexCount;i++){const o=i*3,slot=slots[i],x=data.positions[o],y=data.positions[o+1],z=data.positions[o+2];
+            if((slot===2||slot===5||slot===7)&&y>1.59){positions.set(F.morph(x,slot===5?positions[o+1]:y,z,faceKey),o);
+              if(slot!==5){const t=F.uv(x,y);uv.set(t,i*2);shades.set([1,1,1],o);}}}
+          g.setAttribute('uv',new T.BufferAttribute(uv,2));g.computeVertexNormals();
+        }
         g.setAttribute('color',new T.Float32BufferAttribute(shades,3));
-        const index=[],sleeves=[];
+        const index=[],sleeves=[],face=[];
         for(const [start,count,mat] of data.groups){const offset=index.length;
-          for(let i=start;i<start+count;i+=3){const tri=[data.indices[i],data.indices[i+1],data.indices[i+2]],arm=mat===0&&tri.filter(v=>data.skinIndices[v*4]>=11).length>=2;(arm?sleeves:index).push(...tri);}
+          for(let i=start;i<start+count;i+=3){const tri=[data.indices[i],data.indices[i+1],data.indices[i+2]],arm=mat===0&&tri.filter(v=>data.skinIndices[v*4]>=11).length>=2;const portrait=faceKey&&F&&(mat===7||mat===2&&tri.every(v=>data.positions[v*3+1]>1.615)&&tri.reduce((n,v)=>n+data.positions[v*3+2]/3,0)>.070);(portrait?face:arm?sleeves:index).push(...tri);}
           if(index.length>offset)g.addGroup(offset,index.length-offset,mat);
         }
-        const offset=index.length;index.push(...sleeves);if(sleeves.length)g.addGroup(offset,sleeves.length,8);g.setIndex(new T.BufferAttribute(new Uint16Array(index),1));return g;
+        const offset=index.length;index.push(...sleeves);if(sleeves.length)g.addGroup(offset,sleeves.length,8);const faceOffset=index.length;index.push(...face);if(face.length)g.addGroup(faceOffset,face.length,9);g.setIndex(new T.BufferAttribute(new Uint16Array(index),1));return g;
       });
       return geometry('human:'+style,()=>{
       const buckets=Array.from({length:8},()=>({p:[],n:[],uv:[],si:[],sw:[]})),matrix=new T.Matrix4(),q=new T.Quaternion();
@@ -317,14 +351,15 @@ const AuraGraphics=(()=>{
       const cloth={bumpMap:low?null:weaveMap,bumpScale:.009,roughness:.91,vertexColors:!!anatomical};
       const club=p.team===0?options.home:options.away,shirtMap=shirtTexture(colors,club,keeper,p),shirt=material(0xffffff,{map:shirtMap,...cloth});
       const surface={vertexColors:!!anatomical};
-      const mats=[shirt,material(colors[1],cloth),material(look.skin,{...surface,roughness:.46,metalness:.015}),material(colors[0],cloth),material(p.index%3===0?0xefebe3:p.index%3===1?0xe49a55:0x182436,{...surface,roughness:.48}),material(look.hair,{...surface,roughness:.96}),material(colors[2],surface),material(anatomical?0xe8e6df:0x17202a,surface),M?.design(club,keeper,p.team===1&&kits[1][0]!==kit(options.away)[0])==='sleeves'?material(colors[1],cloth):shirt];
-      const body=new T.SkinnedMesh(humanGeometry(look.hairStyle),mats),bones=boneDefs.map(()=>new T.Bone());
+      const mats=[shirt,material(colors[1],cloth),material(look.skin,{...surface,roughness:.46,metalness:.015}),material(colors[0],cloth),material(p.index%3===0?0xefebe3:p.index%3===1?0xe49a55:0x182436,{...surface,roughness:.48}),material(look.hairTop||look.hair,{...surface,roughness:.96}),material(colors[2],surface),material(anatomical?0xe8e6df:0x17202a,surface),M?.design(club,keeper,p.team===1&&kits[1][0]!==kit(options.away)[0])==='sleeves'?material(colors[1],cloth):shirt];
+      if(look.faceKey&&F)mats.push(faceMaterial(look.faceKey));
+      const body=new T.SkinnedMesh(humanGeometry(look.hairStyle,look.faceShape||0,look.faceKey),mats),bones=boneDefs.map(()=>new T.Bone());
       boneDefs.forEach(([parent,x,y,z],i)=>{bones[i].position.set(x,y,z);if(parent>=0)bones[parent].add(bones[i]);});
       body.add(bones[0]);body.updateMatrixWorld(true);const skeleton=new T.Skeleton(bones);skeletons.add(skeleton);body.bind(skeleton);
-      if(anatomical){
+      if(anatomical&&!look.faceKey){
         const group=anatomical.groups.find(g=>g[2]===7),eyes=[[],[]];
         if(group){const indices=new Set(anatomical.indices.slice(group[0],group[0]+group[1]));
-          for(const index of indices){const x=anatomical.positions[index*3];eyes[x<0?0:1].push([x,anatomical.positions[index*3+1],anatomical.positions[index*3+2]]);}
+          for(const index of indices){const x=anatomical.positions[index*3];eyes[x<0?0:1].push([faceX(x,anatomical.positions[index*3+1],look.faceShape||0),anatomical.positions[index*3+1],anatomical.positions[index*3+2]]);}
           const head=boneDefs.slice(0,5).reduce((p,b)=>p.map((v,i)=>v+b[i+1]),[0,0,0]);
           for(const vertices of eyes)if(vertices.length){const centre=vertices.reduce((p,v)=>p.map((n,i)=>n+v[i]/vertices.length),[0,0,0]);
             const z=Math.max(...vertices.map(v=>v[2]));
@@ -342,8 +377,11 @@ const AuraGraphics=(()=>{
         for(const bone of [7,10]){const boot=new T.Mesh(g,bootMat);boot.name='football-boot';boot.castShadow=!low;bones[bone].add(boot);}
       }
       if(look.hairStyle===4&&typeof AuraCurlMesh!=='undefined'){
-        const d=AuraCurlMesh,g=geometry('curly-hair-96',()=>{const q=new T.BufferGeometry(),p=new Float32Array(d.positions);for(let i=0;i<p.length;i++)p[i]-=d.head[i%3];q.setAttribute('position',new T.BufferAttribute(p,3));q.setAttribute('normal',new T.Float32BufferAttribute(d.normals,3));q.setIndex(new T.BufferAttribute(d.indices,1));return q;});
-        const curls=new T.Mesh(g,material(look.hair,{roughness:.74}));curls.name='curly-hair';curls.castShadow=!low;bones[4].add(curls);
+        const d=AuraCurlMesh,g=geometry('curly-hair-98:'+look.hair+':'+look.hairTop,()=>{const q=new T.BufferGeometry(),p=new Float32Array(d.positions);for(let i=0;i<p.length;i++)p[i]-=d.head[i%3];q.setAttribute('position',new T.BufferAttribute(p,3));q.setAttribute('normal',new T.Float32BufferAttribute(d.normals,3));
+          const base=new T.Color(look.hair),top=new T.Color(look.hairTop||look.hair),colors=new Float32Array(p.length);
+          for(let i=0;i<p.length;i+=3){const t=Math.max(0,Math.min(1,(d.positions[i+1]-1.810)/.035));const c=base.clone().lerp(top,t);colors.set([c.r,c.g,c.b],i);}q.setAttribute('color',new T.BufferAttribute(colors,3));
+          q.setIndex(new T.BufferAttribute(d.indices,1));return q;});
+        const curls=new T.Mesh(g,material(0xffffff,{roughness:.88,vertexColors:true}));curls.name='curly-hair';if(look.faceKey==='lamine')curls.scale.setScalar(.78);curls.castShadow=!low;bones[4].add(curls);
       }
       body.castShadow=!low;body.receiveShadow=!low;body.frustumCulled=false;root.add(body);
       root.scale.set(look.build,look.height/1.88,look.build);
@@ -424,7 +462,7 @@ const AuraGraphics=(()=>{
       updateFlags(game?.visualTime??now*.001);cheerCrowd(now,game?.score);updateScreen(game);updateGoalNets(game);updateRain(now);updateGrass(game,cam);renderer.render(scene,camera);
     }
     function project(p){const v=new T.Vector3(p.x,2.2,p.z).project(camera);return {x:(v.x*.5+.5)*container.clientWidth,y:(-.5*v.y+.5)*container.clientHeight,visible:v.z>-1&&v.z<1&&Math.abs(v.x)<1&&Math.abs(v.y)<1};}
-    function dispose(){if(disposed)return;disposed=true;observer?.disconnect();skeletons.forEach(s=>s.dispose());geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());textures.forEach(t=>t.dispose());
+    function dispose(){if(disposed)return;disposed=true;faceLibrary?.dispose();observer?.disconnect();skeletons.forEach(s=>s.dispose());geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());textures.forEach(t=>t.dispose());
       scene.traverse(o=>{if(o.isInstancedMesh)o.dispose();});renderer.dispose();renderer.forceContextLoss();renderer.domElement.remove();}
     return {render,resize,dispose,project,mapInput:input=>P.cameraInput(input,cameraState),renderer,kits};
   }
