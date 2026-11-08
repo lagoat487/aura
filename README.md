@@ -1,3 +1,7 @@
+## AURA VISION 9.9 · IA de rivales mejorada
+
+Sin cambiar de versión: rivales con **marcas distribuidas**, pases más razonados y tácticas que reaccionan al marcador, posesión y repetición de pases al hueco y centros. Mantiene aceleraciones, sin teletransporte, y el control humano. Es lógica adaptativa durante el partido, **no un modelo de IA entrenado**. [Detalles](docs/vision-9.9-ai.md).
+
 ## AURA VISION 9.9 · Máscaras de foto y cabezas grandes
 
 Lamine usa la fotografía adjunta por el usuario como máscara, y las cabezas crecen un 40 %. El sistema carga retratos para todos los jugadores con foto disponible en el catálogo. [Alcance y validación](docs/vision-9.9.md).
