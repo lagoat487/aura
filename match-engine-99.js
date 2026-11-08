@@ -254,11 +254,17 @@
     return false;
   }
   function adaptiveAI(game){
-    if(game.phase!=="playing")return;
-    const next=game.elapsed/game.seconds>.67?(game.score[1]>game.score[0]?"counter":game.score[1]<game.score[0]?"press":"balanced"):"balanced";
+    if(game.phase!=="playing"||game.localTwoPlayer)return;
+    const progress=game.elapsed/game.seconds,lead=game.score[1]-game.score[0];
+    const home=game.stats[0],away=game.stats[1];
+    // Match-local adaptations, not persistent machine learning.
+    const recurring=home.throughBalls>=3||home.crosses>=4;
+    const domination=home.possession>away.possession*1.42&&home.possession>game.seconds*.08;
+    const next=lead<0&&progress>.50?"press":lead>0&&progress>.64?"counter":
+      recurring&&progress>.28?"compact":domination&&progress>.43?"press":"balanced";
     if(next!==game.aiTactic){
       game.aiTactic=next;
-      event(game,"tactic","El rival cambia a "+({balanced:"equilibrado",press:"presión alta",counter:"contraataque"}[next]),{team:1});
+      event(game,"tactic","El rival cambia a "+({balanced:"equilibrado",press:"presión alta",counter:"contraataque",compact:"bloque compacto"}[next]),{team:1});
     }
   }
   function aiSubstitution(game){
@@ -385,7 +391,53 @@
     }
     return true;
   }
-  function ai(game,p,i,dt,chasers){
+  // Assign distinct receivers to un-controlled defenders; keep the chaser free.
+  function defensiveMarks(game,chasers){
+    const marks=Array(game.players.length).fill(null),owner=game.ball.owner===null?null:game.players[game.ball.owner];
+    if(!owner)return marks;
+    for(let team=0;team<2;team++){
+      if(owner.team===team)continue;
+      const d=direction(game,team),pairs=[],takenDef=new Set(),takenRun=new Set();
+      const defenders=game.players.map((p,i)=>({p,i})).filter(({p,i})=>
+        p.team===team&&!p.sentOff&&p.index!==0&&p.baseX<8&&i!==chasers[team]&&
+        i!==game.controlled&&!(game.localTwoPlayer&&i===game.awayControlled));
+      const runners=game.players.map((p,i)=>({p,i})).filter(({p})=>
+        p.team!==team&&!p.sentOff&&p.index!==0&&p!==owner&&p.x*d<21);
+      for(const {p,i} of defenders)for(const {p:q,i:j} of runners){
+        const gap=dist(p,q),limit=team===1&&game.aiTactic==="compact"?25:19;
+        if(gap>limit)continue;
+        const danger=clamp((18-q.x*d)/48,0,1);
+        pairs.push({i,j,score:gap-danger*4+Math.abs(p.z-q.z)*.06});
+      }
+      pairs.sort((a,b)=>a.score-b.score||a.i-b.i||a.j-b.j);
+      for(const {i,j} of pairs){
+        if(takenDef.has(i)||takenRun.has(j))continue;
+        takenDef.add(i);takenRun.add(j);marks[i]=j;
+      }
+    }
+    return marks;
+  }
+  // Favour safe forward passing lanes and avoid offside receivers.
+  function aiPassChoice(game,p){
+    const d=direction(game,p.team),opponents=game.players.filter(q=>q.team!==p.team&&!q.sentOff);
+    const offsideLine=opponents.map(q=>q.x*d).sort((a,b)=>b-a)[1]??53;
+    let best=null,highest=-Infinity;
+    for(const q of game.players){
+      if(q.team!==p.team||q===p||q.sentOff||q.index===0)continue;
+      const range=dist(p,q),forward=(q.x-p.x)*d;
+      if(range<5||range>46)continue;
+      if(q.x*d>0&&q.x*d>p.x*d+.15&&q.x*d>offsideLine-1)continue;
+      const risk=laneRisk(game,p,q),guard=opponents.reduce((min,o)=>Math.min(min,dist(o,q)),99);
+      const space=clamp(guard-2,0,6);
+      const score=forward*.40+space*.9-range*.14-risk*2.1+
+        (Math.abs(q.z-p.z)>5?1:0)-(forward< -10?4:0);
+      if(score>highest){highest=score;best={q,range,forward,risk,space};}
+    }
+    if(!best||highest< -12)return null;
+    return {aim:{x:best.q.x-p.x,z:best.q.z-p.z},
+      through:best.forward>12&&best.space>2.8&&best.risk<2.5&&best.range>14,score:highest};
+  }
+  function ai(game,p,i,dt,chasers,marks){
     const b=game.ball,d=direction(game,p.team),owner=b.owner===null?null:game.players[b.owner];
     const attacking=(owner?.team??(game.passTarget!==null?b.lastTouch:-1))===p.team;
     const speed=(4.2+p.overall*.027)*(p.team===1?game.difficulty:1)*(.78+p.stamina*.0022);
@@ -425,7 +477,13 @@
         p.decision=.6+game.rng()*.6;
         if(Math.abs(p.z)>19&&goalDistance<34&&goalDistance>7&&game.rng()<.5){cross(game,p);}
         else if(goalDistance<25&&Math.abs(p.z)<20&&(goalDistance<17||game.rng()<.48)){const keeper=game.players.find(q=>q.team!==p.team&&q.index===0);shoot(game,p,{power:.5+game.rng()*.35,z:(keeper.z>=0?-1:1)*(.75+game.rng()*.25)});}
-        else if(threat<3.3||goalDistance<8||game.rng()<.16)pass(game,p,{x:d,z:-p.z*.05},game.rng()<.15);
+        else {
+          const option=aiPassChoice(game,p);
+          const release=threat<4.2||goalDistance<8||
+            (option&&option.score>3&&game.rng()<.30)||game.rng()<.12;
+          if(release&&(!option||!pass(game,p,option.aim,option.through)))
+            pass(game,p,{x:d,z:-p.z*.05},false);
+        }
       }
       move(p,p.x+d*12,p.z+clamp(-p.z*.16,-2.4,2.4),speed*.87,dt);return;
     }
@@ -459,9 +517,12 @@
       if(!attacking&&owner&&owner.team!==p.team&&p.baseX<5){
         // The nearest defender presses; the others screen dangerous runners
         // instead of all collapsing on the same ball carrier.
-        const runner=game.players.filter(q=>q.team!==p.team&&!q.sentOff&&q.index!==0&&q!==owner&&q.x*d<8&&dist(p,q)<13).sort((a,c)=>dist(p,a)-dist(p,c))[0];
-        if(runner){tx=runner.x-d*2;tz=runner.z;}
+        const runner=Number.isInteger(marks[i])?game.players[marks[i]]:null;
+        if(runner){tx=clamp(runner.x-d*2.2,-47,47);tz=clamp(runner.z*.90+b.z*.10,-31,31);}
         else if(dist(p,owner)<13){tx=owner.x-d*4.5;tz=owner.z*.55+p.baseZ*d*.45;}
+      }
+      if(p.team===1&&game.aiTactic==="compact"&&!attacking){
+        tx=clamp(tx-d*2.5,-47,47);tz=clamp(tz*.82+p.baseZ*d*.18,-30,30);
       }
       if(p.team===1&&game.aiTactic==="press"&&!attacking){tx=tx*.55+b.x*.45;tz=tz*.6+b.z*.4;}
       if(p.team===1&&game.aiTactic==="counter"&&attacking&&p.baseX>10)tx=clamp(tx+d*7,-47,47);
@@ -591,7 +652,8 @@
     if(game.elapsed>=game.seconds){game.phase="finished";event(game,"fulltime","Final del partido");return game;}
     if(game.half===1&&game.elapsed>=game.seconds/2){game.phase="halftime";game.phaseTime=2.3;event(game,"halftime","Descanso · cambio de campo");return game;}
     const b=game.ball,owner=b.owner===null?null:game.players[b.owner];if(owner)game.stats[owner.team].possession+=dt;
-    const chasers=[nearest(game,0),nearest(game,1)],keeperStarts=game.players.flatMap((p,i)=>p.index===0?[[i,{x:p.x,z:p.z}]]:[]);
+    const chasers=[nearest(game,0),nearest(game,1)],marks=defensiveMarks(game,chasers);
+    const keeperStarts=game.players.flatMap((p,i)=>p.index===0?[[i,{x:p.x,z:p.z}]]:[]);
     for(let i=0;i<game.players.length;i++){
       const p=game.players[i];if(p.sentOff)continue;p.cooldown=Math.max(0,p.cooldown-dt);p.skillCooldown=Math.max(0,p.skillCooldown-dt);
       if((game.setPiece&&(((i===game.controlled||(game.localTwoPlayer&&i===game.awayControlled))&&game.setPiece.team===p.team&&b.owner===i)||
@@ -607,7 +669,7 @@
         const speed=(4.9+p.overall*.027)*(sprint?1.38:1)*(b.owner===i?.94:1)*(.78+p.stamina*.0022)*(burst?1.24:1);
         if(burst){p.skillTime=Math.max(0,p.skillTime-dt);p.stamina=clamp(p.stamina-dt*4,0,100);}
         if(len>.05)move(p,p.x+x*10,p.z+z*10,speed*Math.min(1,len),dt);else move(p,p.x,p.z,0,dt);
-      }else ai(game,p,i,dt,chasers);
+      }else ai(game,p,i,dt,chasers,marks);
     }
     // Soft collisions keep the ball carrier visible and prevent stacked players.
     for(let i=0;i<game.players.length;i++)for(let j=i+1;j<game.players.length;j++){
