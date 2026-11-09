@@ -229,7 +229,7 @@ const AuraTourUI=(()=>{
         '<button class="btn primary" data-tour="street-circuit-new">Iniciar circuito de 4 partidos →</button></section>'
     ):'<section class="tour-street-card"><span>GYE / 01</span><h2>JUEGA.<br>COMBINA.<br><em>ATRÉVETE.</em></h2>'+
       '<button class="btn primary" data-tour="street-play">Entrar a la cancha →</button>'+
-      '<p>WASD / flechas · J tiro · K pase · E cambio · Espacio entrada · Shift sprint. Botones táctiles en pantalla.</p></section>';
+      '<p>WASD / flechas para moverte y Shift para correr. Controles ProVision o AURA clásico según tu perfil guardado; la guía aparece al entrar a la cancha. También puedes jugar con mando y botones táctiles.</p></section>';
     return headline('AURA CALLE / FÚTBOL 3 CONTRA 3','LA CALLE TIENE SUS REGLAS.','Dos experiencias: amistosos personalizados o cuatro jornadas de un circuito urbano con medallas.')+
       '<nav class="volta-mode-choices" aria-label="Experiencias Calle / Volta">'+
       '<button class="btn '+(streetMode==="friendly"?'primary':'')+'" data-tour="street-mode" data-street-mode="friendly" aria-pressed="'+(streetMode==="friendly")+'">⚡ PARTIDO LIBRE</button>'+

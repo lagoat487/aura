@@ -14,7 +14,7 @@ function boot(options={}){
  }
  for(const move of ['up','left','down','right','sprint']){const button=node();button.dataset.move=move;buttons.set(move,button);}
  for(const action of ['switch','pass','tackle','shoot']){const button=node();button.dataset.actionStreet=action;buttons.set(action,button);}
- const root=node(),context=vm.createContext({
+ const root=node(),context=vm.createContext({AuraProVision:require("../provision-gameplay"),
   document:{createElement:()=>root,body:node(),activeElement:node()},devicePixelRatio:1,
   window:{addEventListener:(type,fn)=>events.set(type,fn),removeEventListener:type=>events.delete(type)},
   requestAnimationFrame:fn=>{frames.set(++nextFrame,fn);return nextFrame;},cancelAnimationFrame:id=>frames.delete(id),
@@ -22,7 +22,7 @@ function boot(options={}){
  });
  vm.runInContext(fs.readFileSync(path.join(__dirname,'..','street.js'),'utf8'),context,{filename:'street.js'});
  const players=prefix=>Array.from({length:3},(_,i)=>({id:prefix+i,name:prefix+' '+i,pos:'MC',overall:75,real:false}));
- context.AuraStreet.open(players('Home'),players('Away'),options);
+ context.AuraStreet.open(players('Home'),players('Away'),{controls:"classic",...options});
  const game=context.AuraStreet.getSession().game;game.wait=0;
  return {game,html:()=>root.innerHTML,
   frame(ms=25){now+=ms;const callbacks=[...frames.values()];frames.clear();callbacks.forEach(fn=>fn(now));},
@@ -80,14 +80,13 @@ test('Calle native action clicks cannot act while paused, waiting for kickoff or
  }
 });
 
-test('Calle touch capture loss releases only the interrupted direction and normal releases still work',()=>{
- const a=boot(),p=a.game.players[a.game.controlled];a.frame();const start={x:p.x,z:p.z};
- a.pointer('right','pointerdown',1);a.pointer('up','pointerdown',2);a.frame();assert.ok(p.x>start.x&&p.z<start.z);
- a.pointer('right','lostpointercapture',1);const stoppedX=p.x,upZ=p.z;a.frame();
- assert.equal(p.x,stoppedX,'lost capture must not leave right movement held');assert.ok(p.z<upZ,'the other finger must keep moving up');
- a.pointer('up','pointercancel',2);const stoppedZ=p.z;a.frame();assert.equal(p.x,stoppedX);assert.equal(p.z,stoppedZ);
- a.pointer('right','pointerdown',3);a.frame();assert.ok(p.x>stoppedX);a.pointer('right','pointerup',3);a.pointer('right','lostpointercapture',3);
- const releasedX=p.x;a.frame();assert.equal(p.x,releasedX,'normal release must stop movement too');a.close();assert.equal(a.running(),false);
+test('Calle touch capture loss removes only its direction and lets movement brake naturally',()=>{
+ const a=boot(),p=a.game.players[a.game.controlled];a.frame();
+ a.pointer('right','pointerdown',1);a.pointer('up','pointerdown',2);a.frame();const vx=p.vx,upZ=p.z;
+ a.pointer('right','lostpointercapture',1);a.frame();assert.ok(p.vx<vx,'released right input must brake');assert.ok(p.z<upZ,'the other finger keeps moving up');
+ for(let i=0;i<16;i++)a.frame();const settledX=p.x;a.frame();assert.equal(p.x,settledX);
+ a.pointer('up','pointercancel',2);for(let i=0;i<24;i++)a.frame();const stopped={x:p.x,z:p.z};a.frame();assert.equal(p.x,stopped.x);assert.equal(p.z,stopped.z);
+ a.pointer('right','pointerdown',3);a.frame();assert.ok(p.x>stopped.x);a.pointer('right','pointerup',3);a.close();assert.equal(a.running(),false);
 });
 
 test('Calle touch movement cannot survive pause or be queued while paused',()=>{
@@ -101,20 +100,21 @@ test('Calle touch movement cannot survive pause or be queued while paused',()=>{
  }
 });
 
-test('Calle renders a touch sprint button with the same speed boost as Shift',()=>{
- const a=boot(),p=a.game.players[a.game.controlled];assert.ok(a.html().includes('data-move="sprint"'),'touch controls must render a sprint button');a.frame();
- const distance=()=>{const x=p.x;a.frame(50);return p.x-x;};
- a.pointer('right','pointerdown',1);const walk=distance();assert.ok(walk>0);
- a.pointer('sprint','pointerdown',2);const sprint=distance();assert.ok(Math.abs(sprint-walk*1.4)<1e-8,'holding touch sprint must match the existing speed multiplier');
- a.pointer('sprint','pointerup',2);assert.ok(Math.abs(distance()-walk)<1e-8);a.key('Shift');assert.ok(Math.abs(distance()-sprint)<1e-8,'keyboard sprint must keep working');a.close();
+test('Calle touch sprint and Shift reach the same running speed and consume energy',()=>{
+ const touch=boot(),keyboard=boot(),walk=boot();for(const a of [touch,keyboard,walk]){a.frame();a.pointer('right','pointerdown',1);}
+ touch.pointer('sprint','pointerdown',2);keyboard.key('Shift');
+ for(let i=0;i<24;i++)for(const a of [touch,keyboard,walk])a.frame();
+ const p=touch.game.players[touch.game.controlled],q=keyboard.game.players[keyboard.game.controlled],r=walk.game.players[walk.game.controlled];
+ assert.ok(p.vx>r.vx*1.2);assert.ok(Math.abs(p.vx-q.vx)<1e-8);assert.ok(p.stamina<r.stamina);
+ for(const a of [touch,keyboard,walk])a.close();
 });
 
-test('Calle touch sprint releases without cancelling another finger\'s movement',()=>{
+test('Calle releasing touch sprint returns to jogging without cancelling another finger',()=>{
  for(const release of ['pointerup','pointercancel','lostpointercapture']){
-  const a=boot(),p=a.game.players[a.game.controlled];a.frame();a.pointer('right','pointerdown',1);
-  const x=p.x;a.frame(50);const walk=p.x-x;a.pointer('sprint','pointerdown',2);const fastX=p.x;a.frame(50);assert.ok(p.x-fastX>walk*1.35);
-  a.pointer('sprint',release,2);const releasedX=p.x;a.frame(50);assert.ok(Math.abs((p.x-releasedX)-walk)<1e-8,release+' must release sprint while right remains held');
-  a.pointer('right','pointerup',1);const stoppedX=p.x;a.frame(50);assert.equal(p.x,stoppedX);a.close();
+  const a=boot(),p=a.game.players[a.game.controlled];a.frame();a.pointer('right','pointerdown',1);a.pointer('sprint','pointerdown',2);
+  for(let i=0;i<24;i++)a.frame();const sprintSpeed=p.vx;
+  a.pointer('sprint',release,2);const x=p.x;for(let i=0;i<24;i++)a.frame();assert.ok(p.x>x);assert.ok(p.vx<sprintSpeed*.85);
+  a.pointer('right','pointerup',1);for(let i=0;i<24;i++)a.frame();const stopped=p.x;a.frame();assert.equal(p.x,stopped);a.close();
  }
 });
 
@@ -209,7 +209,7 @@ test("Completed match markup renders safely escaped club names",()=>{
   {shots:1,passes:0,tackles:1,goals:0,possession:4}],goalLog:[]};
  const fs=require("node:fs"),vm2=require("node:vm");
  const ctx=vm2.createContext({});
- vm2.runInContext(fs.readFileSync(path.join(__dirname,"..","street.js"),"utf8"),ctx);
+ ctx.AuraProVision=require("../provision-gameplay");vm2.runInContext(fs.readFileSync(path.join(__dirname,"..","street.js"),"utf8"),ctx);
  const html=ctx.AuraStreet.finalReport(g,{homeName:'<script>alert(1)</script>',awayName:"Rival"});
  assert.doesNotMatch(html,/<script>/);assert.match(html,/&lt;script&gt;/);
  assert.match(html,/Revancha/);

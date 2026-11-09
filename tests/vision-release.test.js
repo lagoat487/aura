@@ -12,7 +12,7 @@ test('both fixed-link entries use new VISION runtime paths containing the tested
  for(const [source,production] of Object.entries(aliases)){
   assert.equal(read(production),read(source),production+' must contain the tested implementation');
   for(const entry of ['index.html','mobile.html']){
-   const html=read(entry);assert.ok(html.includes('./'+production+'?v='+(production.includes('-99.js')?'9.9-masks':'9.6-cinema')));
+   const html=read(entry);assert.ok(html.includes('./'+production+'?v='+(['match-ui-99.js','match-preferences-96.js','evolution-ui-99.js'].includes(production)?'9.9-pvf1':production.includes('-99.js')?'9.9-masks':'9.6-cinema')));
    assert.ok(!html.includes('./'+source+'?'),'stale CDN paths must not be mixed into this release');
   }
  }

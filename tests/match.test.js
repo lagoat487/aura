@@ -14,7 +14,7 @@ test("a match requires two unique eleven-player teams and preserves their identi
 });
 test("direction keys move the controlled player, diagonal speed is normalized, and sprint uses stamina",()=>{
   const a=ready(boot()),b=ready(boot()),s=ready(boot()),origin={...a.players[9]};
-  Match.step(a,.05,{x:1});Match.step(b,.05,{x:1,z:1});Match.step(s,.05,{x:1,sprint:true});
+  run(a,.8,{x:1});run(b,.8,{x:1,z:1});run(s,.8,{x:1,sprint:true});
   const distance=g=>Math.hypot(g.players[9].x-origin.x,g.players[9].z-origin.z);
   assert.ok(Math.abs(distance(a)-distance(b))<1e-7);assert.ok(distance(s)>distance(a));assert.ok(s.players[9].stamina<100);
 });

@@ -11,7 +11,7 @@ function boot(options={}){
   if(id&&nodes.has(id))return nodes.get(id);
   const events={},children=new Map();const n={id,style:{},dataset:{},classList,hidden:false,tabIndex:0,
    addEventListener:(name,fn)=>{events[name]=fn;},removeEventListener(){},setPointerCapture(){},setAttribute(){},appendChild(){},remove(){},focus(){},getClientRects:()=>[{}],getBoundingClientRect:()=>({left:0,top:0,width:100,height:100}),getContext:()=>context2d,
-   querySelector(selector){if(selector.startsWith('#'))return node(selector.slice(1));if(!children.has(selector))children.set(selector,node());return children.get(selector);},querySelectorAll:selector=>selector==='[data-touch]'?['switch','through','lob','cross','skill','pass','shoot','tackle','slide','sprint'].map(type=>{const button=node('touch:'+type);button.dataset.touch=type;return button;}):[],
+   querySelector(selector){if(selector.startsWith('#'))return node(selector.slice(1));if(!children.has(selector))children.set(selector,node());return children.get(selector);},querySelectorAll:selector=>selector==='[data-touch]'?['switch','through','lob','cross','skill','pass','shoot','tackle','slide','sprint','pressure','keeperRush','secondPress'].map(type=>{const button=node('touch:'+type);button.dataset.touch=type;return button;}):[],
    closest(selector){return selector==='button'&&this.dataset.touch?this:null;},
    fire:(type,event)=>events[type]?.(event),matches:()=>false,
   };
@@ -31,10 +31,10 @@ function boot(options={}){
   document:{createElement:()=>node(),body:node('body'),activeElement:node('focus'),addEventListener:(name,fn)=>{docEvents[name]=fn;},removeEventListener(){}},
   window:{addEventListener:(name,fn)=>{windowEvents[name]=fn;},removeEventListener:(name)=>{delete windowEvents[name];}},navigator:{getGamepads:()=>[]},performance:{now:()=>now},
   requestAnimationFrame:fn=>{raf.set(++nextRaf,fn);return nextRaf;},cancelAnimationFrame:id=>raf.delete(id),home,away,playerLock:options.playerLock,commit:()=>commits++,cancel:()=>cancels++,
-  initialCamera:options.camera||'broadcast',
+  initialCamera:options.camera||'broadcast',initialControls:options.controls||'classic',
  });
  vm.runInContext(fs.readFileSync(path.join(__dirname,'..','match-ui.js'),'utf8'),context);
- vm.runInContext('AuraArena.settings.sound=false;AuraArena.settings.seconds=30;AuraArena.settings.camera=initialCamera;'+
+ vm.runInContext('AuraArena.settings.controls=initialControls;AuraArena.settings.sound=false;AuraArena.settings.seconds=30;AuraArena.settings.camera=initialCamera;'+
    (options.local?'AuraArena.settings.localTwoPlayer=true;AuraArena.start(home,away,{})':'AuraArena.start(home,away,{onFinish:commit,onCancel:cancel,playerLock})'),context);
  const session=vm.runInContext('AuraArena.getSession()',context);
  return {session,node,run:code=>vm.runInContext(code,context),frame(ms=100){now+=ms;const callbacks=[...raf.values()];raf.clear();callbacks.forEach(fn=>fn(now));},
@@ -55,6 +55,49 @@ test('keyboard input moves the controlled player, release brakes, and pause free
  const a=boot(),g=a.session.game;g.phase='playing';a.frame();const p=g.players[g.controlled],start=p.x;
  a.key('keydown','d');for(let i=0;i<8;i++)a.frame(50);assert.ok(p.x>start+1);a.key('keyup','d');const speed=p.vx;a.frame(50);assert.ok(p.vx<speed);
  a.key('keydown','p');const snapshot=JSON.stringify(g);a.frame(100);assert.equal(JSON.stringify(g),snapshot);a.click('resume');assert.equal(g.paused,false);a.click('exit');a.click('confirm-exit');assert.equal(a.cancels(),1);assert.equal(a.commits(),0);
+});
+
+test('ProVision keyboard uses Space to pass and K charges a shot until release',()=>{
+ const a=boot({controls:'provision'}),g=a.session.game;g.phase='playing';g.players[g.controlled].cooldown=0;a.frame();
+ a.key('keydown','k');assert.notEqual(a.session.charging,null);a.frame(650);assert.equal(g.stats[0].shots,0);
+ a.key('keyup','k');assert.equal(g.stats[0].shots,1);assert.equal(a.session.charging,null);a.key('keyup','k');assert.equal(g.stats[0].shots,1);
+ const p=g.players[g.controlled];p.cooldown=0;Object.assign(g.ball,{owner:g.controlled,x:p.x,z:p.z});
+ a.key('keydown',' ');assert.equal(g.stats[0].passes,1);a.key('keyup',' ');a.click('pause');a.click('exit');a.click('confirm-exit');
+});
+
+test('ProVision defensive pressure, second defender and keeper rush are held and clear on release',()=>{
+ const a=boot({controls:'provision'}),g=a.session.game;g.phase='playing';a.frame();
+ Object.assign(g.players[20],{x:15,z:0,cooldown:100});Object.assign(g.ball,{owner:20,x:15,z:0});
+ a.key('keydown',' ');a.key('keydown','q');a.key('keydown','k');a.frame(50);
+ assert.equal(g.teamIntents[0].pressure,true);assert.equal(g.teamIntents[0].secondPress,true);assert.equal(g.teamIntents[0].keeperRush,true);assert.equal(a.session.charging,null);
+ for(const key of [' ','q','k'])a.key('keyup',key);a.frame(50);
+ assert.equal(g.teamIntents[0].pressure,false);assert.equal(g.teamIntents[0].secondPress,false);assert.equal(g.teamIntents[0].keeperRush,false);
+ a.click('pause');a.click('exit');a.click('confirm-exit');
+});
+
+test('ProVision gamepad shots charge independently for both teams and disconnect discards a shot',()=>{
+ for(const team of [0,1]){
+  const a=boot({local:true,controls:'provision'}),g=a.session.game;g.phase='playing';arenaGamepads(a);watchPadActions(a);a.frame();
+  const i=team===0?g.controlled:g.awayControlled,p=g.players[i];p.cooldown=0;Object.assign(g.ball,{owner:i,x:p.x,z:p.z});
+  a.run('arenaPads['+team+'].buttons[1].pressed=true');a.frame(50);a.frame(500);assert.equal(g.stats[team].shots,0);
+  a.run('arenaPads['+team+'].buttons[1].pressed=false');a.frame(50);assert.equal(g.stats[team].shots,1);
+  assert.equal(a.run('padActions.filter(a=>a.type==="shoot"&&a.team==='+team+').length'),1);
+  a.click('pause');a.click('exit');a.click('confirm-exit');
+ }
+ const a=boot({controls:'provision'}),g=a.session.game;g.phase='playing';arenaGamepads(a);a.frame();g.players[g.controlled].cooldown=0;
+ a.run('arenaPads[0].buttons[1].pressed=true');a.frame();assert.notEqual(a.session.charging,null);
+ a.run('arenaPads[0].connected=false');a.frame();assert.equal(a.session.charging,null);assert.equal(g.stats[0].shots,0);
+ a.click('pause');a.click('exit');a.click('confirm-exit');
+});
+
+test('ProVision Tab switches during play and held touch defence is cleared on pause and capture loss',()=>{
+ const a=boot({controls:'provision'}),g=a.session.game;g.phase='playing';a.frame();
+ g.ball.owner=null;g.ball.x=g.players[8].x;g.ball.z=g.players[8].z;
+ const event=a.key('keydown','Tab');assert.equal(event.defaultPrevented,true);assert.equal(g.controlled,8);
+ const pointer={pointerId:13,preventDefault(){}};a.node('touch:pressure').fire('pointerdown',pointer);assert.equal(a.session.touchHolds.has('pressure'),true);
+ a.node('touch:pressure').fire('lostpointercapture',pointer);assert.equal(a.session.touchHolds.has('pressure'),false);
+ a.node('touch:keeperRush').fire('pointerdown',pointer);a.click('pause');assert.equal(a.session.touchHolds.size,0);
+ a.click('exit');a.click('confirm-exit');
 });
 test('goal replay freezes the live game, can pause and skip, and completion commits exactly once',()=>{
  const a=boot(),g=a.session.game;g.phase='playing';for(let i=0;i<12;i++)a.frame(100);

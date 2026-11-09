@@ -1,3 +1,7 @@
+## AURA VISION 9.9 · Jugabilidad ProVision
+
+Los siete modos conservados con movimiento, energía de sprint, balón y controles adaptados del proyecto ProVision Football adjuntado por el usuario. Al preparar el partido aparece **ProVision · contextuales**: Espacio pasa o presiona, K carga el tiro o saca al portero, J eleva el pase o hace una barrida, y Q llama al segundo defensor. También se puede elegir **AURA · clásicos**. Calle/Volta comparte movimiento, energía y velocidades. Se mantienen los guardados y el enlace principal. Es una adaptación web de la lógica, no el motor Unreal. [Alcance y controles](docs/provision-9.9.md).
+
 ## AURA VISION 9.9 · IA de rivales mejorada
 
 Sin cambiar de versión: rivales con **marcas distribuidas**, pases más razonados y tácticas que reaccionan al marcador, posesión y repetición de pases al hueco y centros. Mantiene aceleraciones, sin teletransporte, y el control humano. Es lógica adaptativa durante el partido, **no un modelo de IA entrenado**. [Detalles](docs/vision-9.9-ai.md).

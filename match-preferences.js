@@ -7,7 +7,7 @@
  "use strict";
  const KEY="aura-match-preferences-v1",VERSION=1,MAX_BYTES=2000;
  const DEFAULTS=Object.freeze({seconds:180,difficulty:1,stadium:"night",weather:"clear",
-  quality:"high",camera:"stadium",sound:true,localTwoPlayer:false});
+  quality:"high",camera:"stadium",sound:true,localTwoPlayer:false,controls:"provision"});
  const presets=Object.freeze({
   fast:Object.freeze({seconds:120,difficulty:1,stadium:"day",weather:"clear",quality:"low",camera:"wide"}),
   classic:Object.freeze({seconds:180,difficulty:1,stadium:"night",weather:"clear",quality:"medium",camera:"broadcast"}),
@@ -21,24 +21,24 @@
   seconds:[120,180,300,480],difficulty:[.68,.82,1,1.16,1.34],
   stadium:["night","sunset","day"],weather:["clear","rain"],
   quality:["low","medium","high","ultra"],camera:["broadcast","tele","wide","tactical","immersive","stadium"],
-  sound:[true,false],localTwoPlayer:[true,false]
+  sound:[true,false],localTwoPlayer:[true,false],controls:["provision","classic"]
  });
  function valid(data){
   return !!data&&typeof data==="object"&&!Array.isArray(data)&&
-    Object.keys(DEFAULTS).every(k=>Object.hasOwn(data,k)&&choices[k].includes(data[k]));
+    Object.keys(DEFAULTS).every(k=>(k==="controls"&&data[k]===undefined)||(Object.hasOwn(data,k)&&choices[k].includes(data[k])));
  }
  function load(storage){
   try{
    const raw=storage?.getItem?.(KEY);
    if(!raw||raw.length>MAX_BYTES)return {...DEFAULTS};
    const entry=JSON.parse(raw);
-   return entry.version===VERSION&&valid(entry.settings)?{...entry.settings}:{...DEFAULTS};
+   return entry.version===VERSION&&valid(entry.settings)?{...DEFAULTS,...entry.settings}:{...DEFAULTS};
   }catch{return {...DEFAULTS};}
  }
  function save(storage,data){
   try{
    if(!storage?.setItem||!valid(data))return false;
-   const raw=JSON.stringify({version:VERSION,settings:data});
+   const raw=JSON.stringify({version:VERSION,settings:{...DEFAULTS,...data}});
    if(raw.length>MAX_BYTES)return false;
    storage.setItem(KEY,raw);return true;
   }catch{return false;}
