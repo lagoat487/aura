@@ -84,7 +84,7 @@ test('retirement release keeps card styling and uses fresh coherent UT sources o
   assert.equal(read(name+'-62.js'),read(name+'.js'));
   for(const entry of ['index.html','mobile.html'])assert.ok(read(entry).includes('./'+name+('-66.js?v=6.6-champions')));
  }
- assert.equal(read('evolution-ui-99.js'),read('evolution-ui.js'));
+ assert.equal(read('evolution-ui-99-pvf1.js'),read('evolution-ui.js'));
  for(const entry of ['index.html','mobile.html']){
   assert.match(read(entry),/argentina-event\.css/);assert.doesNotMatch(read(entry),/src="\.\/argentina-event\.js/);
  }

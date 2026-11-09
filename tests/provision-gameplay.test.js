@@ -85,7 +85,7 @@ test("existing match preferences migrate without changing duration, camera or un
 test("both production entrypoints load shared gameplay before 11v11 and Volta",()=>{
  for(const name of ["index.html","mobile.html"]){
   const html=fs.readFileSync(path.join(__dirname,"..",name),"utf8"),profile=html.indexOf('src="./provision-gameplay.js?v=9.9-pvf1"');
-  assert.ok(profile>0);assert.ok(profile<html.indexOf('src="./match-engine-99.js'));assert.ok(profile<html.indexOf('src="./street.js'));assert.match(html,/VISION 9\.9/);
+  assert.ok(profile>0);assert.ok(profile<html.indexOf('src="./match-engine-99-pvf1.js'));assert.ok(profile<html.indexOf('src="./street-pvf1.js'));assert.match(html,/VISION 9\.9/);
  }
  assert.equal(S.create(team("h").players.slice(0,3),team("a").players.slice(0,3)).gameplay,"provision");
 });

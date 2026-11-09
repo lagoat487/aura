@@ -5,19 +5,19 @@ test("Mobile and canonical entries load practice and match preferences before de
  for(const html of [read("index.html"),read("mobile.html")]){
   assert.match(html,/skill-games\.js\?v=7\.5/);
   assert.match(html,/skill-games\.css\?v=7\.7/);
-  assert.match(html,/match-preferences-96\.js\?v=9\.9-pvf1/);
+  assert.match(html,/match-preferences-96-pvf1\.js\?v=9\.9-pvf1/);
   assert.match(html,/matchday\.css\?v=7\.1/);
-  assert.match(html,/match-engine-99\.js\?v=9\.9-pvf1/);
-  assert.match(html,/match-ui-99\.js\?v=9\.9-pvf1/);
+  assert.match(html,/match-engine-99-pvf1\.js\?v=9\.9-pvf1/);
+  assert.match(html,/match-ui-99-pvf1\.js\?v=9\.9-pvf1/);
   assert.match(html,/quick-formations\.js\?v=7\.6/);
   assert.match(html,/quick-formations\.css\?v=7\.4/);
-  assert.ok(html.indexOf("skill-games.js")<html.indexOf("evolution-ui-99.js"));
-  assert.ok(html.indexOf("match-preferences-96.js")<html.indexOf("match-ui-99.js"));
-  assert.ok(html.indexOf("quick-formations.js")<html.indexOf("evolution-ui-99.js"));
+  assert.ok(html.indexOf("skill-games.js")<html.indexOf("evolution-ui-99-pvf1.js"));
+  assert.ok(html.indexOf("match-preferences-96-pvf1.js")<html.indexOf("match-ui-99-pvf1.js"));
+  assert.ok(html.indexOf("quick-formations.js")<html.indexOf("evolution-ui-99-pvf1.js"));
  }
 });
 test("Match setup exposes four real presets and saves only after confirmed kickoff",()=>{
- const ui=read("match-ui-99.js"),evolution=read("evolution-ui.js");
+ const ui=read("match-ui-99-pvf1.js"),evolution=read("evolution-ui.js");
  for(const key of ["fast","classic","epic","vision"]){
   assert.match(ui,new RegExp('data-match-preset="'+key+'"'));
  }
