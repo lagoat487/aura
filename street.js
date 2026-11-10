@@ -3,12 +3,12 @@
   "use strict";
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),distance=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
   function reset(g,side=0){
-    g.players.forEach((p,i)=>{p.x=(p.team===0?-1:1)*(i%3===0?30:12);p.z=(i%3-1)*14;p.cooldown=.3;p.vx=p.vz=0;p.sprinting=false;p.faceX=p.team===0?1:-1;p.faceZ=0;});
+    g.players.forEach((p,i)=>{p.x=(p.team===0?-1:1)*(i%3===0?30:12);p.z=(i%3-1)*14;p.cooldown=.3;p.skillTime=0;p.skillCooldown=0;p.closeControl=false;p.vx=p.vz=0;p.sprinting=false;p.faceX=p.team===0?1:-1;p.faceZ=0;});
     g.controlled=1;const owner=side*3+1;g.players[owner].x=side===0?-1:1;g.players[owner].z=0;g.ball={x:g.players[owner].x,z:0,vx:0,vz:0,owner};g.wait=1;
   }
   function create(home,away,options={}){
     if(home.length!==3||away.length!==3)throw Error("La calle necesita tres jugadores por equipo.");
-    const g={gameplay:"provision",players:[home,away].flatMap((ps,team)=>ps.map((p,i)=>({...p,team,index:team*3+i,x:0,z:0,vx:0,vz:0,stamina:100,cooldown:0}))),score:[0,0],seconds:[60,120,180].includes(options.seconds)?options.seconds:120,
+    const g={gameplay:"provision",players:[home,away].flatMap((ps,team)=>ps.map((p,i)=>({...p,team,index:team*3+i,x:0,z:0,vx:0,vz:0,stamina:100,cooldown:0,skillTime:0,skillCooldown:0}))),score:[0,0],seconds:[60,120,180].includes(options.seconds)?options.seconds:120,
       goalLimit:[3,5,7].includes(options.goalLimit)?options.goalLimit:5,
       elapsed:0,controlled:1,done:false,paused:false,
       stats:[{shots:0,passes:0,tackles:0,goals:0,possession:0},{shots:0,passes:0,tackles:0,goals:0,possession:0}],
@@ -19,6 +19,12 @@
     if(g.done||g.paused||g.wait>0)return false;
     if(type==="switch"){g.controlled=nearest(g,0).index;return true;}
     const p=g.players[g.controlled],b=g.ball;
+    if(type==="skill"){
+      if(b.owner!==p.index||p.cooldown>0||p.skillCooldown>0||p.stamina<12)return false;
+      const side=Math.abs(Number(input.z)||0)>.15?Math.sign(input.z):-(p.lastSkillSide||-1);p.lastSkillSide=side;
+      p.skillSideX=-(p.faceZ||0)*side;p.skillSideZ=(p.faceX||1)*side;p.skillForwardX=p.faceX||1;p.skillForwardZ=p.faceZ||0;
+      p.skillTime=.55;p.skillCooldown=1.8;p.stamina-=5;b.dribble=null;return true;
+    }
     if(type==="pressure"||type==="slide")type="tackle";
     if(type==="tackle"&&b.owner!==null&&g.players[b.owner].team!==0&&distance(p,g.players[b.owner])<1.75){
       const rival=g.players[b.owner];if(p.cooldown>0||rival.cooldown>0)return false;
@@ -43,9 +49,14 @@
     const b=g.ball,owner=b.owner===null?null:g.players[b.owner];
     if(owner)g.stats[owner.team].possession+=dt;
     for(const p of g.players){
-      p.cooldown=Math.max(0,p.cooldown-dt);let dx=0,dz=0;
+      p.cooldown=Math.max(0,p.cooldown-dt);p.skillCooldown=Math.max(0,p.skillCooldown-dt);let dx=0,dz=0;
       if(p.index===g.controlled){
+        p.closeControl=!!input.closeControl;
         dx=clamp(Number(input.x)||0,-1,1);dz=clamp(Number(input.z)||0,-1,1);
+        if(p.skillTime>0){
+          const side=Math.sin((1-p.skillTime/.55)*Math.PI);dx=p.skillForwardX*.65+p.skillSideX*side*.95;dz=p.skillForwardZ*.65+p.skillSideZ*side*.95;
+          p.skillTime=Math.max(0,p.skillTime-dt);
+        }
         if(input.pressure&&owner&&owner.team!==0){
           if(Math.hypot(dx,dz)<.1){dx=owner.x-p.x;dz=owner.z-p.z;const gap=Math.hypot(dx,dz)||1;dx/=gap;dz/=gap;}
           action(g,"tackle",input);
@@ -59,10 +70,10 @@
         }else if(p===chas&&!own){tx=b.x;tz=b.z;}
         dx=tx-p.x;dz=tz-p.z;const len=Math.hypot(dx,dz);if(len>.1){dx/=len;dz/=len;}else dx=dz=0;
       }
-      const len=Math.max(1,Math.hypot(dx,dz)),sprint=PVF.stamina(p,p.index===g.controlled?!!input.sprint:!owner,dt),speed=PVF.speed(p,sprint)*(p.team===1?.96+.04*g.difficulty:1);
+      const len=Math.max(1,Math.hypot(dx,dz)),sprint=PVF.stamina(p,p.index===g.controlled?!!input.sprint&&!p.closeControl:!owner,dt),speed=PVF.speed(p,sprint)*(p.closeControl?.60:1)*(p.team===1?.96+.04*g.difficulty:1);
       PVF.move(p,p.x+dx/len*10,p.z+dz/len*10,speed*Math.min(1,Math.hypot(dx,dz)),dt,{x:44,z:25});
     }
-    if(b.owner!==null){const p=g.players[b.owner];PVF.carry(b,p,dt);
+    if(b.owner!==null){const p=g.players[b.owner];if(!PVF.dribble(b,p,dt)){b.owner=null;return g;}
       const thief=g.players.find(q=>q.team!==p.team&&q.index!==g.controlled&&distance(q,p)<.95&&q.cooldown<=0&&p.cooldown<=0);
       if(thief){p.cooldown=.8;b.owner=thief.index;thief.cooldown=.5;if(thief.team===0)g.controlled=thief.index;}
     }else {
@@ -107,21 +118,21 @@
   let live=null;
   function open(home,away,options={}){
     if(live)return;const scheme=options.controls||(typeof AuraArena!=="undefined"?AuraArena.settings.controls:"provision");const g=create(home,away,options),node=document.createElement("section");node.className="street-overlay";node.setAttribute("role","dialog");node.setAttribute("aria-modal","true");node.setAttribute("aria-label","AURA Calle, fútbol 3 contra 3");node.tabIndex=-1;
-    node.innerHTML='<header><div><span class="eyebrow">AURA CALLE / 3 CONTRA 3</span><h2>DOMINA LA CALLE.</h2></div><div class="street-score" role="status"></div><button class="btn" data-street="pause">Pausa</button><button class="btn" data-street="close" aria-label="Volver al menú">Salir ✕</button></header><div class="street-stage"><canvas aria-label="Cancha de fútbol callejero"></canvas><div class="street-status"></div></div><section class="street-finish" hidden role="region" aria-label="Resultados del partido Calle"></section><div class="street-guide"><span>WASD / Flechas · mover</span><span>'+(scheme==="classic"?"J · tirar / K · pasar":"K · mantener y soltar para tirar / Espacio · pase o presión")+'</span><span>E · cambiar</span><span>Espacio · entrada</span><span>Shift / SPRINT · mantener para correr</span><span>P · pausa</span><span>Primero a '+g.goalLimit+' goles o '+Math.round(g.seconds/60)+' minuto(s)</span></div><div class="street-touch"><div class="street-dpad"><button data-move="up" aria-label="Mover arriba">↑</button><button data-move="left" aria-label="Mover izquierda">←</button><button data-move="down" aria-label="Mover abajo">↓</button><button data-move="right" aria-label="Mover derecha">→</button></div><div><button data-action-street="switch">CAMBIO</button><button data-action-street="pass">PASE</button><button data-action-street="tackle">ENTRADA</button><button data-action-street="shoot">TIRO</button><button data-move="sprint" aria-label="Sprint: mantener pulsado">SPRINT</button></div></div>';
+    node.innerHTML='<header><div><span class="eyebrow">AURA CALLE / 3 CONTRA 3</span><h2>DOMINA LA CALLE.</h2></div><div class="street-score" role="status"></div><button class="btn" data-street="pause">Pausa</button><button class="btn" data-street="close" aria-label="Volver al menú">Salir ✕</button></header><div class="street-stage"><canvas aria-label="Cancha de fútbol callejero"></canvas><div class="street-status"></div></div><section class="street-finish" hidden role="region" aria-label="Resultados del partido Calle"></section><div class="street-guide"><span>WASD / Flechas · mover</span><span>'+(scheme==="classic"?"J · tirar / K · pasar":"K · mantener y soltar para tirar / Espacio · pase o presión")+'</span><span>E · cambiar</span><span>Espacio · entrada</span><span>Shift / SPRINT · mantener para correr</span><span>Z / CONTROL · llevar corto · R / REGATE + dirección</span><span>P · pausa</span><span>Primero a '+g.goalLimit+' goles o '+Math.round(g.seconds/60)+' minuto(s)</span></div><div class="street-touch"><div class="street-dpad"><button data-move="up" aria-label="Mover arriba">↑</button><button data-move="left" aria-label="Mover izquierda">←</button><button data-move="down" aria-label="Mover abajo">↓</button><button data-move="right" aria-label="Mover derecha">→</button></div><div><button data-action-street="switch">CAMBIO</button><button data-action-street="pass">PASE</button><button data-action-street="skill">REGATE</button><button data-move="closeControl">CONTROL</button><button data-action-street="tackle">ENTRADA</button><button data-action-street="shoot">TIRO</button><button data-move="sprint" aria-label="Sprint: mantener pulsado">SPRINT</button></div></div>';
     if(options.homeName&&options.awayName)node.querySelector('h2').textContent=options.homeName+' vs '+options.awayName;
     document.body.appendChild(node);document.body.classList.add("in-match");AuraEvolution.stopPreview();AuraTourUI.audio.suspend();
     const canvas=node.querySelector("canvas"),ctx=canvas.getContext("2d"),keys=new Set(),touch=new Set(),previous=document.activeElement,finishPanel=node.querySelector(".street-finish");
-    let raf=0,last=0,reported=false,charging=null,chargeOwner=null,chargeSource=null,padButtons=[],padSprint=false,padPressure=false,padX=0,padZ=0;
+    let raf=0,last=0,reported=false,charging=null,chargeOwner=null,chargeSource=null,padButtons=[],padSprint=false,padPressure=false,padControl=false,padX=0,padZ=0;
     const clock=()=>typeof performance!=="undefined"?performance.now():last;
     function beginCharge(source="keyboard"){if(charging===null&&g.ball.owner===g.controlled){charging=clock();chargeOwner=g.controlled;chargeSource=source;}}
     function releaseCharge(source="keyboard"){if(chargeSource!==source)return;const start=charging;charging=null;if(start!==null&&g.ball.owner===chargeOwner)action(g,"shoot",{...axes(),power:Math.min(1,(clock()-start)/950+.2)});}
-    const axes=()=>({x:padX+Number(keys.has("d")||keys.has("arrowright")||touch.has("right"))-Number(keys.has("a")||keys.has("arrowleft")||touch.has("left")),z:padZ+Number(keys.has("s")||keys.has("arrowdown")||touch.has("down"))-Number(keys.has("w")||keys.has("arrowup")||touch.has("up")),sprint:keys.has("shift")||touch.has("sprint")||padSprint,pressure:padPressure||(scheme==="provision"&&keys.has(" ")&&!PVF.attacking(g))});
+    const axes=()=>({x:padX+Number(keys.has("d")||keys.has("arrowright")||touch.has("right"))-Number(keys.has("a")||keys.has("arrowleft")||touch.has("left")),z:padZ+Number(keys.has("s")||keys.has("arrowdown")||touch.has("down"))-Number(keys.has("w")||keys.has("arrowup")||touch.has("up")),sprint:keys.has("shift")||touch.has("sprint")||padSprint,closeControl:keys.has("z")||touch.has("closeControl")||padControl,pressure:padPressure||(scheme==="provision"&&keys.has(" ")&&!PVF.attacking(g))});
     function close(){cancelAnimationFrame(raf);window.removeEventListener("keydown",down,true);window.removeEventListener("keyup",up,true);window.removeEventListener("blur",blur);node.remove();document.body.classList.remove("in-match");live=null;AuraTourUI.audio.resume();previous?.focus?.();}
     function pause(){g.paused=!g.paused;keys.clear();touch.clear();charging=null;padSprint=padPressure=false;for(const p of g.players)p.vx=p.vz=0;}
     function down(e){
       if(e.ctrlKey||e.metaKey||e.altKey)return;
       const k=e.key.toLowerCase();if(k===" "&&e.target.closest?.('button'))return;
-      if(!["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright","shift","j","k","e"," ","p","escape","l","u","tab"].includes(k))return;e.preventDefault();e.stopImmediatePropagation();if(e.repeat)return;if(k==="p"||k==="escape"){pause();return;}if(g.paused||g.done)return;keys.add(k);const type=PVF.keyAction(k,scheme,PVF.attacking(g));if(type==="shoot")beginCharge();else action(g,type,axes());
+      if(!["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright","shift","j","k","e"," ","p","escape","l","u","tab","z","r"].includes(k))return;e.preventDefault();e.stopImmediatePropagation();if(e.repeat)return;if(k==="p"||k==="escape"){pause();return;}if(g.paused||g.done)return;keys.add(k);const type=PVF.keyAction(k,scheme,PVF.attacking(g));if(type==="shoot")beginCharge();else action(g,type,axes());
     }
     function up(e){const k=e.key.toLowerCase();keys.delete(k);if(k===(scheme==="classic"?"j":"k"))releaseCharge();}
     function blur(){g.paused=true;keys.clear();touch.clear();charging=null;padSprint=padPressure=false;for(const p of g.players)p.vx=p.vz=0;}
@@ -145,11 +156,11 @@
     function gamepad(){
       let pad=null;try{pad=typeof navigator!=="undefined"&&navigator.getGamepads?Array.from(navigator.getGamepads()||[]).find(p=>p?.connected):null;}catch{}
       padX=pad&&Math.abs(pad.axes[0]||0)>.15?pad.axes[0]:0;padZ=pad&&Math.abs(pad.axes[1]||0)>.15?pad.axes[1]:0;
-      padSprint=!!pad?.buttons[7]?.pressed;padPressure=!!pad?.buttons[0]?.pressed&&!PVF.attacking(g);
+      padSprint=!!pad?.buttons[7]?.pressed;padControl=!!pad?.buttons[6]?.pressed;padPressure=!!pad?.buttons[0]?.pressed&&!PVF.attacking(g);
       if(!pad){if(chargeSource==="gamepad")charging=null;padButtons=[];return;}
       if(pad.buttons[9]?.pressed&&!padButtons[9])pause();
       if(!g.paused&&!g.done&&g.wait<=0){
-        for(const i of [0,1,2,3,4,8]){
+        for(const i of [0,1,2,3,4,8,11]){
           const pressed=!!pad.buttons[i]?.pressed,type=PVF.padAction(i,scheme,PVF.attacking(g));
           if(i===1){if(pressed&&!padButtons[i])beginCharge("gamepad");if(!pressed&&padButtons[i])releaseCharge("gamepad");}
           else if(pressed&&!padButtons[i])action(g,type,axes());

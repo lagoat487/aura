@@ -9,7 +9,7 @@ test("mobile.html is a separate production entry to seven independent mode scree
  assert.match(mobile,/AURA VISION 9\.9 · VERSIÓN MÓVIL/);
  assert.match(mobile,/7 modos separados/);
  assert.match(mobile,/href="\.\/mode-hub\.css(?:\?[^"\s]*)?"/);
- assert.match(mobile,/src="\.\/evolution-ui-99-pvf1\.js(?:\?[^"\s]*)?"/);
+ assert.match(mobile,/src="\.\/evolution-ui-99-control2\.js(?:\?[^"\s]*)?"/);
  assert.match(mobile,/src="\.\/game-99\.js\?v=9\.9-masks"/);
  const assets=html=>Array.from(html.matchAll(/(?:src|href)="\.\/([^"?#]+)/g),m=>m[1]);
  assert.deepEqual(assets(mobile),assets(desktop),"mobile must load the same game code and assets");

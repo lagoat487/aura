@@ -27,7 +27,8 @@
     const vx=len>.06?dx/len*speed:0,vz=len>.06?dz/len*speed:0;
     const current=Math.hypot(p.vx,p.vz),desired=Math.hypot(vx,vz);
     const dot=current>.1&&desired>.1?clamp((p.vx*vx+p.vz*vz)/(current*desired),-1,1):1;
-    const acceleration=desired<current||dot<0?tuning.braking:tuning.acceleration;
+    // Short touches turn and stop quickly; a full sprint still carries momentum.
+    const acceleration=desired<current||dot<0?(p.sprinting?22:34):(p.sprinting?25:36);
     const change=Math.hypot(vx-p.vx,vz-p.vz),blend=change?Math.min(1,acceleration*dt/change):1;
     p.vx+=(vx-p.vx)*blend;p.vz+=(vz-p.vz)*blend;
     const x=clamp(p.x+p.vx*dt,-bounds.x,bounds.x),z=clamp(p.z+p.vz*dt,-bounds.z,bounds.z);
@@ -52,7 +53,36 @@
   }
   function pass(p,power=.6,range=20,lob=false){
     if(lob){const flight=clamp(range/13,.55,1.5);return {speed:Math.min(range/flight,25),lift:.5*tuning.gravity*flight};}
-    return {speed:clamp(8+clamp(power,0,1)*15+rating(p,"passing")*.04,7,27),lift:.4};
+    return {speed:clamp(8+clamp(range,2,55)*.55+clamp(power,0,1)*5+rating(p,"passing")*.025,12,36),lift:.25};
+  }
+  function dribble(ball,p,dt){
+    const key=p.team+":"+p.id,speed=Math.hypot(p.vx||0,p.vz||0),close=!!p.closeControl;
+    if(!ball.dribble||ball.dribble.player!==key)ball.dribble={player:key,wait:0,grace:.18,touches:0};
+    const state=ball.dribble;state.wait-=dt;state.grace=Math.max(0,state.grace-dt);
+    const gap=Math.hypot(ball.x-p.x,ball.z-p.z);
+    // Possession cannot pull a ball back from several metres away.
+    if(gap>(close?2:p.sprinting?3.7:3.4)&&state.grace<=0)return false;
+    const faceX=Number.isFinite(p.faceX)?p.faceX:1,faceZ=p.faceZ||0;
+    const dirX=speed>.4?(p.vx/speed):faceX,dirZ=speed>.4?(p.vz/speed):faceZ;
+    const reach=speed<.8?1.4:1.13;
+    if(state.wait<=0&&gap<=reach){
+      if(speed<.8){
+        // A stationary player settles the ball with a short sole touch.
+        const dx=p.x+faceX*(close?.34:.48)-ball.x,dz=p.z+faceZ*(close?.34:.48)-ball.z;
+        ball.vx=clamp(dx*8,-3,3);ball.vz=clamp(dz*8,-3,3);
+      }else if(close){
+        ball.vx=clamp((p.vx||0)*1.25+(p.x+dirX*.43-ball.x)*12,-8,8);
+        ball.vz=clamp((p.vz||0)*1.25+(p.z+dirZ*.43-ball.z)*12,-8,8);
+      }else{
+        const push=close?.7:p.sprinting?5.3:2.1;
+        ball.vx=dirX*(speed+push);ball.vz=dirZ*(speed+push);
+      }
+      state.wait=close?.075:p.sprinting?.30:.20;state.touches++;
+    }
+    ball.vx=(Number(ball.vx)||0)*Math.exp(-dt*(close?5.3:1.6));
+    ball.vz=(Number(ball.vz)||0)*Math.exp(-dt*(close?5.3:1.6));
+    ball.x+=ball.vx*dt;ball.z+=ball.vz*dt;ball.y=.22;ball.vy=0;
+    return true;
   }
   function shot(p,power=.58){
     power=clamp(power,0,1);
@@ -68,12 +98,12 @@
   }
   function keyAction(key,scheme="provision",attack=true){
     const keys=scheme==="classic"?{j:"shoot",k:"pass",l:"through",o:"lob",r:"skill",v:"slide",f:"cross",e:"switch"," ":"tackle"}:
-      {" ":"primary",k:"finish",j:"loft",l:"thread",u:"slide",v:"slide",tab:"switch",e:"switch",q:"secondPress",r:"skill",f:"cross",o:"lob"};
+      {" ":"primary",k:"finish",j:"loft",l:"thread",u:"slide",v:"slide",tab:"switch",e:"switch",q:"secondPress",r:"skill",z:"closeControl",f:"cross",o:"lob"};
     return resolveAction(keys[key]||null,attack);
   }
   function padAction(index,scheme="provision",attack=true){
     const keys=scheme==="classic"?{0:"pass",1:"shoot",2:"tackle",3:"through",4:"switch",5:"cross",6:"lob",11:"skill",8:"slide"}:
-      {0:"primary",1:"finish",2:"loft",3:"thread",4:"slide",5:"secondPress",6:"skill",8:"switch",11:"skill"};
+      {0:"primary",1:"finish",2:"loft",3:"thread",4:"slide",5:"secondPress",6:"closeControl",8:"switch",11:"skill"};
     return resolveAction(keys[index]||null,attack);
   }
   function roles(game,dt){
@@ -89,5 +119,5 @@
     }
     return game.defensiveRoles={chasers,covers,until:game.elapsed+tuning.roleInterval,owner:game.ball.owner,half:game.half};
   }
-  return {name:"ProVision · adaptación web",tuning,rating,speed,stamina,move,carry,pass,shot,attacking,resolveAction,keyAction,padAction,roles};
+  return {name:"AURA 9.9 · Regate y control",revision:"control-2",tuning,rating,speed,stamina,move,carry,dribble,pass,shot,attacking,resolveAction,keyAction,padAction,roles};
 });

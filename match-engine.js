@@ -34,7 +34,7 @@
       return {id:p.id,name:p.name,originalId:p.originalId||null,real:!!p.real,photo:p.photo||null,number:i+1,team,index:i,pos:i===0?"POR":p.pos,overall:clamp(p.overall||70,1,99),pace:PVF.rating(p,"pace"),passing:PVF.rating(p,"passing"),shooting:PVF.rating(p,"shooting"),
         baseX,baseZ,x:0,z:0,vx:0,vz:0,faceX:team===0?1:-1,faceZ:0,stamina:clamp(Number.isFinite(p.fitness)?p.fitness:100,0,100),cooldown:0,skillTime:0,skillCooldown:0,yellows:0,sentOff:false,run:0,turn:0,dribbleTime:0,action:null,actionTime:0,actionDuration:0,diveSide:1};
     }));
-    const game={gameplay:"provision",players,ball:{x:0,y:.22,z:0,vx:0,vy:0,vz:0,spin:0,owner:null,lastTouch:0,freeTime:0,lastKicker:null},
+    const game={gameplay:"provision",gameplayRevision:"control-2",inputBuffer:[null,null],players,ball:{x:0,y:.22,z:0,vx:0,vy:0,vz:0,spin:0,owner:null,lastTouch:0,freeTime:0,lastKicker:null},
       score:[0,0],elapsed:0,visualTime:0,seconds,half:1,phase:"kickoff",phaseTime:1.1,controlled:9,awayControlled:20,localTwoPlayer:!!options.localTwoPlayer,events:[],
       stats:[0,1].map(()=>({shots:0,onTarget:0,passes:0,completed:0,throughBalls:0,crosses:0,interceptions:0,fouls:0,yellows:0,reds:0,penalties:0,saves:0,parries:0,claims:0,tackles:0,possession:0,xg:0,keyPasses:0,blockedShots:0})),
       benches:sides.map(t=>(t.bench||[]).filter(p=>p&&typeof p.id==="string").map(p=>({...p}))),
@@ -48,11 +48,11 @@
   function animate(p,kind,duration){p.action=kind;p.actionTime=p.actionDuration=duration;}
   function event(game,type,text,extra={}){const e={type,text,at:game.elapsed,minute:Math.min(90,Math.floor(game.elapsed/game.seconds*90)),...extra};game.events.push(e);if(game.events.length>80)game.events.shift();return e;}
   function reset(game,kicking){
-    game.restart=null;game.defensiveRoles=null;
-    for(const p of game.players){const d=direction(game,p.team);p.x=p.sentOff?(p.team===0?-75:75):p.baseX*d;p.z=p.sentOff?0:p.baseZ*d;p.vx=p.vz=0;p.faceX=d;p.faceZ=0;p.cooldown=.3;p.skillTime=0;p.skillCooldown=0;p.sprinting=false;p.slideTime=0;p.action=null;p.actionTime=0;}
+    game.restart=null;game.defensiveRoles=null;game.inputBuffer=[null,null];
+    for(const p of game.players){const d=direction(game,p.team);p.x=p.sentOff?(p.team===0?-75:75):p.baseX*d;p.z=p.sentOff?0:p.baseZ*d;p.vx=p.vz=0;p.faceX=d;p.faceZ=0;p.cooldown=.3;p.skillTime=0;p.skillCooldown=0;p.sprinting=false;p.closeControl=false;p.slideTime=0;p.action=null;p.actionTime=0;}
     const taker=game.players.find(p=>p.team===kicking&&p.index===9&&!p.sentOff)||game.players.find(p=>p.team===kicking&&p.index!==0&&!p.sentOff),support=game.players.find(p=>p.team===kicking&&p.index===7&&!p.sentOff)||taker;
     if(!taker)throw Error("No hay sacador disponible.");taker.x=-direction(game,kicking)*1.4;taker.z=0;if(support!==taker){support.x=-direction(game,kicking)*5;support.z=6;}
-    Object.assign(game.ball,{x:taker.x,y:.22,z:0,vx:0,vy:0,vz:0,owner:game.players.indexOf(taker),lastTouch:kicking,freeTime:0,lastKicker:null});
+    Object.assign(game.ball,{x:taker.x,y:.22,z:0,vx:0,vy:0,vz:0,owner:game.players.indexOf(taker),lastTouch:kicking,freeTime:0,lastKicker:null,dribble:null,dribbleLoose:false});
     game.controlled=game.playerLock?game.players.findIndex(p=>p.team===0&&p.id===game.playerLock):(kicking===0?game.players.indexOf(taker):nearest(game,0));if(game.localTwoPlayer)game.awayControlled=kicking===1?game.players.indexOf(taker):nearest(game,1);game.setPiece=null;game.wallFlight=null;game.passTarget=null;game.passRun=null;game.offsideTarget=null;game.ball.lastKickerIdentity=null;game.assistWindow=null;game.shotAssist=null;
   }
   function nearest(game,team,point=game.ball,excludeKeeper=true){
@@ -80,7 +80,7 @@
     if(game.assistWindow&&(game.assistWindow.receiver!==p.id||game.assistWindow.team!==p.team))
       game.assistWindow=null;
     game.shotAssist=null;
-    b.owner=index;game.wallFlight=null;b.lastTouch=p.team;b.vx=b.vz=b.vy=b.spin=0;b.y=.22;game.passTarget=null;game.passRun=null;game.offsideTarget=null;
+    b.owner=index;b.dribble=null;b.dribbleLoose=false;game.wallFlight=null;b.lastTouch=p.team;b.vx=b.vz=b.vy=b.spin=0;b.y=.22;game.passTarget=null;game.passRun=null;game.offsideTarget=null;
     if(!['save','dive','parry','smother','tackle'].includes(p.action)){
       // A controlled first touch becomes quicker as technique increases.
       const technique=clamp((p.overall-50)/49,0,1);
@@ -92,7 +92,7 @@
   }
   function launch(game,p,target,speed,lift){
     const b=game.ball,dx=target.x-b.x,dz=target.z-b.z,len=Math.hypot(dx,dz)||1;
-    Object.assign(b,{owner:null,vx:dx/len*speed,vz:dz/len*speed,vy:lift,spin:0,y:.26,freeTime:0,lastTouch:p.team,lastKicker:game.players.indexOf(p),lastKickerIdentity:{id:p.id,name:p.name,team:p.team}});game.offsideTarget=null;p.cooldown=.42;
+    Object.assign(b,{owner:null,dribble:null,dribbleLoose:false,vx:dx/len*speed,vz:dz/len*speed,vy:lift,spin:0,y:.26,freeTime:0,lastTouch:p.team,lastKicker:game.players.indexOf(p),lastKickerIdentity:{id:p.id,name:p.name,team:p.team}});game.offsideTarget=null;p.cooldown=.42;
   }
   function laneRisk(game,p,target){
     const dx=target.x-p.x,dz=target.z-p.z,length2=dx*dx+dz*dz||1;
@@ -284,13 +284,20 @@
     if(game.phase!=="playing"||game.paused)return false;
     const away=game.localTwoPlayer&&input.team===1;
     if(type==="pressure")type="tackle";
-    if(type==="keeperRush"||type==="secondPress")return false; // held inputs are consumed by step
+    if(type==="keeperRush"||type==="secondPress"||type==="closeControl")return false; // held inputs are consumed by step
     if(type==="switch"){
       if(away){game.awayControlled=nearest(game,1)??game.awayControlled;return true;}
       if(game.playerLock)return false;
       game.controlled=nearest(game,0)??game.controlled;return true;
     }
     const index=away?game.awayControlled:game.controlled,p=game.players[index],b=game.ball;
+    if(input.buffer&&["pass","through","lob","cross"].includes(type)&&!p.sentOff&&game.setPiece?.kind!=="penalty"){
+      const incoming=b.owner===null&&Number.isInteger(game.passTarget)&&!game.playerLock?game.passTarget:index;
+      if((b.owner===index&&p.cooldown>0&&p.cooldown<=.22)||
+        (b.owner===null&&game.players[incoming]?.team===p.team&&(game.passTarget===incoming||dist(p,b)<2.2))){
+        game.inputBuffer[p.team]={type,input:{...input,buffer:false},player:game.players[incoming].id,until:game.elapsed+.22};return false;
+      }
+    }
     if(type==="tackle"||type==="slide"){
       if(p.sentOff||p.cooldown>0)return false;
       const carrier=b.owner===null?null:game.players[b.owner];
@@ -299,7 +306,7 @@
         const ix=Number(input.x)||0,iz=Number(input.z)||0,aimed=Math.hypot(ix,iz)>.1,dx=aimed?ix:p.faceX,dz=aimed?iz:p.faceZ,length=Math.hypot(dx,dz)||1;
         p.slideTime=.6;p.slideX=dx/length;p.slideZ=dz/length;p.slideAttempted=false;
         p.vx=p.slideX*7.8;p.vz=p.slideZ*7.8;
-      }else if(!carrier||dist(p,carrier)>1.75)return false;
+      }else if(!carrier||dist(p,carrier)>1.75||dist(p,b)>1.35)return false;
       p.cooldown=type==="slide"?1.2:.9;
       animate(p,"tackle",type==="slide"?.6:.4);
       if(!carrier||dist(p,carrier)>(type==="slide"?1.6:1.75))return type==="slide";
@@ -312,7 +319,11 @@
     }
     if(type==="skill"){
       if(p.sentOff||b.owner!==index||p.index===0||p.cooldown>0||p.skillCooldown>0||p.stamina<12)return false;
-      p.skillTime=.55;p.skillCooldown=2.4;p.stamina-=7;animate(p,"skill",.52);
+      const rightX=-(p.faceZ||0),rightZ=p.faceX||direction(game,p.team),aim=(Number(input.x)||0)*rightX+(Number(input.z)||0)*rightZ;
+      const side=Math.abs(aim)>.15?Math.sign(aim):-(p.lastSkillSide||-1);p.lastSkillSide=side;
+      p.skillForwardX=p.faceX||direction(game,p.team);p.skillForwardZ=p.faceZ||0;p.skillSideX=rightX*side;p.skillSideZ=rightZ*side;
+      p.skillTime=.55;p.skillCooldown=1.8;p.stamina-=5;animate(p,"skill",.55);
+      game.ball.dribble=null;
       event(game,"skill",p.name+" supera la presión con un regate");return true;
     }
     if(p.sentOff||b.owner!==index||p.cooldown>0)return false;
@@ -486,7 +497,7 @@
     }
     if(!attacking&&(i===chasers[p.team]||(i===game.defensiveRoles?.covers[p.team]&&game.teamIntents?.[p.team]?.secondPress))){
       tx=b.x+(owner?owner.vx:b.vx)*.22;tz=b.z+(owner?owner.vz:b.vz)*.22;
-      if(owner&&owner.team!==p.team&&dist(p,owner)<1.25&&p.cooldown<=0&&owner.cooldown<=0){
+      if(owner&&owner.team!==p.team&&dist(p,owner)<1.25&&dist(p,b)<(owner.closeControl?.38:.68)&&p.cooldown<=0&&owner.cooldown<=0){
         const quality=clamp(1+(p.overall-owner.overall)*.025,.55,1.7);
         if(game.rng()<dt*quality*(p.team===1?1.4*game.difficulty:1)){ownBall(game,i);owner.cooldown=.8;game.stats[p.team].tackles++;}
       }
@@ -535,7 +546,7 @@
     const index=keeper>=0?keeper:nearest(game,team,{x,z}),p=game.players[index],b=game.ball;
     const spot={x:clamp(x,-49,49),z:clamp(z,-32,32)};
     game.setPiece=null;game.wallFlight=null;game.assistWindow=null;game.shotAssist=null;
-    game.passTarget=null;game.passRun=null;game.offsideTarget=null;
+    game.passTarget=null;game.passRun=null;game.offsideTarget=null;game.inputBuffer=[null,null];
     game.restart={team,index,kind,...spot,targets:[],settle:.35};game.phase="restart";
     // The whistle stops play before anyone changes position. A dead ball has
     // no owner until the taker has physically reached it and everyone is ready.
@@ -576,7 +587,21 @@
   function ballStep(game,dt,keeperStarts){
     const b=game.ball;
     if(b.owner!==null)for(const [i] of keeperStarts)keeperClaim(game,game.players[i],i);
-    if(b.owner!==null){PVF.carry(b,game.players[b.owner],dt);return;}
+    if(b.owner!==null){
+      const index=b.owner,p=game.players[index];
+      if(p.index===0||game.setPiece){PVF.carry(b,p,dt);return;}
+      const controlled=PVF.dribble(b,p,dt);
+      if(!controlled||Math.abs(b.x)>52.5||Math.abs(b.z)>34){
+        Object.assign(b,{owner:null,lastKicker:index,lastKickerIdentity:{id:p.id,name:p.name,team:p.team},freeTime:0,dribbleLoose:true});
+        game.assistWindow=null;return;
+      }
+      // A defender must reach the exposed ball, not simply stand near its owner.
+      const steal=game.players.map((q,i)=>({q,i,gap:dist(q,b)})).filter(({q,gap})=>
+        q.team!==p.team&&!q.sentOff&&q.index!==0&&q.cooldown<=0&&gap<(p.closeControl?.38:.58)&&dist(q,p)>.65)
+        .sort((a,c)=>a.gap-c.gap||a.i-c.i)[0];
+      if(steal){ownBall(game,steal.i);steal.q.cooldown=.25;p.cooldown=.3;game.stats[steal.q.team].tackles++;playerStat(game,steal.q).tackles++;event(game,"tackle",steal.q.name+" corta el toque",{team:steal.q.team,player:steal.q.id});}
+      return;
+    }
     b.freeTime+=dt;const velocity=Math.hypot(b.vx,b.vy,b.vz);if(velocity>PVF.tuning.maxBallSpeed){const scale=PVF.tuning.maxBallSpeed/velocity;b.vx*=scale;b.vy*=scale;b.vz*=scale;}const previousX=b.x,previousZ=b.z,previousY=b.y;
     b.x+=b.vx*dt;b.z+=b.vz*dt;b.y+=b.vy*dt;b.vy-=PVF.tuning.gravity*dt;b.vz+=(b.spin||0)*dt;b.spin=(b.spin||0)*Math.exp(-dt*1.5);
     if(b.y<.22){b.y=.22;b.vy=Math.abs(b.vy)>.9?-b.vy*(game.weather==="rain"?.35:PVF.tuning.bounce):0;}
@@ -614,7 +639,7 @@
     if(Math.abs(b.z)>34){restart(game,1-b.lastTouch,"Saque de banda",b.x,Math.sign(b.z)*32);return;}
     if(b.y>2.5)return;
     const candidates=game.players.map((p,i)=>({p,i,d:dist(p,b)})).filter(({p,i,d})=>
-      d<1.15&&!p.sentOff&&p.cooldown<=0&&(p.index!==0||!inKeeperArea(game,p,p))&&(i!==b.lastKicker||b.freeTime>.7)&&b.y<1.1);
+      d<1.15&&!p.sentOff&&p.cooldown<=0&&(p.index!==0||!inKeeperArea(game,p,p))&&(i!==b.lastKicker||b.freeTime>(b.dribbleLoose?.08:.7))&&b.y<1.1);
     candidates.sort((a,c)=>a.d-c.d);
     if(candidates.length){
       const receiver=candidates[0];
@@ -674,9 +699,15 @@
           if(len<.1){const dx=owner.x-p.x,dz=owner.z-p.z,gap=Math.hypot(dx,dz)||1;x=dx/gap;z=dz/gap;len=1;}
           if(dist(p,owner)<1.75&&p.cooldown<=0)action(game,"tackle",{team:p.team});
         }
-        const sprint=PVF.stamina(p,!!intent.sprint&&len>.1,dt),burst=p.skillTime>0;
-        const speed=PVF.speed(p,sprint)*(b.owner===i?.97:1)*(burst?1.12:1);
-        if(burst){p.skillTime=Math.max(0,p.skillTime-dt);p.stamina=clamp(p.stamina-dt*4,0,100);}
+        p.closeControl=!!intent.closeControl;
+        const sprint=PVF.stamina(p,!!intent.sprint&&!p.closeControl&&len>.1,dt),burst=p.skillTime>0;
+        const speed=PVF.speed(p,sprint)*(b.owner===i?.97:1)*(p.closeControl?.60:1)*(burst?1.06:1);
+        if(burst){
+          const side=Math.sin((1-p.skillTime/.55)*Math.PI);
+          x=p.skillForwardX*.65+p.skillSideX*side*.95;z=p.skillForwardZ*.65+p.skillSideZ*side*.95;
+          const length=Math.hypot(x,z)||1;x/=length;z/=length;len=1;
+          p.skillTime=Math.max(0,p.skillTime-dt);p.stamina=clamp(p.stamina-dt*3,0,100);
+        }
         if(len>.05)move(p,p.x+x*10,p.z+z*10,speed*Math.min(1,len),dt);else move(p,p.x,p.z,0,dt);
       }else ai(game,p,i,dt,chasers,marks);
     }
@@ -685,7 +716,14 @@
       const a=game.players[i],c=game.players[j],dx=a.x-c.x,dz=a.z-c.z,len=Math.hypot(dx,dz);
       if(!a.sentOff&&!c.sentOff&&len>.01&&len<.72){const push=(.72-len)*.3;a.x+=dx/len*push;a.z+=dz/len*push;c.x-=dx/len*push;c.z-=dz/len*push;}
     }
-    ballStep(game,dt,keeperStarts);return game;
+    ballStep(game,dt,keeperStarts);
+    for(let team=0;team<2;team++){
+      const queued=game.inputBuffer[team];if(!queued)continue;
+      const carrier=b.owner===null?null:game.players[b.owner];
+      if(game.phase!=="playing"||game.elapsed>queued.until||(carrier&&carrier.team!==team)){game.inputBuffer[team]=null;continue;}
+      if(carrier?.id===queued.player&&carrier.cooldown<=0){game.inputBuffer[team]=null;action(game,queued.type,queued.input);}
+    }
+    return game;
   }
   function report(game){
     const players=Object.values(game.playerStats).map(s=>({...s,minutes:Math.min(90,Math.round(s.minutes)),rating:calculateRating(s)}))

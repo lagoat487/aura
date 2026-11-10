@@ -1,3 +1,7 @@
+## AURA VISION 9.9 · Toques y regate
+
+El balón avanza por toques separados; esprintar lo adelanta y un giro brusco puede hacer perder el control. **R + dirección / REGATE** produce una salida lateral. Mantener **Z / CONTROL** o **L2 en ProVision** permite conducir corto y proteger el balón. Frenado más rápido, pases ajustados a su distancia y preparación de un pase justo antes de recibir. Las mejoras se aplican con ambos perfiles de botones y conservan los modos y guardados. [Detalle y validación](docs/control-9.9.md).
+
 ## AURA VISION 9.9 · Jugabilidad ProVision
 
 Los siete modos conservados con movimiento, energía de sprint, balón y controles adaptados del proyecto ProVision Football adjuntado por el usuario. Al preparar el partido aparece **ProVision · contextuales**: Espacio pasa o presiona, K carga el tiro o saca al portero, J eleva el pase o hace una barrida, y Q llama al segundo defensor. También se puede elegir **AURA · clásicos**. Calle/Volta comparte movimiento, energía y velocidades. Se mantienen los guardados y el enlace principal. Es una adaptación web de la lógica, no el motor Unreal. [Alcance y controles](docs/provision-9.9.md).

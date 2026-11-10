@@ -11,7 +11,7 @@ function boot(options={}){
   if(id&&nodes.has(id))return nodes.get(id);
   const events={},children=new Map();const n={id,style:{},dataset:{},classList,hidden:false,tabIndex:0,
    addEventListener:(name,fn)=>{events[name]=fn;},removeEventListener(){},setPointerCapture(){},setAttribute(){},appendChild(){},remove(){},focus(){},getClientRects:()=>[{}],getBoundingClientRect:()=>({left:0,top:0,width:100,height:100}),getContext:()=>context2d,
-   querySelector(selector){if(selector.startsWith('#'))return node(selector.slice(1));if(!children.has(selector))children.set(selector,node());return children.get(selector);},querySelectorAll:selector=>selector==='[data-touch]'?['switch','through','lob','cross','skill','pass','shoot','tackle','slide','sprint','pressure','keeperRush','secondPress'].map(type=>{const button=node('touch:'+type);button.dataset.touch=type;return button;}):[],
+   querySelector(selector){if(selector.startsWith('#'))return node(selector.slice(1));if(!children.has(selector))children.set(selector,node());return children.get(selector);},querySelectorAll:selector=>selector==='[data-touch]'?['switch','through','lob','cross','skill','pass','shoot','tackle','slide','sprint','pressure','keeperRush','secondPress','closeControl'].map(type=>{const button=node('touch:'+type);button.dataset.touch=type;return button;}):[],
    closest(selector){return selector==='button'&&this.dataset.touch?this:null;},
    fire:(type,event)=>events[type]?.(event),matches:()=>false,
   };
@@ -51,6 +51,37 @@ function arenaGamepads(a){
 function watchPadActions(a){
  a.run("globalThis.padActions=[];const actualAction=AuraMatch.action;globalThis.AuraMatch={...AuraMatch,action:(game,type,input)=>{padActions.push({type,team:input?.team??0,sprint:!!input?.sprint});return actualAction(game,type,input)}};");
 }
+
+test('close control is held with Z or CONTROL and clears on release, capture loss and pause',()=>{
+ const a=boot({controls:'provision'}),g=a.session.game;g.phase='playing';a.frame();
+ a.key('keydown','z');a.key('keydown','d');a.frame(100);assert.equal(g.players[g.controlled].closeControl,true);
+ a.key('keyup','z');a.frame(50);assert.equal(g.players[g.controlled].closeControl,false);
+ const button=a.node('touch:closeControl'),pointer={pointerId:21,preventDefault(){}};
+ assert.ok(a.session.node.innerHTML.includes('data-touch="closeControl"'));button.fire('pointerdown',pointer);a.frame(50);assert.equal(g.players[g.controlled].closeControl,true);
+ button.fire('lostpointercapture',pointer);a.frame(50);assert.equal(g.players[g.controlled].closeControl,false);
+ button.fire('pointerdown',pointer);a.click('pause');assert.equal(a.session.touchHolds.size,0);a.click('resume');a.frame(50);assert.equal(g.players[g.controlled].closeControl,false);
+ a.click('pause');a.click('exit');a.click('confirm-exit');
+});
+
+test('L2 holds close control for either local team without triggering a skill or sprint',()=>{
+ for(const team of [0,1]){
+  const a=boot({local:true,controls:'provision'}),g=a.session.game;g.phase='playing';arenaGamepads(a);watchPadActions(a);a.frame();
+  const index=team?g.awayControlled:g.controlled;g.ball.owner=index;
+  a.run('arenaPads['+team+'].buttons[6].pressed=true;arenaPads['+team+'].buttons[7].pressed=true;arenaPads['+team+'].axes[0]=1');
+  a.frame(100);assert.equal(g.players[index].closeControl,true);assert.equal(g.players[index].sprinting,false);assert.equal(g.players[index].skillTime,0);
+  assert.equal(a.run('padActions.filter(a=>a.type==="skill").length'),0);
+  a.run('arenaPads['+team+'].buttons[6].pressed=false');a.frame(50);assert.equal(g.players[index].closeControl,false);
+  a.click('pause');a.click('exit');a.click('confirm-exit');
+ }
+});
+
+test('touch passes accept a short recovery buffer and pause discards it before resuming',()=>{
+ const a=boot({controls:'provision'}),g=a.session.game;g.phase='playing';a.frame();g.players[g.controlled].cooldown=.1;
+ a.node('touch:pass').fire('click',{detail:0});assert.ok(g.inputBuffer[0]);assert.equal(g.stats[0].passes,0);
+ a.click('pause');assert.equal(g.inputBuffer[0],null);a.click('resume');a.frame(150);assert.equal(g.stats[0].passes,0);
+ g.players[g.controlled].cooldown=0;a.node('touch:pass').fire('click',{detail:0});assert.equal(g.stats[0].passes,1);
+ a.click('pause');a.click('exit');a.click('confirm-exit');
+});
 test('keyboard input moves the controlled player, release brakes, and pause freezes the arena',()=>{
  const a=boot(),g=a.session.game;g.phase='playing';a.frame();const p=g.players[g.controlled],start=p.x;
  a.key('keydown','d');for(let i=0;i<8;i++)a.frame(50);assert.ok(p.x>start+1);a.key('keyup','d');const speed=p.vx;a.frame(50);assert.ok(p.vx<speed);

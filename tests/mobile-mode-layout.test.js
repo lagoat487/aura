@@ -27,7 +27,7 @@ test("All seven mode cards expose saved progress on desktop and mobile",()=>{
   for(const html of [read("index.html"),read("mobile.html")]){
     assert.match(html,/mode-progress\.js\?v=5\.9/);
     assert.match(html,/mode-progress\.css\?v=5\.9/);
-    assert.match(html,/evolution-ui-99-pvf1\.js/);
+    assert.match(html,/evolution-ui-99-control2\.js/);
   }
 });
 

@@ -146,7 +146,7 @@ const AuraEvolution=(()=>{
   }
   function modeHub(){
     const stats=World.getStats(),loaded=World.isLoaded(),recent=recentMode&&modeMeta(recentMode);
-    return '<div class="season-intro"><span>AURA VISION 9.9 <b>/ LA NUEVA ERA</b></span>'+
+    return '<div class="season-intro"><span>AURA VISION 9.9 <b>/ TOQUES Y REGATE</b></span>'+
       '<button data-evo="controls" class="club-controls-link">Controles y cómo jugar <span>→</span></button></div>'+
       '<section class="aura-mode-home-hero"><div class="aura-mode-home-mesh" aria-hidden="true"></div>'+
       '<span class="eyebrow">AURA VISION 9.9 · UN JUEGO · SIETE EXPERIENCIAS</span>'+
@@ -426,7 +426,7 @@ const AuraEvolution=(()=>{
       }});
     }catch(error){notify(error.message);}
   }
-  function controlsModal(){openModal("CÓMO JUGAR",'<div class="controls-explainer"><span class="eyebrow">AURA 9.9 · JUGABILIDAD PROVISION</span><h3>Controla cada jugada.</h3><p>Partidos con aceleración, frenado y energía de sprint; pases y tiros con potencia. Elige el perfil <b>ProVision</b> o <b>AURA clásico</b> en la preparación de cualquier partido.</p><div class="prematch-guide">'+AuraArena.controlGuide()+'</div><p>En ProVision: Espacio pasa cuando tienes el balón y permite presionar al mantenerlo en defensa. Mantén K y suelta para disparar; en defensa, mantener K saca al portero. J eleva el pase o realiza una barrida. L filtra el pase o cambia de defensor.</p><p>Mando: A/✕ pase o presión, B/○ tiro con potencia o portero, X/□ elevado o barrida, Y/△ al hueco o cambio, RT/R2 sprint, RB/R1 segundo defensor. En pantalla táctil hay botones de presión, portero y segundo defensor.</p><p class="save-info">Carrera, UT, Draft, Copas, jugador y amistosos comparten la jugabilidad. Calle/Volta conserva su cancha 3 contra 3 y utiliza el mismo movimiento, energía y velocidad del balón. Pausa para ajustar táctica y sustituciones.</p></div>');}
+  function controlsModal(){openModal("CÓMO JUGAR",'<div class="controls-explainer"><span class="eyebrow">AURA 9.9 · TOQUES, REGATE Y CONTROL</span><h3>Controla cada jugada.</h3><p>El balón avanza con toques separados: al esprintar se adelanta y puedes perderlo al girar demasiado fuerte. Mantén <b>Z, L2 o CONTROL</b> para llevarlo corto; pulsa <b>R o REGATE junto con una dirección</b> para salir por un lado. Los pases responden a la distancia y puedes preparar el siguiente pase antes de recibir. Las mejoras funcionan con ambos perfiles de botones.</p><div class="prematch-guide">'+AuraArena.controlGuide()+'</div><p>En ProVision: Espacio pasa cuando tienes el balón y permite presionar al mantenerlo en defensa. Mantén K y suelta para disparar; en defensa, mantener K saca al portero. J eleva el pase o realiza una barrida. L filtra el pase o cambia de defensor.</p><p>Mando: A/✕ pase o presión, B/○ tiro con potencia o portero, X/□ elevado o barrida, Y/△ al hueco o cambio, RT/R2 sprint, RB/R1 segundo defensor. En pantalla táctil hay botones de presión, portero y segundo defensor.</p><p class="save-info">Carrera, UT, Draft, Copas, jugador y amistosos comparten la jugabilidad. Calle/Volta conserva su cancha 3 contra 3 y utiliza el mismo movimiento, energía y velocidad del balón. Pausa para ajustar táctica y sustituciones.</p></div>');}
   function handleClick(button){
     const d=button.dataset;
     if(d.evoMode){return chooseMode(d.evoMode);}
