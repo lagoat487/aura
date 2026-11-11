@@ -1,3 +1,15 @@
+## AURA 9.9 — Admin Abuse
+
+El mismo enlace para jugar incorpora un tablón compartido y un contador para el 11 de noviembre de 2026 a las 11:00 de Ecuador (16:00 UTC). El creador elige qué avisos y cartas publicar; la instalación no regala futbolistas automáticamente.
+
+El panel `admin-99.html` verifica la cuenta GitHub propietaria `lagoat487` y acceso de escritura al repositorio. Requiere un token personal fine-grained limitado a `aura`, Contents: Read and write. Solo se mantiene en memoria, se envía a api.github.com y se descarta al cerrar o desconectar. Los botones de publicación necesitan una conexión válida; el código privado local de monedas no concede autoridad de publicación.
+
+Los avisos y regalos se publican en `data/admin-live-99.json` mediante escrituras con SHA, sin reintentos automáticos. Los clientes consultan el archivo público cada 20 segundos y al recuperar conexión o volver a la pestaña. La caché y la conexión pueden retrasar la recepción: no es un servidor de mensajes en tiempo real. Cada club reclama una vez por ID de regalo, con recibo incluido en sus respaldos locales. No existen cuentas de jugador en servidor; borrar o restaurar un respaldo anterior puede eliminar ese recibo. Champions mantiene su distribución exclusiva en sobres.
+
+El inicio y el fin se evalúan según el horario publicado sin mantener abierta la pestaña del creador. Terminar un evento impide nuevos canjes y conserva las cartas ya entregadas. Los siete modos y su jugabilidad permanecen en 9.9.
+
+Validación: pruebas de horario, autorización del propietario, conflictos de publicación, texto seguro, canjes, guardados, duplicados, panel y empaquetado; revisión del tablón y acceso bloqueado en navegador. La entrada de un token real y la publicación desde el panel requieren la conexión privada del propietario y no se simulan como validación real.
+
 ## AURA VISION 9.9 · Toques y regate
 
 El balón avanza por toques separados; esprintar lo adelanta y un giro brusco puede hacer perder el control. **R + dirección / REGATE** produce una salida lateral. Mantener **Z / CONTROL** o **L2 en ProVision** permite conducir corto y proteger el balón. Frenado más rápido, pases ajustados a su distancia y preparación de un pase justo antes de recibir. Las mejoras se aplican con ambos perfiles de botones y conservan los modos y guardados. [Detalle y validación](docs/control-9.9.md).

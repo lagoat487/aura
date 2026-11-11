@@ -25,3 +25,13 @@ test("a missing versioned runtime file fails the production build",()=>{
   const result=build(root);assert.notEqual(result.status,0);assert.match(result.stderr,/Missing runtime asset: missing\.js/);
  }finally{fs.rmSync(root,{recursive:true,force:true});}
 });
+test('admin entrypoint, its independent scripts and the shared feed are included in production',()=>{
+ const root=fixture();
+ try{
+  fs.mkdirSync(path.join(root,'data'));
+  const files={'index.html':'<!doctype html>','admin-99.html':'<script src="./admin-panel-99.js"></script>','admin-panel-99.js':'const ready=true;','data/admin-live-99.json':'{"version":1}'};
+  for(const [file,content] of Object.entries(files))fs.writeFileSync(path.join(root,file),content);
+  const result=build(root);assert.equal(result.status,0,result.stderr);
+  for(const [file,content] of Object.entries(files))assert.equal(fs.readFileSync(path.join(root,'dist',file),'utf8'),content);
+ }finally{fs.rmSync(root,{recursive:true,force:true});}
+});

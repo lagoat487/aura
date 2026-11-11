@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "revision": 1,
+  "event": {
+    "id": "admin-20261111",
+    "title": "ADMIN ABUSE",
+    "startsAt": "2026-11-11T16:00:00.000Z",
+    "endsAt": null,
+    "cancelled": false
+  },
+  "announcements": [],
+  "gifts": []
+}
