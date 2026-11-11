@@ -31,6 +31,15 @@
     finally{lock(false);}
   }
   function endSession(){publisher.disconnect();current=null;$('admin-controls').hidden=true;$('pin-panel').hidden=false;$('admin-pin').value='';$('owner-badge').textContent='ACCESO EXCLUSIVO · CREADOR';}
+  function runCommand(value){
+    const command=value.trim().toLowerCase().replace(/\s+/g,' '),stamp=Date.now(),startsAt=new Date(stamp).toISOString();
+    if(command==='/monedas infinitas 1m')return change(feed=>{feed.coinBoost={id:uid('coins'),startsAt,endsAt:new Date(stamp+60000).toISOString()};},'Monedas infinitas activadas para todos durante 60 segundos.');
+    if(command==='/tiki tiki'||command==='/tiki')return change(feed=>{feed.musicCue={id:uid('music'),startsAt,endsAt:new Date(stamp+900000).toISOString()};},'TIKI TIKI enviada a todos. Los jugadores deben tener el audio activado.');
+    if(command==='/fuegos')return change(feed=>{feed.fireworksCue={id:uid('fireworks'),startsAt,endsAt:new Date(stamp+60000).toISOString()};},'Fuegos artificiales activados para todos durante 60 segundos.');
+    notice('Comandos: /monedas infinitas 1m · /tiki tiki · /fuegos',true);
+  }
+  $('command-form').addEventListener('submit',event=>{event.preventDefault();runCommand($('admin-command').value);});
+  $('command-shortcuts').addEventListener('click',event=>{const button=event.target.closest('[data-command]');if(button){$('admin-command').value=button.dataset.command;runCommand(button.dataset.command);}});
   $('pin-form').addEventListener('submit',async event=>{
     event.preventDefault();if(busy)return;const code=$('admin-pin').value;$('admin-pin').value='';lock(true);
     try{await publisher.connect(code);current=await publisher.read();$('pin-panel').hidden=true;$('admin-controls').hidden=false;$('owner-badge').textContent='CREADOR · NAVEGADOR AUTORIZADO';render();search();notice('Panel abierto. Ya puedes preparar el evento.');}

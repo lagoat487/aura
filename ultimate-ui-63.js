@@ -21,7 +21,7 @@ const AuraUTUI=(()=>{
   function adminApi(){
     if(typeof AuraAdminLocal!=='undefined')return Promise.resolve(AuraAdminLocal);
     if(!adminLoading)adminLoading=new Promise((resolve,reject)=>{
-      const script=document.createElement('script');script.src='./admin-local-2.js?v=unlimited-1';
+      const script=document.createElement('script');script.src='./admin-local-99-rewards.js';
       script.onload=()=>typeof AuraAdminLocal==='undefined'?reject(Error('unavailable')):resolve(AuraAdminLocal);
       script.onerror=()=>reject(Error('unavailable'));document.head.appendChild(script);
     }).catch(error=>{adminLoading=null;throw error;});
@@ -32,7 +32,7 @@ const AuraUTUI=(()=>{
   function affordable(cost){return typeof U.canAfford==='function'?U.canAfford(club,cost):club.coins>=cost;}
   function adminForm(modal=false){
     const id=modal?'ut-admin-modal-code':'ut-admin-code';
-    return '<section class="ut-panel ut-admin-local"><h3>CÓDIGO PRIVADO</h3><p>Activa monedas ilimitadas para tu club en este navegador.</p><label for="'+id+'">Código de administrador<input type="password" id="'+id+'" maxlength="96" autocomplete="off" spellcheck="false" placeholder="Pega tu código privado"></label><button class="btn primary" data-ut="admin-local-credit" data-admin-input="'+id+'">Canjear código →</button></section>';
+    return '<section class="ut-panel ut-admin-local"><h3>CÓDIGO PRIVADO</h3><p>Canjea códigos de regalo o activa tus monedas ilimitadas.</p><label for="'+id+'">Código de regalo o administrador<input type="password" id="'+id+'" maxlength="96" autocomplete="off" spellcheck="false" placeholder="Escribe tu código"></label><button class="btn primary" data-ut="admin-local-credit" data-admin-input="'+id+'">Canjear código →</button></section>';
   }
   const tabs=[['home','Inicio'],['events','Eventos actuales'],['squad','Plantilla'],['play','Jugar'],['store','Tienda'],['market','Mercado'],['sbc','DCP'],['objectives','Objetivos'],['club','Mi club'],['evolutions','Evoluciones'],['backup','Respaldo']];
   function pool(){
@@ -149,7 +149,7 @@ const AuraUTUI=(()=>{
         adminPending=true;
         adminApi().then(api=>api.redeem(typeof localStorage==='undefined'?null:localStorage,{version:2,club:current,tab,matchToken},code,allFormations,()=>club===current)).then(result=>{
           if(club!==current)return;
-          if(result.ok){Object.assign(club,result.club);restoreAdmin();if(field)field.value='';if(modal)closeModal();renderMain();notify('¡Monedas ilimitadas activadas en este navegador!');}
+          if(result.ok){Object.assign(club,result.club);restoreAdmin();if(field)field.value='';if(modal)closeModal();renderMain();notify(result.coins?'¡60.000.000 de monedas añadidas a tu club!':'¡Monedas ilimitadas activadas en este navegador!');}
           else notify(result.error);
         }).catch(()=>notify('No se pudo verificar el código.')).finally(()=>{adminPending=false;});
         return true;
@@ -302,5 +302,5 @@ const AuraUTUI=(()=>{
   }
   function input(e){if(e.target.id==='ut-market-query'){marketQuery=e.target.value.slice(0,70);const results=document.getElementById('ut-market-results');if(results)results.innerHTML=marketResults();}if(e.target.id==='ut-club-query'){clubQuery=e.target.value.slice(0,70);const results=document.getElementById('ut-club-results');if(results)results.innerHTML=collection();}}
   function openArgentinaEvent(){tab='events';renderGame();return !!club;}
-  return {render,bindRender,handleClick,change,input,getClub:()=>club,pool,saveClub:persistClub,openArgentinaEvent};
+  return {render,bindRender,handleClick,change,input,getClub:()=>club,pool,refresh:()=>{if(club)renderMain();},saveClub:persistClub,openArgentinaEvent};
 })();

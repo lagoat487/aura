@@ -53,3 +53,11 @@ test('rescheduling moves anchored gifts; stopping closes the event; a new event 
  f.nodes.get('event-name').value='ADMIN ABUSE';f.nodes.get('event-start').value='2026-11-11T12:00';f.nodes.get('event-end').value='2026-11-11T13:00';await f.trigger('schedule-form','submit');assert.equal(f.feed().event.startsAt,'2026-11-11T17:00:00.000Z');assert.equal(f.feed().gifts[0].startsAt,f.feed().event.startsAt);assert.equal(f.feed().gifts[0].endsAt,f.feed().event.endsAt);
  await f.trigger('stop-event');assert.equal(f.feed().event.cancelled,true);const old=f.feed().event.id;await f.trigger('start-now');assert.notEqual(f.feed().event.id,old);assert.deepEqual(f.feed().gifts,[]);assert.equal(E.status(f.feed()),'live');
 });
+
+test('manual admin commands publish bounded shared effects at any hour',async()=>{
+ const f=fixture(true,feed=>{feed.event=null;});await f.login();
+ for(const [command,field,duration] of [['/monedas infinitas 1m','coinBoost',60000],['/tiki tiki','musicCue',900000],['/fuegos','fireworksCue',60000]]){
+  f.nodes.get('admin-command').value=command;await f.trigger('command-form','submit');const cue=f.feed()[field];assert.ok(cue,command);assert.equal(Date.parse(cue.endsAt)-Date.parse(cue.startsAt),duration);assert.ok(E.validate(f.feed()),command);assert.equal(f.feed().event,null);
+ }
+ assert.equal(f.writes(),3);f.nodes.get('admin-command').value='/invalid';await f.trigger('command-form','submit');assert.equal(f.writes(),3);
+});

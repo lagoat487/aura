@@ -1,7 +1,7 @@
 /* Timed playback controls for the official YouTube embed. No downloaded audio. */
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.AuraEventMusic=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
-  const CONFIG={title:'TIKI TIKI',artist:'QMIIR',videoId:'xVS4zgb9AuU',startsAt:'2026-11-11T16:00:00.000Z',expiresAt:'2026-11-11T16:15:00.000Z',url:'https://www.youtube.com/watch?v=xVS4zgb9AuU'};
+  const CONFIG={title:'TIKI TIKI',artist:'QMIIR',videoId:'xVS4zgb9AuU',startsAt:'2026-11-11T15:45:00.000Z',expiresAt:'2026-11-11T16:00:00.000Z',url:'https://www.youtube.com/watch?v=xVS4zgb9AuU'};
   function create(player,{now=Date.now,config=CONFIG,onChange=()=>{}}={}){
     const start=Date.parse(config.startsAt),end=Date.parse(config.expiresAt);
     const state={armed:false,ready:false,attempted:false,phase:'off'};

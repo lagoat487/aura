@@ -4,7 +4,10 @@
   // Runtime permission restored only after this browser's private receipt is checked.
   // Saved/exported clubs keep an ordinary finite balance.
   const unlimitedClubs=new WeakSet();
-  function hasUnlimited(u){return !!u&&unlimitedClubs.has(u);}
+  let timedCoins=null;
+  function setTimedCoins(window){if(!window){timedCoins=null;return false;}const a=Date.parse(window.startsAt),b=Date.parse(window.endsAt);if(!Number.isFinite(a)||!Number.isFinite(b)||b<=a||b-a>60000)return false;timedCoins={start:a,end:b};return true;}
+  function hasAdminUnlimited(u){return !!u&&unlimitedClubs.has(u);}
+  function hasUnlimited(u){const now=Date.now();return !!u&&(unlimitedClubs.has(u)||!!timedCoins&&now>=timedCoins.start&&now<timedCoins.end);}
   function setUnlimited(u,enabled){if(!u||typeof u!=="object")return false;if(enabled)unlimitedClubs.add(u);else unlimitedClubs.delete(u);return hasUnlimited(u);}
   function canAfford(u,cost){return !!u&&Number.isSafeInteger(cost)&&cost>=0&&Number.isSafeInteger(u.coins)&&u.coins>=0&&(hasUnlimited(u)||u.coins>=cost);}
   function spend(u,cost){if(!canAfford(u,cost))return false;if(!hasUnlimited(u))u.coins-=cost;return true;}
@@ -451,5 +454,5 @@
     return coins;
   }
   function claimBattles(u){if(u.battlesClaimed.includes(u.battleCycle)||u.battlePoints<1000)return {error:"Consigue al menos 1.000 puntos en esta serie."};const reward=u.battlePoints>=5000?4000:u.battlePoints>=2500?2500:1000;u.battlesClaimed.push(u.battleCycle);u.coins+=reward;u.battleCycle++;u.battlePoints=0;return {ok:true,coins:reward};}
-  return {champions,championsCards,isChampions,hasUnlimited,setUnlimited,canAfford,create,chemistry,rating,league,packs,magia,magiaCards,claimMagiaGift,activeEvents,challenges,sbcRewards,sbcRewardCard,barcelona,barcelonaCards,sigma,eventCards,argentina,argentinaCards,flashback,flashbackCards,muralla,murallaCards,claimBarcelonaGift,claimMurallaGift,claimFlashbackGift,claimSigmaGift,draw,setPlayer,setFormation,auto,bench,price,marketPrice,evolutionCost,evolve,buy,quickSell,itemScore,ecuadorSbc,ecuadorSbcCard,sbcCompleted,sbcPool,sbcPreview,submitSBC,objectives,claim,reward,claimBattles};
+  return {champions,championsCards,isChampions,hasUnlimited,hasAdminUnlimited,setTimedCoins,setUnlimited,canAfford,create,chemistry,rating,league,packs,magia,magiaCards,claimMagiaGift,activeEvents,challenges,sbcRewards,sbcRewardCard,barcelona,barcelonaCards,sigma,eventCards,argentina,argentinaCards,flashback,flashbackCards,muralla,murallaCards,claimBarcelonaGift,claimMurallaGift,claimFlashbackGift,claimSigmaGift,draw,setPlayer,setFormation,auto,bench,price,marketPrice,evolutionCost,evolve,buy,quickSell,itemScore,ecuadorSbc,ecuadorSbcCard,sbcCompleted,sbcPool,sbcPreview,submitSBC,objectives,claim,reward,claimBattles};
 });

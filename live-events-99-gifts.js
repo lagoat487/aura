@@ -17,11 +17,15 @@
     if(!data||data.version!==1||!Number.isSafeInteger(data.revision)||data.revision<0||!Array.isArray(data.announcements)||data.announcements.length>30||!Array.isArray(data.gifts)||data.gifts.length>100)return null;
     const e=data.event;
     if(e!==null&&(!e||!id(e.id)||!text(e.title,70)||!windowOK(e)||typeof e.cancelled!=='boolean'))return null;
+    const cues={};
+    for(const [field,limit] of [['musicCue',900000],['fireworksCue',60000]]){const cue=data[field];if(cue===undefined)continue;if(cue!==null&&(!id(cue.id)||!time(cue.startsAt)||!time(cue.endsAt)||Date.parse(cue.endsAt)<=Date.parse(cue.startsAt)||Date.parse(cue.endsAt)-Date.parse(cue.startsAt)>limit))return null;cues[field]=cue?{id:cue.id,startsAt:cue.startsAt,endsAt:cue.endsAt}:null;}
+    const boost=data.coinBoost;
+    if(boost!==undefined&&boost!==null&&(!id(boost.id)||!time(boost.startsAt)||!time(boost.endsAt)||Date.parse(boost.endsAt)<=Date.parse(boost.startsAt)||Date.parse(boost.endsAt)-Date.parse(boost.startsAt)>60000))return null;
     const seen=new Set();
     for(const a of data.announcements){if(!a||!id(a.id)||seen.has('a:'+a.id)||!id(a.eventId)||!text(a.text,280)||!windowOK(a))return null;seen.add('a:'+a.id);}
     for(const g of data.gifts){if(!g||!id(g.id)||seen.has('g:'+g.id)||!id(g.eventId)||!text(g.playerId,200)||!windowOK(g)||(g.scope!==undefined&&g.scope!=='global'))return null;seen.add('g:'+g.id);}
     if(JSON.stringify(data).length>MAX_BYTES)return null;
-    return {version:1,revision:data.revision,event:e?{id:e.id,title:e.title,startsAt:e.startsAt,endsAt:e.endsAt,cancelled:e.cancelled}:null,
+    return {version:1,revision:data.revision,...cues,...(boost!==undefined?{coinBoost:boost?{id:boost.id,startsAt:boost.startsAt,endsAt:boost.endsAt}:null}:{}),event:e?{id:e.id,title:e.title,startsAt:e.startsAt,endsAt:e.endsAt,cancelled:e.cancelled}:null,
       announcements:data.announcements.map(a=>({id:a.id,eventId:a.eventId,text:a.text,startsAt:a.startsAt,endsAt:a.endsAt})),
       gifts:data.gifts.map(g=>({id:g.id,eventId:g.eventId,playerId:g.playerId,startsAt:g.startsAt,endsAt:g.endsAt,...(g.scope==='global'?{scope:'global'}:{})}))};
   }

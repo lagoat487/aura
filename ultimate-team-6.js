@@ -1,8 +1,22 @@
 /* AURA UT club economy and progression. All coins/items are session-only game data. */
 (function(root,factory){const api=factory(typeof module==="object"&&module.exports?require("./squad"):root.AuraSquad);if(typeof module==="object"&&module.exports)module.exports=api;else root.AuraUT=api;})(typeof globalThis!=="undefined"?globalThis:this,function(Squad){
   "use strict";
+  // Runtime permission restored only after this browser's private receipt is checked.
+  // Saved/exported clubs keep an ordinary finite balance.
+  const unlimitedClubs=new WeakSet();
+  let timedCoins=null;
+  function setTimedCoins(window){if(!window){timedCoins=null;return false;}const a=Date.parse(window.startsAt),b=Date.parse(window.endsAt);if(!Number.isFinite(a)||!Number.isFinite(b)||b<=a||b-a>60000)return false;timedCoins={start:a,end:b};return true;}
+  function hasAdminUnlimited(u){return !!u&&unlimitedClubs.has(u);}
+  function hasUnlimited(u){const now=Date.now();return !!u&&(unlimitedClubs.has(u)||!!timedCoins&&now>=timedCoins.start&&now<timedCoins.end);}
+  function setUnlimited(u,enabled){if(!u||typeof u!=="object")return false;if(enabled)unlimitedClubs.add(u);else unlimitedClubs.delete(u);return hasUnlimited(u);}
+  function canAfford(u,cost){return !!u&&Number.isSafeInteger(cost)&&cost>=0&&Number.isSafeInteger(u.coins)&&u.coins>=0&&(hasUnlimited(u)||u.coins>=cost);}
+  function spend(u,cost){if(!canAfford(u,cost))return false;if(!hasUnlimited(u))u.coins-=cost;return true;}
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
   const packs={silver:{name:"Sobre de plata",cost:750,count:3,min:65,max:74},gold:{name:"Sobre de oro",cost:2500,count:3,min:75,max:92},premium:{name:"Oro premium 82+",cost:7500,count:3,min:75,max:92,guaranteed:82}};
+  Object.assign(packs,{
+    champions86:{name:"Champions 86+",cost:25000,count:1,min:86,max:92,guaranteed:86,championsChance:.08},
+    championsTriple86:{name:"Triple Champions 86+",cost:70000,count:3,min:86,max:92,guaranteed:86,championsChance:.08}
+  });
   const challenges={silver:{name:"De plata a oro",count:3,min:65,max:74,score:900,reward:"gold"},gold:{name:"Mejora 82+",count:3,min:75,max:83,score:1900,reward:"premium"},elite:{name:"Desafío élite 82+",count:4,min:82,max:90,score:4400,reward:"premium"}};
   challenges.ecuador={name:"🇪🇨 Moisés Caicedo 87",count:11,min:1,max:99,score:0,nationality:"Ecuador",reward:"ecuador-caicedo",once:true};
   const ecuadorSbc=Object.freeze({id:"ecuador-sbc",cardId:"sbc:ecuador-caicedo",name:"Moisés Caicedo",overall:87,pos:"MCD",nationality:"Ecuador",playerId:"256079"});
@@ -51,7 +65,7 @@
     {id:"sigma:salah",name:"Mohamed Salah",overall:89,pos:"ED",price:580000,nationality:"Egipto",sourceClub:"Liverpool"}
   ])});
   // AURA fantasy event: player selection and ratings are not official league rosters.
-  const argentina=Object.freeze({id:"liga-argentina",name:"LIGA ARGENTINA",reward:35000,cards:Object.freeze([
+  const argentina=Object.freeze({id:"liga-argentina",name:"LIGA ARGENTINA",active:false,reward:35000,cards:Object.freeze([
     {id:"argentina:enner-valencia",name:"Enner Valencia",overall:89,pos:"DC",price:420000,nationality:"Ecuador"},
     {id:"argentina:angel-di-maria",name:"Ángel Di María",overall:88,pos:"ED",price:390000,nationality:"Argentina"},
     {id:"argentina:nicolas-otamendi",name:"Nicolás Otamendi",overall:87,pos:"DFC",price:330000,nationality:"Argentina"},
@@ -80,6 +94,13 @@
     {id:"muralla:gerard-martin",name:"Gerard Martín",overall:85,pos:"LI",price:300000,nationality:"España",playerId:"74462"},
     {id:"muralla:rudiger",name:"Antonio Rüdiger",overall:87,pos:"DFC",price:400000,nationality:"Alemania",playerId:"205452"},
     {id:"muralla:van-dijk",name:"Virgil van Dijk",overall:91,pos:"DFC",price:600000,nationality:"Países Bajos",playerId:"203376"}
+  ])});
+  // MAGIA: fantasy collector editions with fixed virtual-coin prices.
+  const magia=Object.freeze({id:"magia",name:"MAGIA",welcome:400000,cards:Object.freeze([
+    {id:"magia:olise",name:"Michael Olise",overall:91,pos:"ED",price:800000,nationality:"Francia",playerId:"247827"},
+    {id:"magia:nico-paz",name:"Nico Paz",overall:88,pos:"MCO",price:700000,nationality:"Argentina",playerId:"277846",aliases:["Nicolás Paz Martínez"]},
+    {id:"magia:messi",name:"Lionel Messi",overall:97,pos:"MCO",price:3000000,nationality:"Argentina",playerId:"158023",aliases:["Messi","Lionel Andrés Messi Cuccittini"]},
+    {id:"magia:diomande",name:"Yan Diomande",overall:89,pos:"ED",price:1000000,nationality:"Costa de Marfil",playerId:"78012"}
   ])});
   // Membership verified on FC Barcelona's official first-team roster, 4 November 2026.
   // Ratings and prices below are fantasy editions created for AURA Ultimate Team.
@@ -113,6 +134,49 @@
     {id:"barcelona:bisiwu",name:"Jesse Bisiwu",overall:85,pos:"EI",price:300000,nationality:"Bélgica",playerId:"88043",aliases:["Jesse Eugen Bisiwu"]},
     {id:"barcelona:hamza",name:"Hamza Abdelkarim",overall:85,pos:"DC",price:300000,nationality:"Egipto",playerId:"86106",aliases:["Hamza Mohamed Abdelkarim Elsayed Selim"]}
   ])});
+  // AURA selection from UEFA's ten matchday-4 Player of the Match winners below.
+  // These 89-rated editions are exclusively obtainable from promotional packs.
+  const champions=Object.freeze({id:"champions",name:"CHAMPIONS",matchday:4,dates:"3–4 NOV 2026",packOnly:true,
+    source:"https://www.uefa.com/uefachampionsleague/news/02a9-218b8766a6ce-03f12a507d5c-1000--every-2026-27-uefa-champions-league-player-of-the-match/",cards:Object.freeze([
+    {id:"champions:raphinha",name:"Raphinha",overall:89,pos:"EI",playerId:"233419",nationality:"Brasil",sourceClub:"FC Barcelona",club:"barcelona",clubNames:["FC Barcelona"],match:"Barcelona 3–0 Aston Villa"},
+    {id:"champions:bellingham",name:"Jude Bellingham",overall:89,pos:"MCO",playerId:"252371",nationality:"Inglaterra",sourceClub:"Real Madrid",club:"madrid",clubNames:["Real Madrid"],match:"AEK 2–3 Real Madrid"},
+    {id:"champions:bruno-fernandes",name:"Bruno Fernandes",overall:89,pos:"MCO",playerId:"212198",nationality:"Portugal",sourceClub:"Manchester United",club:"manutd",clubNames:["Man Utd","Manchester United"],match:"Manchester United 3–2 Roma"},
+    {id:"champions:fabian-ruiz",name:"Fabián Ruiz",overall:89,pos:"MC",playerId:"226271",nationality:"España",sourceClub:"Paris Saint-Germain",club:"psg",clubNames:["Paris SG","Paris Saint-Germain"],match:"Villarreal 0–6 Paris"},
+    {id:"champions:enzo-fernandez",name:"Enzo Fernández",overall:89,pos:"MC",playerId:"247090",nationality:"Argentina",sourceClub:"Manchester City",club:"city",clubNames:["Manchester City","Man City"],match:"Leipzig 2–3 Manchester City"},
+    {id:"champions:gyokeres",name:"Viktor Gyökeres",overall:89,pos:"DC",playerId:"241651",nationality:"Suecia",sourceClub:"Arsenal",club:"arsenal",clubNames:["Arsenal"],match:"Slavia Praha 1–2 Arsenal"},
+    {id:"champions:gabri-veiga",name:"Gabri Veiga",overall:89,pos:"MC",playerId:"258729",nationality:"España",sourceClub:"FC Porto",club:"porto",clubNames:["FC Porto","Porto"],match:"Porto 4–1 Napoli"},
+    {id:"champions:douvikas",name:"Tasos Douvikas",overall:89,pos:"DC",playerId:"261478",nationality:"Grecia",sourceClub:"Como",club:"como",clubNames:["Como"],match:"Lens 1–9 Como"},
+    {id:"champions:laimer",name:"Konrad Laimer",overall:89,pos:"LD",playerId:"225375",nationality:"Austria",sourceClub:"Bayern München",club:"bayern",clubNames:["FC Bayern München","Bayern München","Bayern Munich"],match:"Atlético 0–2 Bayern"},
+    {id:"champions:spence",name:"Djed Spence",overall:89,pos:"LI",playerId:"243702",nationality:"Inglaterra",sourceClub:"Inter",club:"inter",clubNames:["Inter","Lombardia FC"],match:"Feyenoord 0–3 Inter"}
+  ])});
+  const activeEvents=Object.freeze([magia,barcelona,muralla,flashback,champions]);
+  function isChampions(p){return p?.event===champions.id||String(p?.id||"").startsWith("champions:");}
+  function championsCards(pool=[]){
+    const available=Array.isArray(pool)?pool:[];
+    return champions.cards.map(def=>{
+      const base=available.find(p=>p.real&&p.id==="real:"+def.playerId)||available.find(p=>p.real&&normalizeName(p.name)===normalizeName(def.name));
+      const clubBase=available.find(p=>p.real&&def.clubNames.some(name=>normalizeName(name)===normalizeName(p.sourceClub)));
+      const portrait=def.playerId.padStart(6,"0");
+      return {...(base||{}),id:def.id,originalId:base?.originalId||base?.id||"real:"+def.playerId,name:def.name,
+        overall:89,pos:def.pos,real:true,event:champions.id,packOnly:true,tradeable:false,nationality:def.nationality,
+        sourceClub:def.sourceClub,club:clubBase?.club||def.club,catalogClub:clubBase?.catalogClub||def.club,
+        leagueId:clubBase?.leagueId||"reference",leagueLabel:"Champions · Jornada 4 · AURA",match:def.match,
+        photo:base?.photo||"https://cdn.sofifa.net/players/"+portrait.slice(0,-3)+"/"+portrait.slice(-3)+"/26_120.png"};
+    });
+  }
+  function magiaCards(pool=[]){
+    const available=Array.isArray(pool)?pool:[];
+    return magia.cards.map(def=>{
+      const aliases=[def.name,...(def.aliases||[])].map(normalizeName);
+      const base=available.find(p=>p.real&&p.id==="real:"+def.playerId)||available.find(p=>p.real&&aliases.includes(normalizeName(p.name)));
+      const portrait=def.playerId.padStart(6,"0");
+      return {...(base||{}),id:def.id,originalId:base?.originalId||base?.id||"real:"+def.playerId,
+        name:def.name,overall:def.overall,pos:def.pos,real:true,event:magia.id,eventPrice:def.price,
+        nationality:def.nationality,sourceClub:base?.sourceClub||"Edición MAGIA",tradeable:true,
+        leagueId:base?.leagueId||"reference",leagueLabel:"Magia · AURA 27",
+        photo:base?.photo||"https://cdn.sofifa.net/players/"+portrait.slice(0,-3)+"/"+portrait.slice(-3)+"/26_120.png"};
+    });
+  }
   function barcelonaCards(pool=[]){
     const available=Array.isArray(pool)?pool:[];
     const clubBase=available.find(p=>p.real&&p.club==="barcelona"&&p.catalogClub);
@@ -178,6 +242,12 @@
         leagueId:base?.leagueId||"reference",leagueLabel:"Flashback · AURA 27"};
     });
   }
+  function claimMagiaGift(u){
+    if(!u||u.magiaGiftClaimed)return {error:"Ya reclamaste las 400.000 monedas de bienvenida MAGIA."};
+    if(!Number.isSafeInteger(u.coins)||u.coins<0||u.coins>1e12-magia.welcome)return {error:"El saldo del club no permite entregar el bono."};
+    u.coins+=magia.welcome;u.magiaGiftClaimed=true;
+    return {ok:true,coins:magia.welcome};
+  }
   function claimBarcelonaGift(u){
     if(!u||u.barcelonaGiftClaimed)return {error:"Ya reclamaste las 500.000 monedas de bienvenida FC Barcelona."};
     if(!Number.isSafeInteger(u.coins)||u.coins<0||u.coins>1e12-barcelona.welcome)
@@ -209,17 +279,18 @@
     return {players,total:players.reduce((a,b)=>a+b,0)};
   }
   function create(pool,preferredLeague="all",name="Mi AURA FC"){
-    const eligible=pool.filter(p=>p.real&&p.overall>=62&&p.overall<=79),fav=eligible.filter(p=>preferredLeague!=="all"&&league(p)===preferredLeague),ranked=[...fav,...eligible.filter(p=>!fav.some(q=>q.id===p.id))];
+    const eligible=pool.filter(p=>p.real&&!isChampions(p)&&p.overall>=62&&p.overall<=79),fav=eligible.filter(p=>preferredLeague!=="all"&&league(p)===preferredLeague),ranked=[...fav,...eligible.filter(p=>!fav.some(q=>q.id===p.id))];
     const unique=[...new Map(ranked.map(p=>[p.id,p])).values()],xi=Squad.choose(unique.map(p=>({...p,overall:p.overall+(league(p)===preferredLeague?12:0)})),'4-3-3');if(xi.some(id=>!id))throw Error("El catálogo todavía está cargando. Vuelve a intentarlo.");
     // Choose with a small starter preference; keep a full bench and SBC reserves.
     const first=xi.map(id=>({...unique.find(p=>p.id===id),tradeable:false})),others=unique.filter(p=>!xi.includes(p.id)).sort((a,b)=>Number(league(b)===preferredLeague)-Number(league(a)===preferredLeague)||b.overall-a.overall).slice(0,12).map(p=>({...p,tradeable:false}));
-    return {version:2,name:String(name||"").trim().slice(0,24)||"Mi AURA FC",coins:10000,owned:first.concat(others),duplicates:[],xi,formation:'4-3-3',tactic:'balanced',played:0,wins:0,draws:0,losses:0,claimed:[],lastPack:[],packsOpened:0,purchases:0,sbcs:0,sbcCompleted:[],objectives:[],battlePoints:0,battleCycle:0,battlesClaimed:[],division:10,divisionPoints:0,serial:0,barcelonaGiftClaimed:false,murallaGiftClaimed:false,sigmaGiftClaimed:false,flashbackGiftClaimed:false,flashbackPlayed:0,flashbackWins:0,flashbackEarned:0};
+    return {version:2,name:String(name||"").trim().slice(0,24)||"Mi AURA FC",coins:10000,owned:first.concat(others),duplicates:[],xi,formation:'4-3-3',tactic:'balanced',played:0,wins:0,draws:0,losses:0,claimed:[],lastPack:[],packsOpened:0,purchases:0,sbcs:0,sbcCompleted:[],objectives:[],battlePoints:0,battleCycle:0,battlesClaimed:[],division:10,divisionPoints:0,serial:0,magiaGiftClaimed:false,barcelonaGiftClaimed:false,murallaGiftClaimed:false,sigmaGiftClaimed:false,flashbackGiftClaimed:false,flashbackPlayed:0,flashbackWins:0,flashbackEarned:0};
   }
   function rating(u){return Math.round(u.xi.reduce((n,id)=>n+(u.owned.find(p=>p.id===id)?.overall||0),0)/11);}
   function addCards(u,cards){return cards.map(p=>{const copy={...p};if(u.owned.some(q=>q.id===p.id)){copy.duplicate=true;copy.uid="duplicate:"+(++u.serial);u.duplicates.push({...copy});}else u.owned.push(copy);return copy;});}
   function draw(u,pool,type,rng=Math.random,free=false){
-    const def=packs[type];if(!def)return {error:"Este sobre no existe."};if(!free&&u.coins<def.cost)return {error:"No tienes monedas suficientes."};
-    const candidates=pool.filter(p=>p.real&&p.overall>=def.min&&p.overall<=def.max),chosen=[],used=new Set();
+    const def=packs[type];if(!def)return {error:"Este sobre no existe."};if(!free&&!canAfford(u,def.cost))return {error:"No tienes monedas suficientes."};
+    if(def.championsChance)return drawPromotional(u,pool,def,rng,free);
+    const candidates=pool.filter(p=>p.real&&!isChampions(p)&&p.overall>=def.min&&p.overall<=def.max),chosen=[],used=new Set();
     if(candidates.length<def.count)return {error:"No hay suficientes jugadores disponibles para este sobre."};
     for(let i=0;i<def.count;i++){
       const minimum=i===0&&def.guaranteed?def.guaranteed:def.min;
@@ -227,7 +298,25 @@
       const options=candidates.filter(p=>!used.has(p.id)&&p.overall>=minimum),weights=options.map(p=>Math.exp(-(p.overall-def.min)*.24)),sum=weights.reduce((a,b)=>a+b,0);if(!options.length)return {error:"No se puede cumplir la garantía del sobre."};
       let at=rng()*sum,index=0;while(index<options.length-1&&(at-=weights[index])>0)index++;const p=options[index];used.add(p.id);chosen.push({...p,tradeable:!free});
     }
-    if(!free)u.coins-=def.cost;u.packsOpened++;u.lastPack=addCards(u,chosen).sort((a,b)=>b.overall-a.overall);return {ok:true,cards:u.lastPack};
+    if(!free)spend(u,def.cost);u.packsOpened++;u.lastPack=addCards(u,chosen).sort((a,b)=>b.overall-a.overall);return {ok:true,cards:u.lastPack};
+  }
+  function drawPromotional(u,pool,def,rng,free){
+    if(free)return {error:"Este sobre promocional está disponible solo en la tienda."};
+    const base=[...new Map(pool.filter(p=>p.real&&!p.event&&!isChampions(p)&&p.overall>=86&&p.overall<=def.max).map(p=>[p.id,p])).values()];
+    if(base.length<def.count)return {error:"El catálogo 86+ todavía está cargando. Vuelve a intentarlo."};
+    const special=championsCards(pool),used=new Set(),chosen=[];
+    const roll=()=>{const n=rng();if(!Number.isFinite(n)||n<0||n>=1)throw Error("invalid random draw");return n;};
+    try{
+      for(let i=0;i<def.count;i++){
+        const promo=roll()<def.championsChance,options=(promo?special:base).filter(p=>!used.has(p.id));
+        if(!options.length)return {error:"No se puede completar este sobre. No se cobraron monedas."};
+        const p=options[Math.floor(roll()*options.length)];used.add(p.id);chosen.push({...p,tradeable:promo?false:true});
+      }
+    }catch{return {error:"No se pudo abrir el sobre. Vuelve a intentarlo."};}
+    const fresh=chosen.filter(p=>!u.owned.some(q=>q.id===p.id)).length;
+    if(u.owned.length+fresh>8000||u.duplicates.length+chosen.length-fresh>8000)return {error:"Tu club está lleno. Usa repetidos en DCP antes de abrir otro sobre."};
+    if(!spend(u,def.cost))return {error:"No tienes monedas suficientes."};
+    u.packsOpened++;u.lastPack=addCards(u,chosen).sort((a,b)=>Number(isChampions(b))-Number(isChampions(a))||b.overall-a.overall);return {ok:true,cards:u.lastPack};
   }
   function setPlayer(u,slot,id){
     if(!Number.isInteger(slot)||slot<0||slot>10||!u.owned.some(p=>p.id===id))return false;
@@ -246,6 +335,9 @@
     return selected;
   }
   function price(p){
+    if(isChampions(p))return 0;
+    const magic=p?.event===magia.id&&magia.cards.find(x=>x.id===p.id&&x.overall===p.overall);
+    if(magic)return magic.price;
     const barca=p?.event===barcelona.id&&barcelona.cards.find(x=>x.id===p.id&&x.overall===p.overall);
     if(barca)return barca.price;
     const wall=p?.event===muralla.id&&muralla.cards.find(x=>x.id===p.id&&x.overall===p.overall);
@@ -257,7 +349,7 @@
     if(arg)return arg.price;return Math.round((p.overall<65?300:p.overall<75?700+(p.overall-65)*80:p.overall<84?1200+Math.pow(p.overall-74,2)*160:18000*Math.pow(1.6,p.overall-84))/50)*50;}
   function marketPrice(u,p){
     const base=price(p);
-    if(!u||p?.event===sigma.id||p?.event===argentina.id||p?.event===flashback.id||p?.event===muralla.id||p?.event===barcelona.id||!Number.isSafeInteger(u.played)||u.played<=0)return base;
+    if(!u||p?.event===sigma.id||p?.event===argentina.id||p?.event===flashback.id||p?.event===muralla.id||p?.event===barcelona.id||p?.event===magia.id||!Number.isSafeInteger(u.played)||u.played<=0)return base;
     let hash=0;for(const ch of String(p.id))hash=(Math.imul(hash,31)+ch.charCodeAt(0))>>>0;
     // Offline market trend is predictable for a given matchday and card;
     // no networking or arbitrary real-money prices are involved.
@@ -265,7 +357,7 @@
     return Math.max(100,Math.round(base*(1+cycle*.025)/50)*50);
   }
   function evolutionCost(p){
-    if(!p||!Number.isInteger(p.overall)||(p.event===sigma.id||p.event===argentina.id||p.event===flashback.id||p.event===muralla.id||p.event===ecuadorSbc.id||p.event==="sbc-stars"||p.event===barcelona.id)||(p.evolutionLevel||0)>=2||p.overall>90)return null;
+    if(!p||isChampions(p)||!Number.isInteger(p.overall)||(p.event===sigma.id||p.event===argentina.id||p.event===flashback.id||p.event===muralla.id||p.event===ecuadorSbc.id||p.event==="sbc-stars"||p.event===barcelona.id||p.event===magia.id)||(p.evolutionLevel||0)>=2||p.overall>90)return null;
     return Math.max(1500,Math.round((p.overall-60)*400/50)*50);
   }
   function evolve(u,id){
@@ -273,26 +365,31 @@
     if(!p)return {error:"Esta carta no pertenece a tu club."};
     const cost=evolutionCost(p);
     if(cost===null)return {error:"Esta carta no cumple los requisitos de evolución."};
-    if(u.coins<cost)return {error:"No tienes monedas suficientes para evolucionar esta carta."};
+    if(!canAfford(u,cost))return {error:"No tienes monedas suficientes para evolucionar esta carta."};
     // Upgrade only the owned edition; preserve its identity, XI, collection and
     // original market catalogue. No new duplicate card is generated.
     p.overall=Math.min(92,p.overall+2);p.evolutionLevel=(p.evolutionLevel||0)+1;
-    p.evolved=true;u.coins-=cost;u.evolutions=(u.evolutions||0)+1;
+    p.evolved=true;spend(u,cost);u.evolutions=(u.evolutions||0)+1;
     return {ok:true,player:p,cost,overall:p.overall,level:p.evolutionLevel};
   }
   function buy(u,player){if(!player?.real||!player.id)return {error:"Jugador no disponible."};
+    if(isChampions(player))return {error:"Las cartas Champions solo se consiguen en sobres promocionales 86+."};
     if(player.event===ecuadorSbc.id||player.id===ecuadorSbc.cardId)return {error:"Esta carta es exclusiva del DCP Ecuador."};
     if(player.event==="sbc-stars"||String(player.id).startsWith("sbc:"))return {error:"Esta carta es exclusiva de los SBC."};
+    if((player.event===magia.id||String(player.id).startsWith("magia:"))&&
+      (player.event!==magia.id||!magia.cards.some(p=>p.id===player.id&&p.name===player.name&&p.overall===player.overall&&p.pos===player.pos)))
+      return {error:"Carta MAGIA no disponible."};
     if((player.event===barcelona.id||String(player.id).startsWith("barcelona:"))&&
       (player.event!==barcelona.id||!barcelona.cards.some(p=>p.id===player.id&&p.name===player.name&&p.overall===player.overall&&p.pos===player.pos)))
       return {error:"Carta FC Barcelona no disponible."};
+    if(player.event===argentina.id||String(player.id).startsWith("argentina:"))return {error:"El evento Liga Argentina ha finalizado."};
     if(player.event===sigma.id||String(player.id).startsWith("sigma:"))return {error:"El evento Ultimate Sigma ha finalizado."};
     if((player.event===muralla.id||String(player.id).startsWith("muralla:"))&&
       (player.event!==muralla.id||!muralla.cards.some(p=>p.id===player.id&&p.name===player.name&&p.overall===player.overall&&p.pos===player.pos)))
       return {error:"Carta Muralla no disponible."};
     if(player.event===flashback.id&&!flashback.cards.some(p=>p.id===player.id&&p.name===player.name&&p.overall===player.overall&&p.pos===player.pos))
       return {error:"Carta Flashback no disponible."};if(player.event===sigma.id&&!sigma.cards.some(p=>p.id===player.id&&p.overall===player.overall))return {error:"Carta Ultimate Sigma no disponible."};
-    if(player.event===argentina.id&&!argentina.cards.some(p=>p.id===player.id&&p.overall===player.overall&&p.price>=300000&&p.price<=500000))return {error:"Carta Liga Argentina no disponible."};if(u.owned.some(p=>p.id===player.id))return {error:"Este jugador ya está en tu club."};const cost=marketPrice(u,player);if(u.coins<cost)return {error:"No tienes monedas suficientes."};u.coins-=cost;u.owned.push({...player,tradeable:true});u.purchases++;return {ok:true,cost};}
+    if(player.event===argentina.id&&!argentina.cards.some(p=>p.id===player.id&&p.overall===player.overall&&p.price>=300000&&p.price<=500000))return {error:"Carta Liga Argentina no disponible."};if(u.owned.some(p=>p.id===player.id))return {error:"Este jugador ya está en tu club."};const cost=marketPrice(u,player);if(!canAfford(u,cost))return {error:"No tienes monedas suficientes."};spend(u,cost);u.owned.push({...player,tradeable:true});u.purchases++;return {ok:true,cost};}
   function quickSell(u,id,duplicate=false){
     const list=duplicate?u.duplicates:u.owned,index=list.findIndex(p=>(duplicate?p.uid:p.id)===id),p=list[index];if(!p)return {error:"Esta carta ya no está disponible."};if(!duplicate&&u.xi.includes(id))return {error:"Quita esta carta del once antes de venderla."};if(!p.tradeable)return {error:"Esta carta es intransferible; puedes usarla en DCP."};
     const coins=Math.max(100,Math.round(price(p)*.2));list.splice(index,1);u.coins+=coins;return {ok:true,coins};
@@ -342,26 +439,20 @@
   function reward(u,token,result,mode='battles',difficulty=1){
     if(mode===flashback.id&&!(typeof token==="string"&&/^ut:flashback:\d+$/.test(token)))return false;
     if(typeof token==="string"&&token.startsWith("ut:flashback:")&&mode!==flashback.id)return false;
-    if(mode===argentina.id&&!(typeof token==="string"&&/^ut:argentina:\d+$/.test(token)))return false;
+    if(mode===argentina.id||typeof token==="string"&&token.startsWith("ut:argentina:"))return false;
     if(u.claimed.includes(token)||!Number.isInteger(result?.home)||!Number.isInteger(result?.away)||result.home<0||result.away<0)return false;
     u.claimed.push(token);u.played++;const won=result.home>result.away,drew=result.home===result.away;u[won?'wins':drew?'draws':'losses']++;
     const flashbackMatch=mode===flashback.id&&typeof token==="string"&&/^ut:flashback:\d+$/.test(token);
-    const argentinaMatch=mode===argentina.id&&typeof token==="string"&&/^ut:argentina:\d+$/.test(token);
-    const coins=flashbackMatch?flashback.reward:argentinaMatch?argentina.reward:won?1200:drew?600:350;u.coins+=coins;
+    const coins=flashbackMatch?flashback.reward:won?1200:drew?600:350;u.coins+=coins;
     if(flashbackMatch){
       u.flashbackPlayed=(u.flashbackPlayed||0)+1;
       u.flashbackWins=(u.flashbackWins||0)+(won?1:0);
       u.flashbackEarned=(u.flashbackEarned||0)+coins;
-    }
-    if(argentinaMatch){
-      u.argentinaPlayed=(u.argentinaPlayed||0)+1;
-      u.argentinaWins=(u.argentinaWins||0)+(won?1:0);
-      u.argentinaEarned=(u.argentinaEarned||0)+coins;
     }
     if(mode==='battles')u.battlePoints+=Math.round((won?900:drew?450:250)*difficulty)+Math.min(5,result.home)*40;
     if(mode==='divisions'){u.divisionPoints+=won?3:drew?1:0;if(u.divisionPoints>=9&&u.division>1){u.division--;u.divisionPoints-=9;u.coins+=1500;}}
     return coins;
   }
   function claimBattles(u){if(u.battlesClaimed.includes(u.battleCycle)||u.battlePoints<1000)return {error:"Consigue al menos 1.000 puntos en esta serie."};const reward=u.battlePoints>=5000?4000:u.battlePoints>=2500?2500:1000;u.battlesClaimed.push(u.battleCycle);u.coins+=reward;u.battleCycle++;u.battlePoints=0;return {ok:true,coins:reward};}
-  return {create,chemistry,rating,league,packs,challenges,sbcRewards,sbcRewardCard,barcelona,barcelonaCards,sigma,eventCards,argentina,argentinaCards,flashback,flashbackCards,muralla,murallaCards,claimBarcelonaGift,claimMurallaGift,claimFlashbackGift,claimSigmaGift,draw,setPlayer,setFormation,auto,bench,price,marketPrice,evolutionCost,evolve,buy,quickSell,itemScore,ecuadorSbc,ecuadorSbcCard,sbcCompleted,sbcPool,sbcPreview,submitSBC,objectives,claim,reward,claimBattles};
+  return {champions,championsCards,isChampions,hasUnlimited,hasAdminUnlimited,setTimedCoins,setUnlimited,canAfford,create,chemistry,rating,league,packs,magia,magiaCards,claimMagiaGift,activeEvents,challenges,sbcRewards,sbcRewardCard,barcelona,barcelonaCards,sigma,eventCards,argentina,argentinaCards,flashback,flashbackCards,muralla,murallaCards,claimBarcelonaGift,claimMurallaGift,claimFlashbackGift,claimSigmaGift,draw,setPlayer,setFormation,auto,bench,price,marketPrice,evolutionCost,evolve,buy,quickSell,itemScore,ecuadorSbc,ecuadorSbcCard,sbcCompleted,sbcPool,sbcPreview,submitSBC,objectives,claim,reward,claimBattles};
 });

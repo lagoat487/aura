@@ -23,15 +23,21 @@
       (messages.length?'<div class="live-messages" aria-label="Avisos del creador">'+messages.slice(-5).reverse().map(a=>'<article><b>EMILIO · CREADOR</b><p>'+esc(a.text)+'</p></article>').join(''):'<p class="live-empty">'+'El creador puede publicar avisos en cualquier momento.'+'</p>')+
       '<h3>JUGADORES DE REGALO</h3>'+(!gifts.length?'<p>Espera a que el creador publique los futbolistas.</p>':gifts.map(g=>{const p=cards.find(p=>p.id===g.playerId);return '<article class="live-gift"><span class="live-rating">'+(p?.overall||'?')+'</span><div><b>'+esc(p?.name||'Carta pendiente de catálogo')+'</b><small>'+esc(p?.pos||'Actualiza AURA')+' · '+esc(p?.event||'Carta base')+'</small>'+(!g.available?'<small class="live-gift-time">Disponible '+esc(format(g.availableAt))+' · Ecuador</small>':'')+'</div><button class="btn primary" data-live="claim" data-gift="'+esc(g.id)+'" '+(g.claimed||!g.available||!p?'disabled':'')+'>'+(g.claimed?'Reclamado':!g.available?'Programado':club?'Reclamar':'Crear club UT')+'</button></article>';}).join(''))+
       '<p class="live-save-note">Un canje por regalo y club guardado en este navegador. Los repetidos se conservan en tu club.</p><div class="live-bottom"><button class="btn small" data-live="refresh" '+(pending?'disabled':'')+'>'+(pending?'Actualizando…':'Actualizar tablón')+'</button><span>'+(error?esc(error):lastOK?'Actualizado '+new Date(lastOK).toLocaleTimeString('es-EC',{timeZone:'America/Guayaquil',hour:'2-digit',minute:'2-digit'}):'')+'</span></div>'+
-      (club&&AuraUT.hasUnlimited?.(club)?'<a class="live-owner-link" href="./admin-99.html" target="_blank" rel="noopener">Abrir panel del creador ↗</a>':'')+'</section>':'');
+      (club&&AuraUT.hasAdminUnlimited?.(club)?'<a class="live-owner-link" href="./admin-99.html" target="_blank" rel="noopener">Abrir panel del creador ↗</a>':'')+'</section>':'');
   }
+  const boostBanner=document.createElement('div');boostBanner.id='aura-coins-live';boostBanner.hidden=true;boostBanner.setAttribute('role','status');document.body.append(boostBanner);
+  let boostWasActive=false;
+  function syncCoins(){const boost=feed?.coinBoost;AuraUT.setTimedCoins?.(boost||null);const now=Date.now(),active=!!boost&&now>=Date.parse(boost.startsAt)&&now<Date.parse(boost.endsAt);boostBanner.hidden=!active;if(active!==boostWasActive){boostWasActive=active;if(document.querySelector('.ut-top'))AuraUTUI.refresh?.();}if(active)boostBanner.textContent='∞ MONEDAS INFINITAS · '+Math.ceil((Date.parse(boost.endsAt)-now)/1000)+' s';const club=typeof AuraUTUI!=='undefined'?AuraUTUI.getClub():null,currency=document.querySelector('.ut-currency span:first-child b');if(club&&currency)currency.textContent=AuraUT.hasUnlimited(club)?'∞':club.coins.toLocaleString('es-ES');}
+  setInterval(syncCoins,250);
+  const seenCues=new Set();
+  function syncCues(){for(const [field,name] of [['musicCue','aura-live-music'],['fireworksCue','aura-live-fireworks']]){const cue=feed?.[field],now=Date.now();if(cue&&!seenCues.has(cue.id)&&now>=Date.parse(cue.startsAt)&&now<Date.parse(cue.endsAt)){seenCues.add(cue.id);window.dispatchEvent(new CustomEvent(name,{detail:cue}));}}}
   async function refresh(){
     if(pending)return;pending=true;error='';if(open)render();
     try{
       const hosted=/^(raw|rawcdn)\.githack\.com$/.test(location.hostname),url=hosted?(typeof AuraLiveService!=='undefined'?AuraLiveService.feed:E.RAW)+'?aura_live='+Date.now():'./'+E.PATH+'?aura_live='+Date.now();
       const response=await fetch(url,{cache:'no-store',credentials:'omit',signal:AbortSignal.timeout(12000)});
       if(!response.ok)throw Error('offline');const raw=await response.text();if(raw.length>E.MAX_BYTES)throw Error('size');
-      const next=E.validate(JSON.parse(raw));if(!next)throw Error('invalid');if(!feed||next.revision>=feed.revision)feed=next;lastOK=Date.now();announce();
+      const next=E.validate(JSON.parse(raw));if(!next)throw Error('invalid');if(!feed||next.revision>=feed.revision)feed=next;lastOK=Date.now();syncCoins();syncCues();announce();
     }catch{error='Sin conexión al tablón. Vuelve a actualizar.';}finally{pending=false;render();}
   }
   host.addEventListener('click',event=>{
@@ -51,6 +57,6 @@
   window.addEventListener('online',refresh);
   window.addEventListener('storage',event=>{if(event.key===AuraUTSave.KEY){error='Tu club cambió en otra pestaña. Recarga antes de reclamar.';if(open)render();}});
   let lastState='';setInterval(()=>{const state=E.status(feed),next=clock(),clockEl=host.querySelector('[data-live-clock]');if(clockEl)clockEl.textContent=next;if(state!==lastState){lastState=state;render();announce();}else if(open&&typeof AuraUTUI!=='undefined'&&selectedTab!==String(!!AuraUTUI.getClub())){selectedTab=String(!!AuraUTUI.getClub());render();}},1000);
-  setInterval(()=>{if(!document.hidden)refresh();},20000);
+  setInterval(()=>{if(!document.hidden)refresh();},5000);
   render();refresh();
 })();

@@ -20,6 +20,15 @@
   const original=session.club,text=String(code||'').trim().toUpperCase();let before,receipt;
   try{before=storage.getItem(Save.KEY);receipt=storage.getItem(KEY);}catch{return {error:'No se puede leer el club guardado.'};}
   if(!text||text.length>96)return {error:'Introduce tu código privado.'};
+  if(text==='88'){
+   if(original.promoCode88Claimed)return {error:'Ya canjeaste el código 88 en este club.'};
+   const saved=Save.load(storage,formations).snapshot;
+   if(!current()||storage.getItem(Save.KEY)!==before||!saved||JSON.stringify(saved.club)!==JSON.stringify(original))return {error:'El club cambió. Recarga y vuelve a intentarlo.'};
+   const club={...original,coins:original.coins+60000000,promoCode88Claimed:true};
+   if(!Save.normalize({...session,club},formations))return {error:'El saldo supera el límite de guardado.'};
+   if(!Save.save(storage,{...session,club},formations))return {error:'No se pudo guardar el regalo. Vuelve a intentarlo.'};
+   return {ok:true,coins:60000000,club};
+  }
   if(!Crypto?.subtle)return {error:'Abre AURA mediante su enlace HTTPS para canjear el código.'};
   const digest=await Crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));
   const hash=Array.from(new Uint8Array(digest),n=>n.toString(16).padStart(2,'0')).join('');
