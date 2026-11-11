@@ -19,11 +19,11 @@
     if(e!==null&&(!e||!id(e.id)||!text(e.title,70)||!windowOK(e)||typeof e.cancelled!=='boolean'))return null;
     const seen=new Set();
     for(const a of data.announcements){if(!a||!id(a.id)||seen.has('a:'+a.id)||!id(a.eventId)||!text(a.text,280)||!windowOK(a))return null;seen.add('a:'+a.id);}
-    for(const g of data.gifts){if(!g||!id(g.id)||seen.has('g:'+g.id)||!id(g.eventId)||!text(g.playerId,200)||!windowOK(g))return null;seen.add('g:'+g.id);}
+    for(const g of data.gifts){if(!g||!id(g.id)||seen.has('g:'+g.id)||!id(g.eventId)||!text(g.playerId,200)||!windowOK(g)||(g.scope!==undefined&&g.scope!=='global'))return null;seen.add('g:'+g.id);}
     if(JSON.stringify(data).length>MAX_BYTES)return null;
     return {version:1,revision:data.revision,event:e?{id:e.id,title:e.title,startsAt:e.startsAt,endsAt:e.endsAt,cancelled:e.cancelled}:null,
       announcements:data.announcements.map(a=>({id:a.id,eventId:a.eventId,text:a.text,startsAt:a.startsAt,endsAt:a.endsAt})),
-      gifts:data.gifts.map(g=>({id:g.id,eventId:g.eventId,playerId:g.playerId,startsAt:g.startsAt,endsAt:g.endsAt}))};
+      gifts:data.gifts.map(g=>({id:g.id,eventId:g.eventId,playerId:g.playerId,startsAt:g.startsAt,endsAt:g.endsAt,...(g.scope==='global'?{scope:'global'}:{})}))};
   }
   function status(feed,now=Date.now()){
     const e=feed?.event;
@@ -39,11 +39,18 @@
     const live=status(feed,now)==='live';
     return (feed?.announcements||[]).filter(a=>inWindow(a,now)&&(a.eventId==='global'||live&&a.eventId===feed.event.id));
   }
-  function gifts(feed,club,now=Date.now()){
-    if(status(feed,now)!=='live')return [];
+  function giftEntries(feed,club,now=Date.now()){
+    const event=feed?.event,state=status(feed,now);
     const receipts=Array.isArray(club?.adminGiftReceipts)?club.adminGiftReceipts:[];
-    return feed.gifts.filter(g=>g.eventId===feed.event.id&&inWindow(g,now)).map(g=>({...g,claimed:receipts.includes(g.eventId+':'+g.id)}));
+    return (feed?.gifts||[]).filter(g=>{
+      if(g.endsAt!==null&&now>=Date.parse(g.endsAt))return false;
+      return g.scope==='global'||g.eventId==='global'||event&&g.eventId===event.id&&!event.cancelled&&state!=='ended';
+    }).map(g=>{
+      const global=g.scope==='global'||g.eventId==='global',availableAt=global?Date.parse(g.startsAt):Math.max(Date.parse(g.startsAt),Date.parse(event.startsAt));
+      return {...g,claimed:receipts.includes(g.eventId+':'+g.id),available:now>=availableAt&&(global||state==='live'),availableAt:new Date(availableAt).toISOString()};
+    });
   }
+  function gifts(feed,club,now=Date.now()){return giftEntries(feed,club,now).filter(g=>g.available);}
   function claim(storage,session,feed,giftId,cards,now=Date.now()){
     const checked=validate(feed),normalized=Save.normalize(session);
     if(!checked||!normalized)return {error:'Primero crea tu club de Ultimate Team.'};
@@ -90,5 +97,5 @@
     }
     return {connect,read,publish,disconnect(){token='';connected=false;},isConnected:()=>connected};
   }
-  return {REPO,OWNER_ID,PATH,API,RAW,MAX_BYTES,validate,status,catalog,announcements,gifts,claim,owner,publisher};
+  return {REPO,OWNER_ID,PATH,API,RAW,MAX_BYTES,validate,status,catalog,announcements,giftEntries,gifts,claim,owner,publisher};
 });

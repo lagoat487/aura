@@ -26,6 +26,17 @@ test('global announcements work before, during and after the event, including ca
  assert.deepEqual(E.announcements(null,now),[]);
  const f=feed();f.event=null;f.announcements=[{...global,startsAt:new Date(now+1).toISOString()},{...global,id:'expired',endsAt:new Date(now).toISOString()}];assert.deepEqual(E.announcements(f,now),[],'global messages still respect their own time window');
 });
+test('scheduled gifts are visible before kickoff with an exact unlock time, while instant gifts are claimable without an event',()=>{
+ const scheduled=feed(),entries=E.giftEntries(scheduled,null,now-1);assert.equal(entries.length,1);assert.equal(entries[0].available,false);assert.equal(entries[0].availableAt,start);assert.equal(E.gifts(scheduled,null,now-1).length,0);
+ const instant=feed();instant.event=null;instant.gifts[0].eventId='global';assert.equal(E.giftEntries(instant,null,now)[0].available,true);assert.equal(E.gifts(instant,null,now).length,1);
+ instant.gifts[0].scope='invalid';assert.equal(E.validate(instant),null);
+});
+test('releasing an existing scheduled gift preserves its receipt identity and cannot grant a second copy',()=>{
+ const f=fixture(),g=feed();g.gifts[0].scope='global';g.gifts[0].startsAt=new Date(now-10000).toISOString();g.gifts[0].endsAt=null;
+ const clean=E.validate(g);assert.equal(clean.gifts[0].scope,'global');const r=E.claim(f.storage,f.session,clean,'gift-1',[player],now-1);assert.equal(r.ok,true);assert.deepEqual(r.club.adminGiftReceipts,['event-1:gift-1']);
+ const saved=Save.load(f.storage).snapshot;assert.ok(E.claim(f.storage,saved,clean,'gift-1',[player],now).error);assert.equal(saved.club.owned.filter(p=>p.id===player.id).length,1);
+ clean.event.cancelled=true;assert.equal(E.giftEntries(clean,saved.club,now)[0].claimed,true);assert.equal(E.gifts(clean,saved.club,now).length,1,'instant delivery is independent from cancellation, with its receipt intact');
+});
 test('feed rejects malformed, oversized or duplicate entries; messages stay text and arbitrary card payloads are discarded',()=>{
  const f=feed();assert.equal(E.validate(f).announcements[0].text,'Hola <b>equipo</b> 👋');f.gifts[0].player={overall:99,name:'Injected'};assert.equal(E.validate(f).gifts[0].player,undefined);
  for(const mutate of [x=>x.event.startsAt='oops',x=>x.event.endsAt=start,x=>x.announcements[0].text='x'.repeat(281),x=>x.gifts.push({...x.gifts[0]}),x=>x.revision=NaN,x=>x.gifts[0].id='unsafe/../id']){const copy=feed();mutate(copy);assert.equal(E.validate(copy),null);}

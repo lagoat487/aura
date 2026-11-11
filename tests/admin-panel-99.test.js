@@ -32,6 +32,14 @@ test('new events preserve global notices; scheduling at event start still requir
  const f=fixture(true,feed=>{feed.event=null;});await f.login();f.nodes.get('announcement').value='Global';f.nodes.get('message-when').value='start';await f.trigger('message-form','submit');assert.equal(f.writes(),0);assert.match(f.nodes.get('status').textContent,/Programa o inicia/);
  f.nodes.get('message-when').value='now';await f.trigger('message-form','submit');const id=f.feed().announcements[0].id;await f.trigger('start-now');assert.equal(f.feed().announcements[0].id,id);await f.trigger('stop-event');await f.trigger('start-now');assert.equal(f.feed().announcements[0].id,id);assert.equal(E.announcements(f.feed())[0].eventId,'global');
 });
+test('Now gifts are immediate and remain published across events without starting the scheduled event',async()=>{
+ const f=fixture(true,feed=>{feed.event.startsAt=new Date(Date.now()+3600000).toISOString();});await f.login();const before=f.feed().event;assert.equal(f.nodes.get('gift-when').value,'now');await f.trigger('player-results','click',{target:{closest:()=>({dataset:{player:'gift-player'}})}});await f.trigger('gift-form','submit');
+ assert.equal(f.writes(),1);assert.equal(f.feed().gifts[0].eventId,'global');assert.deepEqual(f.feed().event,before);assert.equal(E.gifts(f.feed(),null).length,1);const id=f.feed().gifts[0].id;await f.trigger('stop-event');await f.trigger('start-now');assert.equal(f.feed().gifts[0].id,id);
+});
+test('Deliver now unlocks a previously scheduled gift while retaining the original gift and event IDs',async()=>{
+ const f=fixture(true,feed=>{feed.event.startsAt=new Date(Date.now()+3600000).toISOString();feed.gifts.push({id:'scheduled-gift',eventId:feed.event.id,playerId:'gift-player',startsAt:feed.event.startsAt,endsAt:null});});await f.login();const before=f.feed();assert.match(f.nodes.get('published-items').innerHTML,/Entregar ahora/);assert.equal(E.gifts(f.feed(),null).length,0);
+ await f.trigger('published-items','click',{target:{closest:selector=>selector==='[data-release]'?{dataset:{release:'scheduled-gift'}}:null}});const after=f.feed();assert.equal(after.gifts[0].id,before.gifts[0].id);assert.equal(after.gifts[0].eventId,before.gifts[0].eventId);assert.equal(after.gifts[0].scope,'global');assert.deepEqual(after.event,before.event);assert.equal(E.gifts(after,null).length,1);
+});
 test('creator selects a player and publishes a scheduled gift and text notice through the authenticated UI',async()=>{
  const f=fixture();await f.login();assert.equal(f.nodes.get('admin-controls').hidden,false);assert.equal(f.nodes.get('admin-pin').value,'');assert.equal(f.nodes.get('event-start').value,'2026-11-11T11:00');
  await f.trigger('player-results','click',{target:{closest:()=>({dataset:{player:'gift-player'}})}});assert.match(f.nodes.get('selected-gift').innerHTML,/Gift Player/);assert.equal(f.nodes.get('publish-gift').disabled,false);

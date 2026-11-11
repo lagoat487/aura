@@ -176,3 +176,7 @@ npm run build
 Las pruebas verifican partidos, goles válidos, controles del modelo, porteros, pausa, sustituciones, cambio de campo, determinismo, calendarios, plantilla, Draft XI, catálogo sin red, presupuesto, negociaciones, entrenamiento, ojeo y recompensas. El build comprueba sintaxis y reúne solo los archivos de ejecución en `dist/`.
 
 La revisión de navegador usa Canvas 3D cuando el navegador de pruebas tiene WebGL desactivado. La ejecución acelerada debe comprobarse en un dispositivo compatible con WebGL. Licencia de Three.js: [vendor/THREE-LICENSE.txt](vendor/THREE-LICENSE.txt).
+
+Los regalos programados se muestran antes de su hora con el estado Programado. El administrador puede usar Entregar ahora conservando el ID y los recibos del regalo. Los regalos nuevos con Ahora no dependen de que el evento esté activo.
+
+El 11/11/2026 a las 11:00 de Ecuador se intenta reproducir TIKI TIKI de QMIIR desde su reproductor oficial YouTube, tras pulsar Activar música a las 11. El reproductor permanece visible y ofrece pausa, cierre y enlace oficial. La preparación previa está silenciada; si el navegador bloquea el sonido, muestra Reproducir para solicitar una interacción. No se distribuye un archivo de audio ni se promete reproducción con AURA cerrado.
