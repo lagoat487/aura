@@ -1,9 +1,10 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),E=require('../live-events-99'),Device=require('../admin-device-client-99');
 const clone=x=>JSON.parse(JSON.stringify(x)),flush=()=>new Promise(r=>setImmediate(r));
-function fixture(owner=true){
+function fixture(owner=true,setup=()=>{}){
  const html=fs.readFileSync(path.join(__dirname,'../admin-panel-99-template.html'),'utf8'),nodes=new Map([...html.matchAll(/id="([^"]+)"/g)].map(m=>[m[1],{value:'',innerHTML:'',textContent:'',disabled:false,hidden:m[1]==='admin-controls',listeners:{},classList:{toggle(){}},addEventListener(type,fn){this.listeners[type]=fn;}}]));
  let feed={version:1,revision:1,event:{id:'fixture-event',title:'ADMIN ABUSE',startsAt:'2026-11-11T16:00:00.000Z',endsAt:null,cancelled:false},announcements:[],gifts:[]},sha='initial',writes=0;
+ setup(feed);
  const fetch=async(url,options)=>{
   if(url.endsWith('/login')){const data=JSON.parse(options.body);return {ok:owner&&data.pin==='42',json:async()=>owner&&data.pin==='42'?{ok:true}:{error:data.pin!=='42'?'Código incorrecto.':'Este navegador necesita tu enlace privado de activación.'}};}
   if(url.endsWith('/logout'))return {ok:true,json:async()=>({ok:true})};
@@ -19,6 +20,17 @@ function fixture(owner=true){
 }
 test('code 42 reveals controls only for the authorized owner device, and clears the input',async()=>{
  const f=fixture(false);await f.login();assert.equal(f.nodes.get('admin-controls').hidden,true);assert.equal(f.nodes.get('admin-pin').value,'');assert.match(f.nodes.get('status').textContent,/enlace privado/);assert.equal(f.writes(),0);
+});
+test('the admin can publish Now with an upcoming, ended, cancelled or missing event',async()=>{
+ for(const mode of ['upcoming','ended','cancelled','none']){
+  const f=fixture(true,feed=>{if(mode==='none')feed.event=null;else if(mode==='cancelled')feed.event.cancelled=true;else if(mode==='upcoming')feed.event.startsAt=new Date(Date.now()+3600000).toISOString();else{feed.event.startsAt=new Date(Date.now()-7200000).toISOString();feed.event.endsAt=new Date(Date.now()-3600000).toISOString();}});
+  const eventBefore=f.feed().event;await f.login();assert.equal(f.nodes.get('message-when').value,'now',mode);f.nodes.get('announcement').value='Aviso global '+mode;
+  await f.trigger('message-form','submit');assert.equal(f.writes(),1,mode);const message=f.feed().announcements[0];assert.equal(message.eventId,'global');assert.equal(message.endsAt,null);assert.deepEqual(f.feed().event,eventBefore,'posting a notice never starts or changes an event');assert.equal(E.announcements(f.feed()).length,1);assert.match(f.nodes.get('published-items').innerHTML,/AVISO GLOBAL/);
+ }
+});
+test('new events preserve global notices; scheduling at event start still requires an event',async()=>{
+ const f=fixture(true,feed=>{feed.event=null;});await f.login();f.nodes.get('announcement').value='Global';f.nodes.get('message-when').value='start';await f.trigger('message-form','submit');assert.equal(f.writes(),0);assert.match(f.nodes.get('status').textContent,/Programa o inicia/);
+ f.nodes.get('message-when').value='now';await f.trigger('message-form','submit');const id=f.feed().announcements[0].id;await f.trigger('start-now');assert.equal(f.feed().announcements[0].id,id);await f.trigger('stop-event');await f.trigger('start-now');assert.equal(f.feed().announcements[0].id,id);assert.equal(E.announcements(f.feed())[0].eventId,'global');
 });
 test('creator selects a player and publishes a scheduled gift and text notice through the authenticated UI',async()=>{
  const f=fixture();await f.login();assert.equal(f.nodes.get('admin-controls').hidden,false);assert.equal(f.nodes.get('admin-pin').value,'');assert.equal(f.nodes.get('event-start').value,'2026-11-11T11:00');

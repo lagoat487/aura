@@ -2,6 +2,8 @@
 
 El panel entra con **42** y un navegador autorizado mediante el enlace privado de activación que recibe el propietario. No solicita cuenta ni token GitHub. La autorización usa cookies Secure, HttpOnly y SameSite; el código por sí solo no da acceso a otros dispositivos. La clave privada de activación se configura como secreto del servicio, nunca en este repositorio ni en el enlace público del juego.
 
+Los avisos «Ahora · a cualquier hora» se publican con alcance global, funcionan sin evento y se conservan al programar o terminar un evento. Los avisos programados al inicio y los regalos mantienen sus horarios.
+
 El tablón compartido se guarda en D1 y se consulta cada 20 segundos, al volver a la pestaña y al recuperar conexión. Publicar usa revisiones y escrituras atómicas para evitar sobrescribir otro panel. El inicio está fijado inicialmente para el 11 de noviembre de 2026 a las 11:00 de Ecuador; el creador elige los avisos y regalos. La instalación no entrega futbolistas por su cuenta.
 
 Cada club reclama una vez por ID de regalo, con recibo incluido en sus respaldos locales. No existen cuentas de jugador en servidor; borrar o restaurar un respaldo anterior puede eliminar ese recibo. Los repetidos se conservan y Champions mantiene sus cartas exclusivas de sobres. Terminar el evento impide nuevos canjes y conserva las cartas ya entregadas. Los siete modos y la jugabilidad permanecen en 9.9.

@@ -9,11 +9,22 @@ function fixture(){
  Save.save(storage,session);return {pool,club,session,storage,map};
 }
 const player={id:'gift-player',name:'Gift Player',pos:'ED',real:true,overall:93,club:'c',originalId:'base-player'};
-test('11 AM Ecuador starts the scheduled event exactly; cancellation and end close all gifts and notices',()=>{
+test('11 AM Ecuador starts the scheduled event exactly; cancellation and end close gifts and event-specific notices',()=>{
  const f=feed();assert.equal(E.status(f,now-1),'upcoming');assert.equal(E.status(f,now),'live');assert.equal(E.gifts(f,null,now-1).length,0);assert.equal(E.announcements(f,now-1).length,0);
  assert.equal(E.gifts(f,null,now).length,1);assert.equal(E.announcements(f,now).length,1);assert.equal(E.status(f,Date.parse(end)),'ended');assert.equal(E.gifts(f,null,Date.parse(end)).length,0);
  f.event.cancelled=true;assert.equal(E.status(f,now),'cancelled');assert.equal(E.gifts(f,null,now).length,0);
  const published=JSON.parse(fs.readFileSync(path.join(__dirname,'../data/admin-live-99.json')));assert.ok(E.validate(published),'the creator can change the schedule and gifts without invalidating the build');
+});
+test('global announcements work before, during and after the event, including cancellation or no event',()=>{
+ const global={id:'anytime',eventId:'global',text:'Un aviso a cualquier hora',startsAt:new Date(now-10000).toISOString(),endsAt:null};
+ for(const state of ['upcoming','live','ended','cancelled','none']){
+  const f=feed();f.announcements.push(global);
+  let stamp=now;if(state==='upcoming')stamp=now-1;if(state==='ended')stamp=Date.parse(end);if(state==='cancelled')f.event.cancelled=true;if(state==='none')f.event=null;
+  const messages=E.announcements(f,stamp);assert.ok(messages.some(a=>a.id==='anytime'),state);assert.equal(messages.some(a=>a.id==='message-1'),state==='live',state);
+  if(state!=='live')assert.equal(E.gifts(f,null,stamp).length,0,'notices cannot activate gifts');
+ }
+ assert.deepEqual(E.announcements(null,now),[]);
+ const f=feed();f.event=null;f.announcements=[{...global,startsAt:new Date(now+1).toISOString()},{...global,id:'expired',endsAt:new Date(now).toISOString()}];assert.deepEqual(E.announcements(f,now),[],'global messages still respect their own time window');
 });
 test('feed rejects malformed, oversized or duplicate entries; messages stay text and arbitrary card payloads are discarded',()=>{
  const f=feed();assert.equal(E.validate(f).announcements[0].text,'Hola <b>equipo</b> 👋');f.gifts[0].player={overall:99,name:'Injected'};assert.equal(E.validate(f).gifts[0].player,undefined);

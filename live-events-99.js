@@ -36,8 +36,8 @@
     return [...new Map(cards.filter(p=>p?.real&&p.id&&p.overall>=1&&p.overall<=99&&!U.isChampions?.(p)).map(p=>[p.id,p])).values()];
   }
   function announcements(feed,now=Date.now()){
-    if(status(feed,now)!=='live')return [];
-    return feed.announcements.filter(a=>a.eventId===feed.event.id&&inWindow(a,now));
+    const live=status(feed,now)==='live';
+    return (feed?.announcements||[]).filter(a=>inWindow(a,now)&&(a.eventId==='global'||live&&a.eventId===feed.event.id));
   }
   function gifts(feed,club,now=Date.now()){
     if(status(feed,now)!=='live')return [];
