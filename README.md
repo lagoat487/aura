@@ -1,14 +1,12 @@
 ## AURA 9.9 — Admin Abuse
 
-El mismo enlace para jugar incorpora un tablón compartido y un contador para el 11 de noviembre de 2026 a las 11:00 de Ecuador (16:00 UTC). El creador elige qué avisos y cartas publicar; la instalación no regala futbolistas automáticamente.
+El panel entra con **42** y un navegador autorizado mediante el enlace privado de activación que recibe el propietario. No solicita cuenta ni token GitHub. La autorización usa cookies Secure, HttpOnly y SameSite; el código por sí solo no da acceso a otros dispositivos. La clave privada de activación se configura como secreto del servicio, nunca en este repositorio ni en el enlace público del juego.
 
-El panel `admin-99.html` verifica la cuenta GitHub propietaria `lagoat487` y acceso de escritura al repositorio. Requiere un token personal fine-grained limitado a `aura`, Contents: Read and write. Solo se mantiene en memoria, se envía a api.github.com y se descarta al cerrar o desconectar. Los botones de publicación necesitan una conexión válida; el código privado local de monedas no concede autoridad de publicación.
+El tablón compartido se guarda en D1 y se consulta cada 20 segundos, al volver a la pestaña y al recuperar conexión. Publicar usa revisiones y escrituras atómicas para evitar sobrescribir otro panel. El inicio está fijado inicialmente para el 11 de noviembre de 2026 a las 11:00 de Ecuador; el creador elige los avisos y regalos. La instalación no entrega futbolistas por su cuenta.
 
-Los avisos y regalos se publican en `data/admin-live-99.json` mediante escrituras con SHA, sin reintentos automáticos. Los clientes consultan el archivo público cada 20 segundos y al recuperar conexión o volver a la pestaña. La caché y la conexión pueden retrasar la recepción: no es un servidor de mensajes en tiempo real. Cada club reclama una vez por ID de regalo, con recibo incluido en sus respaldos locales. No existen cuentas de jugador en servidor; borrar o restaurar un respaldo anterior puede eliminar ese recibo. Champions mantiene su distribución exclusiva en sobres.
+Cada club reclama una vez por ID de regalo, con recibo incluido en sus respaldos locales. No existen cuentas de jugador en servidor; borrar o restaurar un respaldo anterior puede eliminar ese recibo. Los repetidos se conservan y Champions mantiene sus cartas exclusivas de sobres. Terminar el evento impide nuevos canjes y conserva las cartas ya entregadas. Los siete modos y la jugabilidad permanecen en 9.9.
 
-El inicio y el fin se evalúan según el horario publicado sin mantener abierta la pestaña del creador. Terminar un evento impide nuevos canjes y conserva las cartas ya entregadas. Los siete modos y su jugabilidad permanecen en 9.9.
-
-Validación: pruebas de horario, autorización del propietario, conflictos de publicación, texto seguro, canjes, guardados, duplicados, panel y empaquetado; revisión del tablón y acceso bloqueado en navegador. La entrada de un token real y la publicación desde el panel requieren la conexión privada del propietario y no se simulan como validación real.
+El mismo enlace para jugar se mantiene. `aura-live-service-99.js` contiene únicamente las direcciones públicas del tablón y del panel. `admin-99.html` abre ese panel. La activación privada se completa en el dispositivo del propietario al introducir 42 por primera vez.
 
 ## AURA VISION 9.9 · Toques y regate
 

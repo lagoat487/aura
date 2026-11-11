@@ -31,6 +31,10 @@ jobs:
           if grep -Fq './portraits-fc27.js' index.html; then
             files+=("portraits.js?v=8.4-portrait-r2")
           fi
+          # The creator entrypoint may change independently from the player page.
+          if git diff --name-only HEAD^ HEAD | grep -Fxq 'admin-99.html'; then
+            files+=(admin-99.html)
+          fi
           # Refresh scripts and styles before the HTML exposes their new cache keys.
           files+=(mobile.html index.html)
           declare -A seen=()

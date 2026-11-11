@@ -58,6 +58,6 @@ test('authorized publish handles UTF-8, revision, SHA leases, disconnect and unc
 test('conflict and write errors remain failures; no automatic replay or credential persistence',async()=>{
  let writes=0;const p=E.publisher(async(url,opts)=>{if(url.endsWith('/user'))return {ok:true,json:async()=>({id:E.OWNER_ID})};if(url.endsWith('/aura'))return {ok:true,json:async()=>({full_name:E.REPO,owner:{id:E.OWNER_ID},permissions:{push:true}})};if(opts.method==='PUT'){writes++;return {ok:false,status:409};}return {ok:true,json:async()=>({sha:'s',encoding:'base64',size:100,content:Buffer.from(JSON.stringify(feed())).toString('base64')})};});
  await p.connect('private-test-credential');await assert.rejects(p.publish('s',()=>{}),/Otra publicación/);assert.equal(writes,1);
- const admin=fs.readFileSync(path.join(__dirname,'../admin-panel-99.js'),'utf8');assert.doesNotMatch(admin,/localStorage|sessionStorage|console\.log|location\.search/);assert.match(admin,/\$\('owner-token'\)\.value=''/);
+ const admin=fs.readFileSync(path.join(__dirname,'../admin-panel-99.js'),'utf8');assert.doesNotMatch(admin,/localStorage|sessionStorage|console\.log|location\.search/);assert.match(admin,/\$\('admin-pin'\)\.value=''/);
  const ui=fs.readFileSync(path.join(__dirname,'../live-events-ui-99.js'),'utf8');assert.match(ui,/message\.textContent=a\.text/);assert.doesNotMatch(ui,/Authorization|owner-token/);
 });

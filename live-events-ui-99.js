@@ -28,7 +28,7 @@
   async function refresh(){
     if(pending)return;pending=true;error='';if(open)render();
     try{
-      const hosted=/^(raw|rawcdn)\.githack\.com$/.test(location.hostname),url=hosted?E.RAW+'?aura_live='+Date.now():'./'+E.PATH+'?aura_live='+Date.now();
+      const hosted=/^(raw|rawcdn)\.githack\.com$/.test(location.hostname),url=hosted?(typeof AuraLiveService!=='undefined'?AuraLiveService.feed:E.RAW)+'?aura_live='+Date.now():'./'+E.PATH+'?aura_live='+Date.now();
       const response=await fetch(url,{cache:'no-store',credentials:'omit',signal:AbortSignal.timeout(12000)});
       if(!response.ok)throw Error('offline');const raw=await response.text();if(raw.length>E.MAX_BYTES)throw Error('size');
       const next=E.validate(JSON.parse(raw));if(!next)throw Error('invalid');if(!feed||next.revision>=feed.revision)feed=next;lastOK=Date.now();announce();
