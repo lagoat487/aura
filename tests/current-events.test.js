@@ -59,7 +59,7 @@ test("new and legacy saved event tabs keep club inventory, gift and SBC progress
  assert.deepEqual(legacy.club,old);assert.equal(legacy.tab,"barcelona");
 });
 test("both production entries ship the new theme last and the hub before its controller",()=>{
- for(const file of ["index.html","mobile.html"]){const html=read(file);assert.match(html,/<title>AURA 27 · VISION 9\.9/);assert.ok(html.indexOf("aura-6.css")>html.indexOf("mobile-mode.css"));assert.ok(html.indexOf("magia-event.css")>html.indexOf("aura-6.css"));assert.ok(html.indexOf("match-vision-96.css")>html.indexOf("magia-event.css"));assert.ok(html.indexOf("current-events-66.js")<html.indexOf("ultimate-ui-99-rewards.js"));}
+ for(const file of ["index.html","mobile.html"]){const html=read(file);assert.match(html,/<title>AURA 27 · VISION 9\.9/);assert.ok(html.indexOf("aura-6.css")>html.indexOf("mobile-mode.css"));assert.ok(html.indexOf("magia-event.css")>html.indexOf("aura-6.css"));assert.ok(html.indexOf("match-vision-96.css")>html.indexOf("magia-event.css"));assert.ok(html.indexOf("current-events-66.js")<html.indexOf("ultimate-ui-99-promos.js"));}
  for(const ext of ["js","css"])assert.equal(read("barcelona-event."+ext),read("barcelona-event-6."+ext));
  for(const name of ["ultimate-team","ultimate-ui","ultimate-save","evolution-ui","game"])assert.equal(read(name+".js"),read(name+(name==="game"?"-6.js":"-61.js")));
 });
@@ -82,7 +82,7 @@ for(const runtime of ['ultimate-ui.js','ultimate-ui-61.js','ultimate-ui-62.js'])
 test('retirement release keeps card styling and uses fresh coherent UT sources on both entrypoints',()=>{
  for(const name of ['ultimate-team','ultimate-ui','ultimate-save','current-events']){
   assert.equal(read(name+'-62.js'),read(name+'.js'));
-  for(const entry of ['index.html','mobile.html'])assert.ok(read(entry).includes(name==='ultimate-team'?'./ultimate-team-99-livecoins.js':name==='ultimate-ui'?'./ultimate-ui-99-rewards.js':'./'+name+'-66.js?v=6.6-champions'));
+  for(const entry of ['index.html','mobile.html'])assert.ok(read(entry).includes(name==='ultimate-team'?'./ultimate-team-99-promos.js':name==='ultimate-ui'?'./ultimate-ui-99-promos.js':'./'+name+'-66.js?v=6.6-champions'));
  }
  assert.equal(read('evolution-ui-99-control2.js'),read('evolution-ui.js'));
  for(const entry of ['index.html','mobile.html']){

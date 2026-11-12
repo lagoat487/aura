@@ -4,6 +4,7 @@
   if(typeof module==='object'&&module.exports)module.exports=api;else root.AuraLiveEvents=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(U,Save){
   'use strict';
+  const P=typeof module==='object'&&module.exports?require('./creator-promotions-99'):globalThis.AuraPromotions;
   const REPO='lagoat487/aura',OWNER_ID=300236178,PATH='data/admin-live-99.json',MAX_BYTES=100000;
   const API='https://api.github.com/repos/'+REPO+'/contents/'+PATH;
   const RAW='https://raw.githubusercontent.com/'+REPO+'/main/'+PATH;
@@ -15,6 +16,8 @@
   const clone=o=>JSON.parse(JSON.stringify(o));
   function validate(data){
     if(!data||data.version!==1||!Number.isSafeInteger(data.revision)||data.revision<0||!Array.isArray(data.announcements)||data.announcements.length>30||!Array.isArray(data.gifts)||data.gifts.length>100)return null;
+    const promotions=data.promotions===undefined?undefined:P.validateList(data.promotions);
+    if(promotions===null)return null;
     const e=data.event;
     if(e!==null&&(!e||!id(e.id)||!text(e.title,70)||!windowOK(e)||typeof e.cancelled!=='boolean'))return null;
     const cues={};
@@ -25,7 +28,7 @@
     for(const a of data.announcements){if(!a||!id(a.id)||seen.has('a:'+a.id)||!id(a.eventId)||!text(a.text,280)||!windowOK(a))return null;seen.add('a:'+a.id);}
     for(const g of data.gifts){if(!g||!id(g.id)||seen.has('g:'+g.id)||!id(g.eventId)||!text(g.playerId,200)||!windowOK(g)||(g.scope!==undefined&&g.scope!=='global'))return null;seen.add('g:'+g.id);}
     if(JSON.stringify(data).length>MAX_BYTES)return null;
-    return {version:1,revision:data.revision,...cues,...(boost!==undefined?{coinBoost:boost?{id:boost.id,startsAt:boost.startsAt,endsAt:boost.endsAt}:null}:{}),event:e?{id:e.id,title:e.title,startsAt:e.startsAt,endsAt:e.endsAt,cancelled:e.cancelled}:null,
+    return {version:1,revision:data.revision,...(promotions!==undefined?{promotions}:{}),...cues,...(boost!==undefined?{coinBoost:boost?{id:boost.id,startsAt:boost.startsAt,endsAt:boost.endsAt}:null}:{}),event:e?{id:e.id,title:e.title,startsAt:e.startsAt,endsAt:e.endsAt,cancelled:e.cancelled}:null,
       announcements:data.announcements.map(a=>({id:a.id,eventId:a.eventId,text:a.text,startsAt:a.startsAt,endsAt:a.endsAt})),
       gifts:data.gifts.map(g=>({id:g.id,eventId:g.eventId,playerId:g.playerId,startsAt:g.startsAt,endsAt:g.endsAt,...(g.scope==='global'?{scope:'global'}:{})}))};
   }
@@ -103,3 +106,4 @@
   }
   return {REPO,OWNER_ID,PATH,API,RAW,MAX_BYTES,validate,status,catalog,announcements,giftEntries,gifts,claim,owner,publisher};
 });
+

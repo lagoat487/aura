@@ -335,6 +335,7 @@
     return selected;
   }
   function price(p){
+    if(p?.event==='admin-promo'&&Number.isSafeInteger(p.promoPrice)&&p.promoPrice>=0)return p.promoPrice;
     if(isChampions(p))return 0;
     const magic=p?.event===magia.id&&magia.cards.find(x=>x.id===p.id&&x.overall===p.overall);
     if(magic)return magic.price;
@@ -349,6 +350,7 @@
     if(arg)return arg.price;return Math.round((p.overall<65?300:p.overall<75?700+(p.overall-65)*80:p.overall<84?1200+Math.pow(p.overall-74,2)*160:18000*Math.pow(1.6,p.overall-84))/50)*50;}
   function marketPrice(u,p){
     const base=price(p);
+    if(p?.event==='admin-promo')return base;
     if(!u||p?.event===sigma.id||p?.event===argentina.id||p?.event===flashback.id||p?.event===muralla.id||p?.event===barcelona.id||p?.event===magia.id||!Number.isSafeInteger(u.played)||u.played<=0)return base;
     let hash=0;for(const ch of String(p.id))hash=(Math.imul(hash,31)+ch.charCodeAt(0))>>>0;
     // Offline market trend is predictable for a given matchday and card;
@@ -357,7 +359,7 @@
     return Math.max(100,Math.round(base*(1+cycle*.025)/50)*50);
   }
   function evolutionCost(p){
-    if(!p||isChampions(p)||!Number.isInteger(p.overall)||(p.event===sigma.id||p.event===argentina.id||p.event===flashback.id||p.event===muralla.id||p.event===ecuadorSbc.id||p.event==="sbc-stars"||p.event===barcelona.id||p.event===magia.id)||(p.evolutionLevel||0)>=2||p.overall>90)return null;
+    if(!p||p.adminPromoId||isChampions(p)||!Number.isInteger(p.overall)||(p.event===sigma.id||p.event===argentina.id||p.event===flashback.id||p.event===muralla.id||p.event===ecuadorSbc.id||p.event==="sbc-stars"||p.event===barcelona.id||p.event===magia.id)||(p.evolutionLevel||0)>=2||p.overall>90)return null;
     return Math.max(1500,Math.round((p.overall-60)*400/50)*50);
   }
   function evolve(u,id){

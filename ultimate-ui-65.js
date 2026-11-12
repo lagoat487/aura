@@ -17,7 +17,7 @@ const AuraUTUI=(()=>{
   }
   const restored=restoreSaved();
   let club=restored?.club||null,tab=restored?.tab||'home',pickerSlot=0,marketQuery='',clubQuery='',position='all',marketMin=0,marketMax=0,marketOrder='price',packIndex=0,matchToken=restored?.matchToken||0,playMode='battles',sbcType='silver',sbcSelection=new Set(),cachedPool=null,signature='';
-  let adminPending=false,adminLoading=null;
+  let adminPending=false,adminLoading=null,promotionFeed=null,promotionFetchedAt=0,promotionSignature='';
   function adminApi(){
     if(typeof AuraAdminLocal!=='undefined')return Promise.resolve(AuraAdminLocal);
     if(!adminLoading)adminLoading=new Promise((resolve,reject)=>{
@@ -43,8 +43,8 @@ const AuraUTUI=(()=>{
   const title=(eyebrow,heading,body='')=>'<div class="ut-title"><span class="eyebrow">'+eyebrow+'</span><h2>'+heading+'</h2>'+(body?'<p>'+body+'</p>':'')+'</div>';
   function stats(p){const ov=p.overall,def=['DFC','LI','LD','MCD'].includes(p.pos),att=['DC','ED','EI','SD'].includes(p.pos);return [['RIT',Math.max(35,Math.min(96,ov+(att?3:-5)))],['TIR',Math.max(25,ov+(att?1:def?-27:-8))],['PAS',Math.max(30,ov+(att?-10:def?-7:1))],['REG',Math.max(30,ov+(def?-15:1))],['DEF',Math.max(20,ov+(def?1:att?-40:-13))],['FIS',Math.max(35,Math.min(95,ov+(def?2:-8)))]];}
   function card(p,action='',data='',small=false){
-    const rarity=U.isChampions?.(p)?'champions':p?.event===U.magia.id?'magia':p?.event===U.barcelona.id?'barcelona':p?.event==='sbc-stars'?'sbc-star':p?.event===U.muralla.id?'muralla':p?.event===U.ecuadorSbc.id?'ecuador':p?.event===U.sigma.id?'sigma':p?.event===U.argentina.id?'argentina':p?.event===U.flashback.id?'flashback':p.overall>=75?'gold':p.overall>=65?'silver':'bronze';
-    return '<button class="ut-card '+rarity+(p?.evolutionLevel?' evolved':'')+' '+(small?'compact':'')+'" '+(action?'data-ut="'+action+'" '+data:'disabled')+' aria-label="'+esc(p.name+', '+p.pos+', GRL '+p.overall)+'"><span class="ut-card-rating">'+p.overall+'<small>'+esc(p.pos)+'</small></span>'+AuraPortraits.html(p)+'<strong>'+esc(p.name)+'</strong>'+(p?.evolutionLevel?'<span class="ut-sigma-label">EVOLUCIÓN NIV. '+p.evolutionLevel+'</span>':'')+(rarity==='champions'?'<span class="ut-sigma-label">✦ CHAMPIONS</span>':rarity==='magia'?'<span class="ut-sigma-label">✧ MAGIA</span>':rarity==='barcelona'?'<span class="ut-sigma-label">FC BARCELONA</span>':rarity==='sbc-star'?'<span class="ut-sigma-label">✦ ESTRELLAS SBC</span>':rarity==='ecuador'?'<span class="ut-sigma-label">🇪🇨 ECUADOR · DCP</span>':rarity==='muralla'?'<span class="ut-sigma-label">◈ MURALLA</span>':rarity==='sigma'?'<span class="ut-sigma-label">⚡ SIGMA</span>':rarity==='argentina'?'<span class="ut-sigma-label">🇦🇷 LIGA ARGENTINA</span>':rarity==='flashback'?'<span class="ut-sigma-label">✦ FLASHBACK</span>':'')+'<div class="ut-card-stats">'+stats(p).map(([s,n])=>'<span><b>'+n+'</b>'+s+'</span>').join('')+'</div><small class="ut-card-club">'+esc(clubs.find(c=>c.id===p.club)?.name||p.sourceClub||p.nationality||'AURA')+'</small></button>';
+    const rarity=p?.event==='admin-promo'?'creator-promo promo-theme-'+p.promoAccent:U.isChampions?.(p)?'champions':p?.event===U.magia.id?'magia':p?.event===U.barcelona.id?'barcelona':p?.event==='sbc-stars'?'sbc-star':p?.event===U.muralla.id?'muralla':p?.event===U.ecuadorSbc.id?'ecuador':p?.event===U.sigma.id?'sigma':p?.event===U.argentina.id?'argentina':p?.event===U.flashback.id?'flashback':p.overall>=75?'gold':p.overall>=65?'silver':'bronze';
+    return '<button class="ut-card '+rarity+(p?.evolutionLevel?' evolved':'')+' '+(small?'compact':'')+'" '+(action?'data-ut="'+action+'" '+data:'disabled')+' aria-label="'+esc(p.name+', '+p.pos+', GRL '+p.overall)+'"><span class="ut-card-rating">'+p.overall+'<small>'+esc(p.pos)+'</small></span>'+AuraPortraits.html(p)+'<strong>'+esc(p.name)+'</strong>'+(p?.evolutionLevel?'<span class="ut-sigma-label">EVOLUCIÓN NIV. '+p.evolutionLevel+'</span>':'')+(p?.event==='admin-promo'?'<span class="ut-sigma-label">'+esc(p.promoName)+'</span>':rarity==='champions'?'<span class="ut-sigma-label">✦ CHAMPIONS</span>':rarity==='magia'?'<span class="ut-sigma-label">✧ MAGIA</span>':rarity==='barcelona'?'<span class="ut-sigma-label">FC BARCELONA</span>':rarity==='sbc-star'?'<span class="ut-sigma-label">✦ ESTRELLAS SBC</span>':rarity==='ecuador'?'<span class="ut-sigma-label">🇪🇨 ECUADOR · DCP</span>':rarity==='muralla'?'<span class="ut-sigma-label">◈ MURALLA</span>':rarity==='sigma'?'<span class="ut-sigma-label">⚡ SIGMA</span>':rarity==='argentina'?'<span class="ut-sigma-label">🇦🇷 LIGA ARGENTINA</span>':rarity==='flashback'?'<span class="ut-sigma-label">✦ FLASHBACK</span>':'')+'<div class="ut-card-stats">'+stats(p).map(([s,n])=>'<span><b>'+n+'</b>'+s+'</span>').join('')+'</div><small class="ut-card-club">'+esc(clubs.find(c=>c.id===p.club)?.name||p.sourceClub||p.nationality||'AURA')+'</small></button>';
   }
   function top(){return '<header class="ut-top"><div><span class="eyebrow">AURA / ULTIMATE TEAM</span><h1>'+esc(club?.name||'TU CLUB. TUS CARTAS.')+'</h1></div>'+(club?'<div class="ut-currency"><span>MONEDAS<b>'+(U.hasUnlimited?.(club)?'<span aria-label="Monedas ilimitadas">∞</span>':club.coins.toLocaleString('es-ES'))+'</b></span><span>QUÍMICA<b>'+U.chemistry(club).total+'<small>/33</small></b></span><span>VALORACIÓN<b>'+U.rating(club)+'</b></span></div><button class="btn primary ut-admin-shortcut" data-ut="admin-local-open">Código privado →</button>':'')+'<button class="btn" data-ut="lobby">← Modos de juego</button></header>';}
   function start(){const leagues=[...new Map(pool().filter(p=>p.leagueId!=='reference').map(p=>[p.leagueId,p.leagueLabel])).entries()];return top()+title('UN CLUB POR CONSTRUIR','TU ONCE. TU IDENTIDAD.','Elige una liga inicial, reúne cartas reales y mejora tu equipo jugando.')+'<section class="arg-start-banner ucl-start-promo"><strong>✦ NUEVO EVENTO: CHAMPIONS</strong><p>10 cartas de 89 GRL · Solo en sobres promocionales 86+. Crea tu club para entrar.</p></section><section class="arg-start-banner magia-home-promo"><strong>✧ NUEVO EVENTO: MAGIA</strong><p>Olise 91 · Nico Paz 88 · Messi 97 · Yan Diomande 89 · 400.000 monedas de bienvenida. Crea tu club para entrar.</p></section><section class="arg-start-banner barca-home-promo"><strong>🔵🔴 NUEVO EVENTO: FC BARCELONA</strong><p>27 cartas azulgranas · Lamine Yamal 93 por 1.000.000 de monedas · Toda la plantilla desde 85 GRL. Crea tu club para entrar.</p></section><section class="arg-start-banner mur-start-promo"><strong>◈ NUEVO EVENTO: MURALLA</strong><p>9 defensas especiales · 85–91 GRL · De 300.000 a 600.000 monedas por carta. Crea tu club para entrar.</p></section><section class="arg-start-banner fb-home-promo"><strong>✦ NUEVO EVENTO: FLASHBACK</strong><p>5 cartas doradas y blancas · 200.000 monedas de bienvenida · 70.000 monedas por partido completado.</p></section>'+
@@ -94,7 +94,7 @@ const AuraUTUI=(()=>{
       (eligible.length?'':'<p>Las cartas de tu club ya no tienen evoluciones disponibles.</p>');
   }
   function championsEvent(){return typeof AuraChampionsEvent!=='undefined'?AuraChampionsEvent.view(club,pool()):'<p>Champions está cargando. Recarga AURA.</p>';}
-  function currentEvents(){return AuraCurrentEvents.view(club,pool());}
+  function currentEvents(){return (typeof AuraPromotionsView!=='undefined'?AuraPromotionsView.view(club,pool(),promotionFeed):'')+AuraCurrentEvents.view(club,pool());}
   function magiaEvent(){return AuraMagiaEvent.view(club,pool());}
   function barcelonaEvent(){return AuraBarcelonaEvent.view(club,pool());}
   function murallaEvent(){return AuraMurallaEvent.view(club,pool());}
@@ -137,6 +137,15 @@ const AuraUTUI=(()=>{
     if(action==='argentina-buy'||action==='argentina-play')return true;
     if(d.utTab){tab=d.utTab==='argentina'?'events':d.utTab;renderGame();return true;}if(d.utMode){if(d.utMode===U.argentina.id)return true;playMode=d.utMode;renderGame();return true;}if(d.utSbc&&U.challenges[d.utSbc]){sbcType=d.utSbc;sbcSelection.clear();renderGame();return true;}if(!action)return false;
     try{
+      if(action==='promo-buy'){
+        if(tab!=='events')return true;
+        if(Date.now()-promotionFetchedAt>30000){notify('Actualiza el tablón antes de comprar esta promoción.');return true;}
+        const session=AuraUTSave.load(localStorage).snapshot;
+        const result=session&&JSON.stringify(session.club)===JSON.stringify(club)?AuraPromotions.purchase(localStorage,session,promotionFeed,d.promo,d.entry,pool(),U,AuraUTSave):{error:'Tu club cambió. Recarga antes de comprar.'};
+        if(result.ok){Object.assign(club,result.club);renderMain();notify('¡'+result.player.name+' '+result.player.overall+' GRL añadido a tu club!');}
+        else notify(result.error);
+        return true;
+      }
       if(action==='lobby'){goToModes();return true;}
       if(action==='create'){club=U.create(pool(),document.getElementById('ut-starter-league')?.value||'all',document.getElementById('ut-club-name')?.value||'Mi AURA FC');tab=['events','magia','barcelona','muralla','flashback','champions'].includes(tab)?tab:'home';renderGame();}
       if(!club)return true;
@@ -302,5 +311,6 @@ const AuraUTUI=(()=>{
   }
   function input(e){if(e.target.id==='ut-market-query'){marketQuery=e.target.value.slice(0,70);const results=document.getElementById('ut-market-results');if(results)results.innerHTML=marketResults();}if(e.target.id==='ut-club-query'){clubQuery=e.target.value.slice(0,70);const results=document.getElementById('ut-club-results');if(results)results.innerHTML=collection();}}
   function openArgentinaEvent(){tab='events';renderGame();return !!club;}
-  return {render,bindRender,handleClick,change,input,getClub:()=>club,pool,refresh:()=>{if(club)renderMain();},saveClub:persistClub,openArgentinaEvent};
+  return {setPromotions(feed){const signature=JSON.stringify(typeof AuraPromotions!=='undefined'?AuraPromotions.active(feed):[]),changed=signature!==promotionSignature;promotionFeed=feed;promotionFetchedAt=Date.now();promotionSignature=signature;if(club&&tab==='events'&&changed&&typeof document!=='undefined'&&document.querySelector('.ut-current-events'))renderMain();},render,bindRender,handleClick,change,input,getClub:()=>club,pool,refresh:()=>{if(club)renderMain();},saveClub:persistClub,openArgentinaEvent};
 })();
+

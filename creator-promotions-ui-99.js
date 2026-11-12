@@ -1,0 +1,13 @@
+(function(root,factory){const api=factory(typeof module==='object'&&module.exports?require('./creator-promotions-99'):root.AuraPromotions);if(typeof module==='object'&&module.exports)module.exports=api;else root.AuraPromotionsView=api;})(typeof globalThis!=='undefined'?globalThis:this,function(P){
+  'use strict';
+  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),coins=n=>n.toLocaleString('es-EC');
+  function card(player,promo,entry,club){
+    const have=club.owned.some(p=>p.id===player.id),poor=!AuraUT.canAfford(club,entry.price);
+    return '<article class="creator-promo-product promo-theme-'+promo.accent+'"><div class="creator-promo-card"><span class="creator-promo-edition">'+esc(promo.name)+'</span><b class="creator-promo-rating">'+player.overall+'<small>'+esc(player.pos)+'</small></b>'+AuraPortraits.html(player)+'<strong>'+esc(player.name)+'</strong><small>'+esc(player.nationality||player.sourceClub||'')+'</small></div><div class="creator-promo-price"><b>'+coins(entry.price)+'</b> monedas</div><button type="button" class="btn primary" data-ut="promo-buy" data-promo="'+esc(promo.id)+'" data-entry="'+esc(entry.id)+'" '+(have||poor?'disabled':'')+'>'+(have?'✓ EN TU CLUB':poor?'MONEDAS INSUFICIENTES':entry.price===0?'RECLAMAR GRATIS →':'FICHAR →')+'</button></article>';
+  }
+  function view(club,pool,feed){
+    const promos=P.active(feed);if(!promos.length)return '';
+    return '<section class="creator-promotions" aria-label="Promociones del creador"><header class="creator-promo-heading"><span class="eyebrow">AURA 9.9 / PROMOCIONES DEL CREADOR</span><h2>LAS PROMOS<br>DE EMILIO.</h2><p>Cartas elegidas por el creador. Las compras se guardan en tu club.</p></header>'+promos.map(p=>'<section class="creator-promo-collection promo-theme-'+p.accent+'"><div class="creator-promo-head"><div><span class="eyebrow">PROMOCIÓN ACTIVA · '+p.cards.length+' CARTAS</span><h3>'+esc(p.name)+'</h3><p>'+esc(p.description)+'</p></div><span class="creator-promo-badge">'+(p.endsAt?'Hasta '+esc(new Date(p.endsAt).toLocaleString('es-EC',{timeZone:'America/Guayaquil',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}))+' · Ecuador':'DISPONIBLE AHORA')+'</span></div><div class="creator-promo-grid">'+p.cards.map(c=>{const player=P.card(p,c,pool);return player?card(player,p,c,club):'<p class="creator-promo-missing">Una carta todavía no está disponible en tu catálogo. Recarga AURA.</p>';}).join('')+'</div><p class="creator-promo-note">Precios fijos en monedas del juego · Cartas intransferibles · Se conservan al terminar la promoción.</p></section>').join('')+'</section>';
+  }
+  return {view};
+});
