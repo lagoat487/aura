@@ -63,9 +63,9 @@ test("image failures advance once per source and end in a visible initials fallb
   const last=image.src;P.fallback(image);assert.equal(image.src,last);
 });
 test("desktop and mobile load the fresh portrait runtime with exactly the canonical behavior",()=>{
-  assert.equal(read("portraits-fc27.js"),read("portraits.js"));
+  assert.equal(read("portraits-jose-99.js"),read("portraits.js"));
   for(const file of ["index.html","mobile.html"]){
-    const html=read(file);assert.match(html,/src="\.\/portraits-fc27\.js\?v=9.9-jose"/);
+    const html=read(file);assert.match(html,/src="\.\/portraits-jose-99\.js"/);
     assert.doesNotMatch(html,/src="\.\/portraits\.js/);
   }
 });
