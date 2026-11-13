@@ -21,7 +21,7 @@ const AuraUTUI=(()=>{
   function adminApi(){
     if(typeof AuraAdminLocal!=='undefined')return Promise.resolve(AuraAdminLocal);
     if(!adminLoading)adminLoading=new Promise((resolve,reject)=>{
-      const script=document.createElement('script');script.src='./admin-local-99-rewards.js';
+      const script=document.createElement('script');script.src='./admin-local-99-jose45.js';
       script.onload=()=>typeof AuraAdminLocal==='undefined'?reject(Error('unavailable')):resolve(AuraAdminLocal);
       script.onerror=()=>reject(Error('unavailable'));document.head.appendChild(script);
     }).catch(error=>{adminLoading=null;throw error;});
@@ -158,7 +158,7 @@ const AuraUTUI=(()=>{
         adminPending=true;
         adminApi().then(api=>api.redeem(typeof localStorage==='undefined'?null:localStorage,{version:2,club:current,tab,matchToken},code,allFormations,()=>club===current)).then(result=>{
           if(club!==current)return;
-          if(result.ok){Object.assign(club,result.club);restoreAdmin();if(field)field.value='';if(modal)closeModal();renderMain();notify(result.coins?'¡60.000.000 de monedas añadidas a tu club!':'¡Monedas ilimitadas activadas en este navegador!');}
+          if(result.ok){Object.assign(club,result.club);restoreAdmin();if(field)field.value='';if(modal)closeModal();renderMain();notify(result.player?'¡'+result.player.name+' '+result.player.overall+' GRL canjeado gratis!'+(result.duplicate?' Guardado en repetidos.':''):result.coins?'¡60.000.000 de monedas añadidas a tu club!':'¡Monedas ilimitadas activadas en este navegador!');}
           else notify(result.error);
         }).catch(()=>notify('No se pudo verificar el código.')).finally(()=>{adminPending=false;});
         return true;

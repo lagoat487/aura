@@ -20,6 +20,22 @@
   const original=session.club,text=String(code||'').trim().toUpperCase();let before,receipt;
   try{before=storage.getItem(Save.KEY);receipt=storage.getItem(KEY);}catch{return {error:'No se puede leer el club guardado.'};}
   if(!text||text.length>96)return {error:'Introduce tu código privado.'};
+  if(text==='45'){
+   const giftId='code45-jose-jose-99';
+   if(Array.isArray(original.adminGiftReceipts)&&original.adminGiftReceipts.includes('global:'+giftId))return {error:'Ya canjeaste el código 45 en este club.'};
+   if(!current())return {error:'El club cambió. Recarga y vuelve a intentarlo.'};
+   const common=typeof module==='object'&&module.exports;
+   const P=common?require('./creator-promotions-99'):globalThis.AuraPromotions;
+   const Jose=common?require('./jose-jose-special-99'):globalThis.AuraJoseSpecial;
+   const Events=common?require('./live-events-99'):globalThis.AuraLiveEvents;
+   if(!P||!Jose||typeof Events?.claim!=='function')return {error:'Recarga AURA 9.9 para activar el código 45.'};
+   Jose.install(P);
+   const player=P.card(Jose.promotion,Jose.promotion.cards[0],[]);
+   if(!player)return {error:'La carta JOSE JOSE todavía no está disponible. Recarga AURA.'};
+   const feed={version:1,revision:1,event:null,announcements:[],gifts:[{id:giftId,eventId:'global',playerId:player.id,startsAt:Jose.promotion.startsAt,endsAt:null}]};
+   const result=Events.claim(storage,session,feed,giftId,[player]);
+   return result.ok?{...result,rewardCode:'45'}:result;
+  }
   if(text==='88'){
    if(original.promoCode88Claimed)return {error:'Ya canjeaste el código 88 en este club.'};
    const saved=Save.load(storage,formations).snapshot;

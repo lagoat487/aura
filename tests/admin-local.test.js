@@ -74,7 +74,7 @@ test('cached entrypoints can load the private-admin module on demand without dup
   document:{getElementById:()=>field,createElement:()=>({}),head:{appendChild:script=>scripts.push(script)}},notify:message=>notices.push(message),closeModal(){},openModal(){},goToModes(){}});
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../ultimate-ui-66.js'),'utf8')+';globalThis.UI=AuraUTUI',context);context.UI.bindRender(()=>{});
  const before=context.UI.getClub().coins;context.UI.handleClick({dataset:{ut:'admin-local-credit'}});context.UI.handleClick({dataset:{ut:'admin-local-credit'}});
- assert.equal(scripts.length,1);assert.equal(scripts[0].src,'./admin-local-99-rewards.js');context.AuraAdminLocal=checked();scripts[0].onload();await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(scripts.length,1);assert.equal(scripts[0].src,'./admin-local-99-jose45.js');context.AuraAdminLocal=checked();scripts[0].onload();await new Promise(resolve=>setImmediate(resolve));
  assert.equal(context.UI.getClub().coins,before);assert.equal(notices.filter(s=>s.includes('ilimitadas')).length,1);
 });
 
@@ -82,8 +82,8 @@ test('both entries ship the private unlimited coins with identical tested UI cop
  const read=file=>fs.readFileSync(path.join(__dirname,'..',file),'utf8');
  for(const alias of ['ultimate-ui-61.js','ultimate-ui-62.js','ultimate-ui-63.js','ultimate-ui-64.js','ultimate-ui-65.js','ultimate-ui-66.js'])assert.equal(read(alias),read('ultimate-ui.js'));
  for(const file of ['index.html','mobile.html']){
-  const html=read(file);assert.ok(html.includes('./admin-local-99-rewards.js'));assert.ok(html.includes('./admin-local.css?v=local-2'));
-  assert.ok(html.includes('./ultimate-ui-99-jose.js'));assert.ok(html.indexOf('admin-local-99-rewards.js')<html.indexOf('ultimate-ui-99-jose.js'));
+  const html=read(file);assert.ok(html.includes('./admin-local-99-jose45.js'));assert.ok(html.includes('./admin-local.css?v=local-2'));
+  assert.ok(html.includes('./ultimate-ui-99-jose45.js'));assert.ok(html.indexOf('admin-local-99-jose45.js')<html.indexOf('ultimate-ui-99-jose45.js'));
  }
  assert.equal(read('admin-local-2.js'),read('admin-local.js'));
  assert.doesNotMatch(read('admin-local.js'),/AURA-(?:[A-F0-9]{4}-){4}[A-F0-9]{4}/);
