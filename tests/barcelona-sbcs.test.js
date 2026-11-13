@@ -145,7 +145,7 @@ for(const runtime of ["ultimate-ui.js","ultimate-ui-61.js"]){
 }
 test("desktop and mobile load the new event and styles in the same order, with synchronized runtime copies",()=>{
  for(const file of ["ultimate-team","ultimate-save","ultimate-ui","evolution-ui"])assert.equal(read(file+".js"),read(file+"-61.js"));
- for(const entry of ["index.html","mobile.html"]){const html=read(entry);assert.match(html,/barcelona-event-6\.css\?v=6\.0/);assert.match(html,/barcelona-event-65\.js\?v=6\.5-unlimited/);assert.match(html,/ultimate-team-99-promos\.js/);}
+ for(const entry of ["index.html","mobile.html"]){const html=read(entry);assert.match(html,/barcelona-event-6\.css\?v=6\.0/);assert.match(html,/barcelona-event-65\.js\?v=6\.5-unlimited/);assert.match(html,/ultimate-team-99-reset\.js/);}
  assert.match(read("evolution-ui.js"),/data-evo="barcelona-open"/);
  assert.deepEqual([...read("index.html").matchAll(/(?:src|href)="\.\/([^"?]+)/g)].map(m=>m[1]),[...read("mobile.html").matchAll(/(?:src|href)="\.\/([^"?]+)/g)].map(m=>m[1]));
 });

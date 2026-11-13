@@ -283,7 +283,7 @@
     const unique=[...new Map(ranked.map(p=>[p.id,p])).values()],xi=Squad.choose(unique.map(p=>({...p,overall:p.overall+(league(p)===preferredLeague?12:0)})),'4-3-3');if(xi.some(id=>!id))throw Error("El catálogo todavía está cargando. Vuelve a intentarlo.");
     // Choose with a small starter preference; keep a full bench and SBC reserves.
     const first=xi.map(id=>({...unique.find(p=>p.id===id),tradeable:false})),others=unique.filter(p=>!xi.includes(p.id)).sort((a,b)=>Number(league(b)===preferredLeague)-Number(league(a)===preferredLeague)||b.overall-a.overall).slice(0,12).map(p=>({...p,tradeable:false}));
-    return {version:2,name:String(name||"").trim().slice(0,24)||"Mi AURA FC",coins:10000,owned:first.concat(others),duplicates:[],xi,formation:'4-3-3',tactic:'balanced',played:0,wins:0,draws:0,losses:0,claimed:[],lastPack:[],packsOpened:0,purchases:0,sbcs:0,sbcCompleted:[],objectives:[],battlePoints:0,battleCycle:0,battlesClaimed:[],division:10,divisionPoints:0,serial:0,magiaGiftClaimed:false,barcelonaGiftClaimed:false,murallaGiftClaimed:false,sigmaGiftClaimed:false,flashbackGiftClaimed:false,flashbackPlayed:0,flashbackWins:0,flashbackEarned:0};
+    return {version:2,resetId:'aura-99-reset-20261113-01',name:String(name||"").trim().slice(0,24)||"Mi AURA FC",coins:10000,owned:first.concat(others),duplicates:[],xi,formation:'4-3-3',tactic:'balanced',played:0,wins:0,draws:0,losses:0,claimed:[],lastPack:[],packsOpened:0,purchases:0,sbcs:0,sbcCompleted:[],objectives:[],battlePoints:0,battleCycle:0,battlesClaimed:[],division:10,divisionPoints:0,serial:0,magiaGiftClaimed:false,barcelonaGiftClaimed:false,murallaGiftClaimed:false,sigmaGiftClaimed:false,flashbackGiftClaimed:false,flashbackPlayed:0,flashbackWins:0,flashbackEarned:0};
   }
   function rating(u){return Math.round(u.xi.reduce((n,id)=>n+(u.owned.find(p=>p.id===id)?.overall||0),0)/11);}
   function addCards(u,cards){return cards.map(p=>{const copy={...p};if(u.owned.some(q=>q.id===p.id)){copy.duplicate=true;copy.uid="duplicate:"+(++u.serial);u.duplicates.push({...copy});}else u.owned.push(copy);return copy;});}
@@ -324,7 +324,7 @@
     if(u.xi.some((current,i)=>{const p=u.owned.find(p=>p.id===current);return i!==slot&&current!==id&&p&&identity(p)===identity(candidate);}))return false;
     const other=u.xi.indexOf(id),old=u.xi[slot];u.xi[slot]=id;if(other>=0)u.xi[other]=old;return true;
   }
-  function setFormation(u,formation){if(!Squad.formations[formation])return false;const current=u.xi.map(id=>u.owned.find(p=>p.id===id));u.formation=formation;u.xi=Squad.choose(current,formation);return true;}
+  function setFormation(u,formation){if(!Squad.formations[formation])return false;const current=u.xi.map(id=>u.owned.find(p=>p.id===id)).filter(Boolean);u.formation=formation;u.xi=Squad.choose(current,formation);return true;}
   function auto(u){const people=new Map();for(const p of u.owned){const key=p.originalId||p.id;if(!people.has(key)||people.get(key).overall<p.overall)people.set(key,p);}u.xi=Squad.choose([...people.values()],u.formation);return u.xi;}
   function bench(u){
     const calledUp=new Set(u.xi.map(id=>u.owned.find(p=>p.id===id)?.originalId||id));

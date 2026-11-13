@@ -54,6 +54,6 @@ test('the event opens before onboarding, promotional shop buys and reveals, and 
  const reload=boot(app.storage);assert.deepEqual(reload.UI.getClub(),club);reload.click({utTab:'champions'});assert.match(reload.html(),/SOLO EN SOBRES 86\+/);
 });
 test('both desktop and mobile load a coherent Champions release and verified source-backed portraits',()=>{
- for(const entry of ['index.html','mobile.html']){const html=read(entry);for(const name of ['ultimate-team','ultimate-save','ultimate-ui','current-events'])assert.ok(html.includes(name==='ultimate-team'?'./ultimate-team-99-promos.js':name==='ultimate-ui'?'./ultimate-ui-99-jose45.js':'./'+name+(name==='ultimate-save'?'-99-specials.js':'-66.js?v=6.6-champions')));assert.match(html,/champions-event\.css\?v=6\.6/);assert.ok(html.indexOf('champions-event.js')<html.indexOf('ultimate-ui-99-jose45.js'));}
+ for(const entry of ['index.html','mobile.html']){const html=read(entry);for(const name of ['ultimate-team','ultimate-save','ultimate-ui','current-events'])assert.ok(html.includes(name==='ultimate-team'?'./ultimate-team-99-reset.js':name==='ultimate-ui'?'./ultimate-ui-99-clubtools.js':'./'+name+(name==='ultimate-save'?'-99-reset.js':'-66.js?v=6.6-champions')));assert.match(html,/champions-event\.css\?v=6\.6/);assert.ok(html.indexOf('champions-event.js')<html.indexOf('ultimate-ui-99-clubtools.js'));}
  const data=JSON.parse(read('data/world-rosters.js').split('globalThis.AuraBundledWorld=')[1].trim().replace(/;$/,''));for(const p of U.champions.cards)assert.ok(data.rows.some(row=>row[0]===p.playerId));
 });

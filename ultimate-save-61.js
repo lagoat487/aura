@@ -2,6 +2,7 @@
 (function(root,factory){const api=factory();if(typeof module==="object"&&module.exports)module.exports=api;else root.AuraUTSave=api;})(typeof globalThis!=="undefined"?globalThis:this,function(){
   "use strict";
   const KEY="aura-ultimate-team-v1",BACKUP_KEY="aura-ultimate-team-backup-v1",FORMAT="aura-ut-backup",MAX_BYTES=3_000_000;
+  const RESET_ID='aura-99-reset-20261113-01';
   const allowedTabs=new Set(["home","events","champions","magia","squad","play","store","market","sbc","objectives","club","flashback","muralla","barcelona","evolutions","backup"]);
   const formations=new Set(["4-3-3","4-4-2","4-2-3-1","4-3-2-1","4-1-2-1-2","3-5-2","5-3-2","4-5-1"]);
   const array=a=>Array.isArray(a);
@@ -10,20 +11,23 @@
   // This one creator edition intentionally has a negative card rating.
   // Keep normal players, imports and arbitrary promotions in the 1–99 range.
   const validOverall=p=>Number.isInteger(p.overall)&&((p.overall>=1&&p.overall<=99)||(p.overall===-67&&p.id==='promo:autogoles-special:autogoles-minus67'&&p.originalId==='special:autogoles-minus67'&&p.name==='EL DE LOS AUTOGOLES'&&p.event==='admin-promo'&&p.adminPromoId==='autogoles-special'&&p.promoPrice===0&&p.tradeable===false));
+  const validPlayer=p=>p&&string(p.id)&&string(p.name)&&string(p.pos)&&validOverall(p);
   function validClub(u,allowedFormations){
     if(!u||typeof u!=="object"||array(u)||!string(u.name)||u.name.length>24||!Number.isSafeInteger(u.coins)||u.coins<0||u.coins>1e12)return false;
-    if(!allowedFormations.has(u.formation)||!array(u.owned)||u.owned.length<11||u.owned.length>8000||!array(u.duplicates)||u.duplicates.length>8000||!array(u.xi)||u.xi.length!==11)return false;
+    if(!allowedFormations.has(u.formation)||!array(u.owned)||u.owned.length>8000||!array(u.duplicates)||u.duplicates.length>8000||!array(u.xi)||u.xi.length!==11)return false;
     const ids=new Set(),identities=new Set();
     for(const p of u.owned){
       if(!p||!string(p.id)||ids.has(p.id)||!string(p.name)||!string(p.pos)||!validOverall(p))return false;
       ids.add(p.id);
     }
     for(const id of u.xi){
+      if(id===null)continue;
       if(!ids.has(id)||identities.has(id))return false;
       identities.add(id);
     }
     const chosen=new Set();
     for(const id of u.xi){
+      if(id===null)continue;
       const p=u.owned.find(q=>q.id===id),identity=p.originalId||p.id;
       if(chosen.has(identity))return false;
       chosen.add(identity);
@@ -33,6 +37,10 @@
       if(!p||!string(p.uid)||uids.has(p.uid)||!string(p.id)||!string(p.name)||!string(p.pos)||!validOverall(p))return false;
       uids.add(p.uid);
     }
+    if(u.resetId!==undefined&&(!string(u.resetId)))return false;
+    if(u.promoCodeUses!==undefined&&(!u.promoCodeUses||typeof u.promoCodeUses!=='object'||array(u.promoCodeUses)||Object.entries(u.promoCodeUses).some(([code,n])=>!['45','88'].includes(code)||!integer(n)||n>6)))return false;
+    if(u.adminGiftReceipts!==undefined&&(!array(u.adminGiftReceipts)||u.adminGiftReceipts.length>5000||u.adminGiftReceipts.some(s=>typeof s!=='string'||s.length<1||s.length>201)))return false;
+    if(u.discardUndo!==undefined&&u.discardUndo!==null&&(!validPlayer(u.discardUndo.card)||typeof u.discardUndo.duplicate!=='boolean'||!Number.isInteger(u.discardUndo.slot)||u.discardUndo.slot< -1||u.discardUndo.slot>10||(u.discardUndo.duplicate&&!string(u.discardUndo.card.uid))))return false;
     for(const name of ["objectives","claimed","lastPack","battlesClaimed"]){if(!array(u[name])||u[name].length>10000)return false;}
     for(const name of ["played","wins","draws","losses","packsOpened","purchases","sbcs","battlePoints","battleCycle","divisionPoints","serial"]){if(!integer(u[name]))return false;}
     // Flashback was added after older UT saves; missing fields stay backwards-compatible.
@@ -80,9 +88,20 @@
     if(!storage)return {snapshot:null,recovered:false};
     let primary=null,backup=null,primaryRaw=null;
     try{primaryRaw=storage.getItem(KEY);primary=unpack(primaryRaw,allowedFormations);}catch{}
-    if(primary)return {snapshot:primary,recovered:false};
+    if(primary)return loadCurrent(storage,primary,false,allowedFormations);
     try{backup=unpack(storage.getItem(BACKUP_KEY),allowedFormations);}catch{}
-    return {snapshot:backup,recovered:!!backup,damaged:!!primaryRaw&&!backup};
+    return backup?loadCurrent(storage,backup,true,allowedFormations):{snapshot:null,recovered:false,damaged:!!primaryRaw};
+  }
+  function resetSnapshot(session){
+    if(!session||session.club.resetId===RESET_ID)return session;
+    const club={...session.club,resetId:RESET_ID,resetByCreator:RESET_ID,coins:0,owned:[],duplicates:[],xi:Array(11).fill(null),lastPack:[],discardUndo:null,localAdminCredits:[],promoCodeUses:{'45':0,'88':0},promoCode88Claimed:false,adminGiftReceipts:[],claimed:[],objectives:[],sbcCompleted:[],serial:0,played:0,wins:0,draws:0,losses:0,packsOpened:0,purchases:0,sbcs:0,battlePoints:0,battleCycle:0,battlesClaimed:[],division:10,divisionPoints:0,magiaGiftClaimed:false,barcelonaGiftClaimed:false,murallaGiftClaimed:false,sigmaGiftClaimed:false,flashbackGiftClaimed:false,flashbackPlayed:0,flashbackWins:0,flashbackEarned:0};
+    return {...session,club,tab:'club',matchToken:0};
+  }
+  function loadCurrent(storage,snapshot,recovered,allowedFormations){
+    const current=resetSnapshot(snapshot);
+    if(current===snapshot)return {snapshot,recovered};
+    try{const raw=pack(current,allowedFormations);storage.setItem(KEY,raw);storage.setItem(BACKUP_KEY,raw);return {snapshot:current,recovered,reset:true};}
+    catch{return {snapshot:null,recovered:false,resetFailed:true};}
   }
   function save(storage,session,allowedFormations=formations){
     if(!storage)return false;
@@ -95,13 +114,13 @@
   }
   function restoreBackup(storage,allowedFormations=formations){
     try{
-      const backup=unpack(storage.getItem(BACKUP_KEY),allowedFormations);
+      const backup=resetSnapshot(unpack(storage.getItem(BACKUP_KEY),allowedFormations));
       if(!backup)return null;
       storage.setItem(KEY,pack(backup,allowedFormations));
       return backup;
     }catch{return null;}
   }
   function exportData(session,allowedFormations=formations){return pack(session,allowedFormations);}
-  function importData(text,allowedFormations=formations){return unpack(text,allowedFormations);}
-  return {KEY,BACKUP_KEY,FORMAT,MAX_BYTES,validClub,normalize,hash,pack,unpack,load,save,restoreBackup,exportData,importData};
+  function importData(text,allowedFormations=formations){return resetSnapshot(unpack(text,allowedFormations));}
+  return {KEY,BACKUP_KEY,FORMAT,MAX_BYTES,RESET_ID,validClub,normalize,hash,pack,unpack,load,save,restoreBackup,exportData,importData};
 });

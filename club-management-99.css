@@ -1,0 +1,6 @@
+.ut-inspector .ut-discard-button{display:block;margin:14px auto;border-color:#ff7897;color:#ffc1d0;background:#651d3426}
+.ut-inspector .ut-discard-button:hover{background:#81294455}
+.ut-card.ut-card-empty{min-height:140px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;border:1px dashed #c9b4ff88;background:#15192888;color:#d7c4ff;box-shadow:none}
+.ut-card.ut-card-empty>strong{font-size:40px;position:static;transform:none;line-height:1}
+.ut-card.ut-card-empty>small{font-size:10px;letter-spacing:1px}
+.ut-card.ut-card-empty.compact{min-height:100px}

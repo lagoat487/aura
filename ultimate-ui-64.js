@@ -17,11 +17,11 @@ const AuraUTUI=(()=>{
   }
   const restored=restoreSaved();
   let club=restored?.club||null,tab=restored?.tab||'home',pickerSlot=0,marketQuery='',clubQuery='',position='all',marketMin=0,marketMax=0,marketOrder='price',packIndex=0,matchToken=restored?.matchToken||0,playMode='battles',sbcType='silver',sbcSelection=new Set(),cachedPool=null,signature='';
-  let adminPending=false,adminLoading=null,promotionFeed=null,promotionFetchedAt=0,promotionSignature='';
+  let adminPending=false,adminLoading=null,promotionFeed=null,promotionFetchedAt=0,promotionSignature='',pendingDiscard=null;
   function adminApi(){
     if(typeof AuraAdminLocal!=='undefined')return Promise.resolve(AuraAdminLocal);
     if(!adminLoading)adminLoading=new Promise((resolve,reject)=>{
-      const script=document.createElement('script');script.src='./admin-local-99-jose45.js';
+      const script=document.createElement('script');script.src='./admin-local-99-sixcodes.js';
       script.onload=()=>typeof AuraAdminLocal==='undefined'?reject(Error('unavailable')):resolve(AuraAdminLocal);
       script.onerror=()=>reject(Error('unavailable'));document.head.appendChild(script);
     }).catch(error=>{adminLoading=null;throw error;});
@@ -32,7 +32,7 @@ const AuraUTUI=(()=>{
   function affordable(cost){return typeof U.canAfford==='function'?U.canAfford(club,cost):club.coins>=cost;}
   function adminForm(modal=false){
     const id=modal?'ut-admin-modal-code':'ut-admin-code';
-    return '<section class="ut-panel ut-admin-local"><h3>CÓDIGO PRIVADO</h3><p>Canjea códigos de regalo o activa tus monedas ilimitadas.</p><label for="'+id+'">Código de regalo o administrador<input type="password" id="'+id+'" maxlength="96" autocomplete="off" spellcheck="false" placeholder="Escribe tu código"></label><button class="btn primary" data-ut="admin-local-credit" data-admin-input="'+id+'">Canjear código →</button></section>';
+    return '<section class="ut-panel ut-admin-local"><h3>CÓDIGO PRIVADO</h3><p>Los códigos 45 y 88 se pueden canjear hasta 6 veces por club.</p><label for="'+id+'">Código de regalo o administrador<input type="password" id="'+id+'" maxlength="96" autocomplete="off" spellcheck="false" placeholder="Escribe tu código"></label><button class="btn primary" data-ut="admin-local-credit" data-admin-input="'+id+'">Canjear código →</button></section>';
   }
   const tabs=[['home','Inicio'],['events','Eventos actuales'],['squad','Plantilla'],['play','Jugar'],['store','Tienda'],['market','Mercado'],['sbc','DCP'],['objectives','Objetivos'],['club','Mi club'],['evolutions','Evoluciones'],['backup','Respaldo']];
   function pool(){
@@ -43,6 +43,7 @@ const AuraUTUI=(()=>{
   const title=(eyebrow,heading,body='')=>'<div class="ut-title"><span class="eyebrow">'+eyebrow+'</span><h2>'+heading+'</h2>'+(body?'<p>'+body+'</p>':'')+'</div>';
   function stats(p){const ov=p.overall,def=['DFC','LI','LD','MCD'].includes(p.pos),att=['DC','ED','EI','SD'].includes(p.pos);return [['RIT',Math.max(35,Math.min(96,ov+(att?3:-5)))],['TIR',Math.max(25,ov+(att?1:def?-27:-8))],['PAS',Math.max(30,ov+(att?-10:def?-7:1))],['REG',Math.max(30,ov+(def?-15:1))],['DEF',Math.max(20,ov+(def?1:att?-40:-13))],['FIS',Math.max(35,Math.min(95,ov+(def?2:-8)))]];}
   function card(p,action='',data='',small=false){
+    if(!p)return '<button class="ut-card ut-card-empty '+(small?'compact':'')+'" '+(action?'data-ut="'+action+'" '+data:'disabled')+' aria-label="Elegir jugador para puesto vacío"><strong>+</strong><small>PUESTO VACÍO</small></button>';
     const rarity=p?.event==='admin-promo'?'creator-promo promo-theme-'+p.promoAccent:U.isChampions?.(p)?'champions':p?.event===U.magia.id?'magia':p?.event===U.barcelona.id?'barcelona':p?.event==='sbc-stars'?'sbc-star':p?.event===U.muralla.id?'muralla':p?.event===U.ecuadorSbc.id?'ecuador':p?.event===U.sigma.id?'sigma':p?.event===U.argentina.id?'argentina':p?.event===U.flashback.id?'flashback':p.overall>=75?'gold':p.overall>=65?'silver':'bronze';
     return '<button class="ut-card '+rarity+(p?.evolutionLevel?' evolved':'')+' '+(small?'compact':'')+'" '+(action?'data-ut="'+action+'" '+data:'disabled')+' aria-label="'+esc(p.name+', '+p.pos+', GRL '+p.overall)+'"><span class="ut-card-rating">'+p.overall+'<small>'+esc(p.pos)+'</small></span>'+AuraPortraits.html(p)+'<strong>'+esc(p.name)+'</strong>'+(p?.evolutionLevel?'<span class="ut-sigma-label">EVOLUCIÓN NIV. '+p.evolutionLevel+'</span>':'')+(p?.event==='admin-promo'?'<span class="ut-sigma-label">'+esc(p.promoName)+'</span>':rarity==='champions'?'<span class="ut-sigma-label">✦ CHAMPIONS</span>':rarity==='magia'?'<span class="ut-sigma-label">✧ MAGIA</span>':rarity==='barcelona'?'<span class="ut-sigma-label">FC BARCELONA</span>':rarity==='sbc-star'?'<span class="ut-sigma-label">✦ ESTRELLAS SBC</span>':rarity==='ecuador'?'<span class="ut-sigma-label">🇪🇨 ECUADOR · DCP</span>':rarity==='muralla'?'<span class="ut-sigma-label">◈ MURALLA</span>':rarity==='sigma'?'<span class="ut-sigma-label">⚡ SIGMA</span>':rarity==='argentina'?'<span class="ut-sigma-label">🇦🇷 LIGA ARGENTINA</span>':rarity==='flashback'?'<span class="ut-sigma-label">✦ FLASHBACK</span>':'')+'<div class="ut-card-stats">'+stats(p).map(([s,n])=>'<span><b>'+n+'</b>'+s+'</span>').join('')+'</div><small class="ut-card-club">'+esc(clubs.find(c=>c.id===p.club)?.name||p.sourceClub||p.nationality||'AURA')+'</small></button>';
   }
@@ -81,8 +82,8 @@ const AuraUTUI=(()=>{
       (full?'<p class="save-info" role="status">Cupo completo. Desmarca una carta para elegir otra.</p>':'')+'<div class="ut-card-grid">'+choices+'</div>'+(eligible.length?'':ecuador?'<p>No tienes reservas ecuatorianas elegibles. Los titulares se protegen: cámbialos desde Plantilla si quieres usar sus cartas.</p>':'<p>No tienes reservas elegibles. Recibe cartas en la tienda o en el mercado.</p>');
   }
   function objectives(){return title('OBJETIVOS / FUNDAMENTOS','CADA PASO CUENTA.')+'<div class="ut-objectives">'+U.objectives(club).map(o=>'<article class="'+(o.claimed?'claimed':'')+'"><span class="eyebrow">'+(o.claimed?'RECOMPENSA RECIBIDA':o.complete?'COMPLETADO':'EN PROGRESO')+'</span><h3>'+o.name+'</h3><p>'+Math.min(o.current,o.target)+' / '+o.target+'</p><progress max="'+o.target+'" value="'+Math.min(o.current,o.target)+'"></progress><b>'+o.coins+' monedas</b><button class="btn" data-ut="objective" data-objective="'+o.id+'" '+(!o.complete||o.claimed?'disabled':'')+'>'+(o.claimed?'Recibida':'Cobrar recompensa')+'</button></article>').join('')+'</div>';}
-  function collection(){const query=norm(clubQuery).trim(),ps=club.owned.filter(p=>norm(p.name).includes(query));return '<div class="ut-card-grid">'+ps.map(p=>card(p,'inspect','data-player="'+esc(p.id)+'"')).join('')+'</div>';}
-  function myClub(){return title('MI CLUB / '+club.owned.length+' FUTBOLISTAS','TODAS TUS CARTAS.','Las cartas titulares se cambian desde Plantilla. Los intransferibles se pueden utilizar en DCP.')+'<label class="ut-club-filter">Buscar en mi club<input id="ut-club-query" value="'+esc(clubQuery)+'" placeholder="Nombre del jugador"></label><div id="ut-club-results">'+collection()+'</div>'+(club.duplicates.length?'<section class="ut-panel"><h3>ALMACÉN DE REPETIDOS · '+club.duplicates.length+'</h3><div class="ut-card-grid">'+club.duplicates.map(p=>'<div>'+card(p,'inspect','data-player="'+esc(p.uid)+'" data-duplicate="yes"')+(p.tradeable?'<button class="btn small" data-ut="sell" data-player="'+esc(p.uid)+'" data-duplicate="yes">Venta rápida</button>':'<small>Intransferible · disponible para DCP</small>')+'</div>').join('')+'</div></section>':'');}
+  function collection(){const query=norm(clubQuery).trim(),ps=club.owned.filter(p=>norm(p.name).includes(query));return ps.length?'<div class="ut-card-grid">'+ps.map(p=>card(p,'inspect','data-player="'+esc(p.id)+'"')).join('')+'</div>':'<p>No tienes cartas que coincidan. Consigue jugadores en Eventos actuales o en el Mercado.</p>';}
+  function myClub(){return title('MI CLUB / '+club.owned.length+' FUTBOLISTAS','TODAS TUS CARTAS.','Abre cualquier carta para borrarla gratis, incluidos titulares, especiales e intransferibles.')+(club.resetByCreator===AuraUTSave.RESET_ID&&!club.owned.length&&club.coins===0?'<p class="save-info" role="status">Reinicio del creador aplicado: 0 monedas y 0 cartas. Empieza de nuevo desde los eventos o canjea tus códigos.</p>':'')+'<label class="ut-club-filter">Buscar en mi club<input id="ut-club-query" value="'+esc(clubQuery)+'" placeholder="Nombre del jugador"></label><div id="ut-club-results">'+collection()+'</div>'+(club.discardUndo?'<section class="ut-panel"><h3>ÚLTIMA CARTA BORRADA</h3><p>'+esc(club.discardUndo.card.name)+' · '+club.discardUndo.card.overall+' GRL. Puedes recuperarla hasta que borres otra carta.</p><button class="btn" data-ut="discard-undo">Recuperar gratis →</button></section>':'')+(club.duplicates.length?'<section class="ut-panel"><h3>ALMACÉN DE REPETIDOS · '+club.duplicates.length+'</h3><div class="ut-card-grid">'+club.duplicates.map(p=>'<div>'+card(p,'inspect','data-player="'+esc(p.uid)+'" data-duplicate="yes"')+(p.tradeable?'<button class="btn small" data-ut="sell" data-player="'+esc(p.uid)+'" data-duplicate="yes">Venta rápida</button>':'<small>Intransferible · disponible para DCP</small>')+'</div>').join('')+'</div></section>':'');}
   function evolutions(){
     const eligible=club.owned.filter(p=>U.evolutionCost(p)!==null).sort((a,b)=>b.overall-a.overall);
     return title("ULTIMATE TEAM / EVOLUCIONES","LLEVA TUS CARTAS MÁS LEJOS.","Mejora una carta de tu club en +2 GRL pagando monedas conseguidas en AURA. Cada edición admite hasta dos evoluciones, con máximo 92 GRL.")+
@@ -110,6 +111,7 @@ const AuraUTUI=(()=>{
   function reveal(){const p=club.lastPack[packIndex];if(!p)return;openModal('SOBRE ABIERTO','<div class="ut-reveal '+(p.overall>=86?'walkout':'')+(U.isChampions?.(p)?' champions-walkout':'')+'"><span class="eyebrow">'+(U.isChampions?.(p)?'✦ CHAMPIONS · 89 GRL':p.overall>=86?'JUGADOR DESTACADO':p.overall>=82?'CARTA ESPECIAL DE TU SOBRE':'NUEVO JUGADOR')+'</span>'+card(p)+'<p>'+(p.duplicate?'Repetido: guardado para DCP o venta rápida.':'Añadido a tu club.')+'</p><button class="btn primary" data-ut="reveal-next">'+(packIndex<club.lastPack.length-1?'Ver siguiente carta →':'Ir a mi club →')+'</button><button class="btn subtle" data-ut="reveal-skip">Ver todas las cartas</button></div>');}
   function playMatch(requestedMode,requestedOpponent){
     if(requestedMode===U.argentina.id)return;
+    if(!club||club.xi.some(id=>!club.owned.some(p=>p.id===id))){notify('Completa los 11 puestos de tu Plantilla antes de jugar.');return;}
     const u=club,eventMode=requestedMode===U.flashback.id?U.flashback.id:null,
           token=(eventMode===U.flashback.id?'ut:flashback:':'ut:')+ ++matchToken,chosen=u.xi.map(id=>u.owned.find(p=>p.id===id)),chem=U.chemistry(u),home={id:'aura-ut',name:u.name,rating:U.rating(u)},controlled=AuraArena.team(home,null,chosen),shape=AuraSquad.formations[u.formation];
     controlled.formation=u.formation;controlled.slots=shape;controlled.players=chosen.map((p,i)=>({...p,overall:clamp(Math.round(AuraSquad.effective(p,shape[i][0]))+Math.floor(chem.players[i]/2),1,99)}));controlled.bench=U.bench(u).map(p=>({...p,slotRatings:shape.map(([pos])=>Math.round(AuraSquad.effective(p,pos)))}));
@@ -130,13 +132,29 @@ const AuraUTUI=(()=>{
     if(!owned&&p.event===U.argentina.id){notify('El evento Liga Argentina ha finalizado.');return;}
     const sellable=owned&&p.tradeable&&(duplicate||!club.xi.includes(p.id));
     const saleId=duplicate?p.uid:p.id,saleFlag=duplicate?' data-duplicate="yes"':'';
-    openModal('FICHA DE JUGADOR','<div class="ut-inspector">'+card(p)+'<p>'+esc(p.nationality||'Nacionalidad sin referencia')+' · '+esc(p.leagueLabel||'Liga de referencia')+'</p>'+(U.isChampions?.(p)?'<p>Exclusiva de sobres promocionales 86+. No está a la venta.</p>':'<p>Valor de compra en AURA: '+U.marketPrice(club,p).toLocaleString('es-ES')+' monedas.</p>')+(owned?'<p>'+(duplicate?'Repetido · ':'')+(p.tradeable?'Transferible':'Intransferible')+'</p>'+(sellable?'<button class="btn" data-ut="sell" data-player="'+esc(saleId)+'"'+saleFlag+'>Venta rápida · '+Math.max(100,Math.round(U.price(p)*.2))+' monedas</button>':''):U.isChampions?.(p)?'<button class="btn primary" data-ut-tab="store">Ver sobres promocionales →</button>':'<button class="btn primary" data-ut="buy" data-player="'+esc(p.id)+'">Comprar ahora</button>')+'</div>');
+    const discard=owned?'<button class="btn ut-discard-button" data-ut="discard" data-player="'+esc(saleId)+'"'+saleFlag+'>Borrar gratis</button>':'';
+    openModal('FICHA DE JUGADOR','<div class="ut-inspector">'+card(p)+'<p>'+esc(p.nationality||'Nacionalidad sin referencia')+' · '+esc(p.leagueLabel||'Liga de referencia')+'</p>'+(U.isChampions?.(p)?'<p>Exclusiva de sobres promocionales 86+. No está a la venta.</p>':'<p>Valor de compra en AURA: '+U.marketPrice(club,p).toLocaleString('es-ES')+' monedas.</p>')+(owned?'<p>'+(duplicate?'Repetido · ':'')+(p.tradeable?'Transferible':'Intransferible')+'</p>'+(sellable?'<button class="btn" data-ut="sell" data-player="'+esc(saleId)+'"'+saleFlag+'>Venta rápida · '+Math.max(100,Math.round(U.price(p)*.2))+' monedas</button>':''):U.isChampions?.(p)?'<button class="btn primary" data-ut-tab="store">Ver sobres promocionales →</button>':'<button class="btn primary" data-ut="buy" data-player="'+esc(p.id)+'">Comprar ahora</button>')+discard+'</div>');
   }
   function handleClick(t){
     const d=t.dataset,legacy=d.tour?.startsWith('ut-')?d.tour.slice(3):null,action=d.ut||legacy;
     if(action==='argentina-buy'||action==='argentina-play')return true;
     if(d.utTab){tab=d.utTab==='argentina'?'events':d.utTab;renderGame();return true;}if(d.utMode){if(d.utMode===U.argentina.id)return true;playMode=d.utMode;renderGame();return true;}if(d.utSbc&&U.challenges[d.utSbc]){sbcType=d.utSbc;sbcSelection.clear();renderGame();return true;}if(!action)return false;
     try{
+      if(action==='discard'){
+        const duplicate=d.duplicate==='yes',player=(duplicate?club.duplicates:club.owned).find(p=>(duplicate?p.uid:p.id)===d.player);
+        if(!player){notify('Esta carta ya no está en tu club.');return true;}
+        pendingDiscard={id:d.player,duplicate,before:JSON.stringify(club)};
+        openModal('BORRAR CARTA GRATIS','<div class="ut-inspector">'+card(player)+'<p>Vas a quitar a <b>'+esc(player.name)+'</b> de tu club sin gastar ni recibir monedas.</p>'+(club.xi.includes(player.id)&&!duplicate?'<p>Su puesto lo ocupará una reserva disponible; si no tienes otra, quedará vacío.</p>':'')+'<p>Puedes recuperar esta carta desde Mi club hasta que borres otra.</p><button class="btn ut-discard-button" data-ut="discard-confirm">Sí, borrar gratis</button><button class="btn" data-ut="discard-cancel">Cancelar</button></div>');return true;
+      }
+      if(action==='discard-cancel'){pendingDiscard=null;closeModal();return true;}
+      if(action==='discard-confirm'||action==='discard-undo'){
+        if(typeof AuraClubManagement==='undefined'){notify('Recarga AURA 9.9 para gestionar tus cartas.');return true;}
+        if(action==='discard-confirm'&&(!pendingDiscard||pendingDiscard.before!==JSON.stringify(club))){notify('El club cambió. Vuelve a abrir la carta antes de borrarla.');return true;}
+        const session={version:2,club,tab,matchToken},result=action==='discard-undo'?AuraClubManagement.undo(localStorage,session):AuraClubManagement.discard(localStorage,session,pendingDiscard.id,pendingDiscard.duplicate);
+        if(!result.ok){notify(result.error);return true;}
+        if(pendingDiscard){sbcSelection.delete(pendingDiscard.id);pendingDiscard=null;}
+        Object.assign(club,result.club);closeModal();renderMain();notify(result.player.name+(action==='discard-undo'?' recuperado gratis.':' borrado gratis. Puedes recuperarlo desde Mi club.'));return true;
+      }
       if(action==='promo-buy'){
         if(tab!=='events')return true;
         if(!AuraPromotions.isSpecialPromo?.(d.promo)&&Date.now()-promotionFetchedAt>30000){notify('Actualiza el tablón antes de comprar esta promoción.');return true;}
@@ -158,7 +176,7 @@ const AuraUTUI=(()=>{
         adminPending=true;
         adminApi().then(api=>api.redeem(typeof localStorage==='undefined'?null:localStorage,{version:2,club:current,tab,matchToken},code,allFormations,()=>club===current)).then(result=>{
           if(club!==current)return;
-          if(result.ok){Object.assign(club,result.club);restoreAdmin();if(field)field.value='';if(modal)closeModal();renderMain();notify(result.player?'¡'+result.player.name+' '+result.player.overall+' GRL canjeado gratis!'+(result.duplicate?' Guardado en repetidos.':''):result.coins?'¡60.000.000 de monedas añadidas a tu club!':'¡Monedas ilimitadas activadas en este navegador!');}
+          if(result.ok){Object.assign(club,result.club);restoreAdmin();if(field)field.value='';if(modal)closeModal();renderMain();notify((result.player?'¡'+result.player.name+' '+result.player.overall+' GRL canjeado gratis!'+(result.duplicate?' Guardado en repetidos.':''):result.coins?'¡60.000.000 de monedas añadidas a tu club!':'¡Monedas ilimitadas activadas en este navegador!')+(result.limit?' Canje '+result.uses+'/'+result.limit+'.':''));}
           else notify(result.error);
         }).catch(()=>notify('No se pudo verificar el código.')).finally(()=>{adminPending=false;});
         return true;
