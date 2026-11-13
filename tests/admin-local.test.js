@@ -83,7 +83,7 @@ test('both entries ship the private unlimited coins with identical tested UI cop
  for(const alias of ['ultimate-ui-61.js','ultimate-ui-62.js','ultimate-ui-63.js','ultimate-ui-64.js','ultimate-ui-65.js','ultimate-ui-66.js'])assert.equal(read(alias),read('ultimate-ui.js'));
  for(const file of ['index.html','mobile.html']){
   const html=read(file);assert.ok(html.includes('./admin-local-99-sixcodes.js'));assert.ok(html.includes('./admin-local.css?v=local-2'));
-  assert.ok(html.includes('./ultimate-ui-99-clubtools.js'));assert.ok(html.indexOf('admin-local-99-sixcodes.js')<html.indexOf('ultimate-ui-99-clubtools.js'));
+  assert.ok(html.includes('./ultimate-ui-99-cleanstart.js'));assert.ok(html.indexOf('admin-local-99-sixcodes.js')<html.indexOf('ultimate-ui-99-cleanstart.js'));
  }
  assert.equal(read('admin-local-2.js'),read('admin-local.js'));
  assert.doesNotMatch(read('admin-local.js'),/AURA-(?:[A-F0-9]{4}-){4}[A-F0-9]{4}/);

@@ -26,7 +26,7 @@ test('an already-owned JOSE goes to duplicates and a separate club can redeem it
 test('the visible code dialog clears 45 and confirms the free JOSE reward instead of unlimited coins',async()=>{
  const f=fixture(),field={value:'45'},notices=[];
  const context=vm.createContext({AuraUT:U,AuraUTSave:Save,AuraSquad:Squad,AuraAdminLocal:Admin,AuraPortraits:require('../portraits'),AuraEvolution:{pool:()=>f.pool,badge:()=>''},World:{getStats:()=>({players:23})},Competitions:{definitions:[]},clubs:[],localStorage:f.storage,document:{getElementById:()=>field},notify:message=>notices.push(message),closeModal(){},openModal(){},goToModes(){}});
- vm.runInContext(fs.readFileSync(path.join(__dirname,'../ultimate-ui-99-clubtools.js'),'utf8')+';globalThis.UI=AuraUTUI',context);context.UI.bindRender(()=>{});
+ vm.runInContext(fs.readFileSync(path.join(__dirname,'../ultimate-ui-99-cleanstart.js'),'utf8')+';globalThis.UI=AuraUTUI',context);context.UI.bindRender(()=>{});
  context.UI.handleClick({dataset:{ut:'admin-local-credit',adminInput:'ut-admin-modal-code'}});await new Promise(resolve=>setImmediate(resolve));
  assert.equal(field.value,'');assert.equal(context.UI.getClub().coins,f.club.coins);assert.equal(context.UI.getClub().owned.at(-1).name,'JOSE JOSE');assert.equal(notices.length,1);assert.match(notices[0],/JOSE JOSE 99 GRL canjeado gratis/);assert.doesNotMatch(notices[0],/ilimitadas/);
 });
