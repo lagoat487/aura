@@ -38,7 +38,8 @@
       uids.add(p.uid);
     }
     if(u.resetId!==undefined&&(!string(u.resetId)))return false;
-    if(u.promoCodeUses!==undefined&&(!u.promoCodeUses||typeof u.promoCodeUses!=='object'||array(u.promoCodeUses)||Object.entries(u.promoCodeUses).some(([code,n])=>!['45','88'].includes(code)||!integer(n)||n>6)))return false;
+    if(u.promoCodeUses!==undefined&&(!u.promoCodeUses||typeof u.promoCodeUses!=='object'||array(u.promoCodeUses)||Object.entries(u.promoCodeUses).some(([code,n])=>!['45','88'].includes(code)||!integer(n))))return false;
+    if(u.starter80Receipt!==undefined&&!string(u.starter80Receipt))return false;
     if(u.adminGiftReceipts!==undefined&&(!array(u.adminGiftReceipts)||u.adminGiftReceipts.length>5000||u.adminGiftReceipts.some(s=>typeof s!=='string'||s.length<1||s.length>201)))return false;
     if(u.discardUndo!==undefined&&u.discardUndo!==null&&(!validPlayer(u.discardUndo.card)||typeof u.discardUndo.duplicate!=='boolean'||!Number.isInteger(u.discardUndo.slot)||u.discardUndo.slot< -1||u.discardUndo.slot>10||(u.discardUndo.duplicate&&!string(u.discardUndo.card.uid))))return false;
     for(const name of ["objectives","claimed","lastPack","battlesClaimed"]){if(!array(u[name])||u[name].length>10000)return false;}

@@ -22,26 +22,26 @@
   if(!text||text.length>96)return {error:'Introduce tu código privado.'};
   if(text==='45'||text==='88'){
    const counts=original.promoCodeUses||{},legacy45=(original.adminGiftReceipts||[]).filter(id=>id==='global:code45-jose-jose-99'||id.startsWith('global:code45-jose-jose-99:')).length;
-   const uses=counts[text]??(text==='45'?legacy45:original.promoCode88Claimed?1:0),limit=6;
-   if(!Number.isInteger(uses)||uses<0||uses>=limit)return {error:'Ya usaste el código '+text+' 6 veces en este club.'};
+   const uses=counts[text]??(text==='45'?legacy45:original.promoCode88Claimed?1:0);
+   if(!Number.isSafeInteger(uses)||uses<0)return {error:'El historial del código no es válido.'};
    const saved=Save.load(storage,formations).snapshot;
    if(!current()||storage.getItem(Save.KEY)!==before||!saved||JSON.stringify(saved.club)!==JSON.stringify(original))return {error:'El club cambió. Recarga y vuelve a intentarlo.'};
    const club=JSON.parse(JSON.stringify(original));let player,duplicate=false;
    if(text==='45'){
     const common=typeof module==='object'&&module.exports,P=common?require('./creator-promotions-99'):globalThis.AuraPromotions,Jose=common?require('./jose-jose-special-99'):globalThis.AuraJoseSpecial;
     if(!P||!Jose)return {error:'Recarga AURA 9.9 para activar el código 45.'};
-    Jose.install(P);player=P.card(Jose.promotion,Jose.promotion.cards[0],[]);
+    player=P.card(Jose.promotion,Jose.promotion.cards[0],[Jose.player]);
     if(!player)return {error:'La carta JOSE JOSE todavía no está disponible. Recarga AURA.'};
     const giftId='code45-jose-jose-99:'+(uses+1);player={...player,tradeable:false,adminGiftId:giftId};duplicate=club.owned.some(p=>p.id===player.id);
     if(duplicate){if(club.duplicates.length>=8000)return {error:'Libera espacio entre tus repetidos.'};player.duplicate=true;player.uid='duplicate:'+(++club.serial);club.duplicates.push(player);}
     else{if(club.owned.length>=8000)return {error:'Tu club está lleno.'};club.owned.push(player);}
-    if((club.adminGiftReceipts||[]).length>=5000)return {error:'Se alcanzó el límite de regalos guardados.'};
-    club.adminGiftReceipts=[...(club.adminGiftReceipts||[]),'global:'+giftId];
+    const marker='global:code45-jose-jose-99';
+    if(!(club.adminGiftReceipts||[]).includes(marker)&&(club.adminGiftReceipts||[]).length<5000)club.adminGiftReceipts=[...(club.adminGiftReceipts||[]),marker];
    }else{club.coins+=60000000;club.promoCode88Claimed=true;}
    club.promoCodeUses={...counts,[text]:uses+1};
    if(!Save.normalize({...session,club},formations))return {error:'El saldo o el club supera el límite de guardado.'};
    if(!Save.save(storage,{...session,club},formations))return {error:'No se pudo guardar el regalo. Vuelve a intentarlo.'};
-   return {ok:true,club,rewardCode:text,uses:uses+1,limit,remaining:limit-uses-1,...(player?{player,duplicate}:{coins:60000000})};
+   return {ok:true,club,rewardCode:text,uses:uses+1,unlimitedRedemptions:true,...(player?{player,duplicate}:{coins:60000000})};
   }
   if(!Crypto?.subtle)return {error:'Abre AURA mediante su enlace HTTPS para canjear el código.'};
   const digest=await Crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));

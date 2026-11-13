@@ -74,7 +74,7 @@ test('cached entrypoints can load the private-admin module on demand without dup
   document:{getElementById:()=>field,createElement:()=>({}),head:{appendChild:script=>scripts.push(script)}},notify:message=>notices.push(message),closeModal(){},openModal(){},goToModes(){}});
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../ultimate-ui-66.js'),'utf8')+';globalThis.UI=AuraUTUI',context);context.UI.bindRender(()=>{});
  const before=context.UI.getClub().coins;context.UI.handleClick({dataset:{ut:'admin-local-credit'}});context.UI.handleClick({dataset:{ut:'admin-local-credit'}});
- assert.equal(scripts.length,1);assert.equal(scripts[0].src,'./admin-local-99-sixcodes.js');context.AuraAdminLocal=checked();scripts[0].onload();await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(scripts.length,1);assert.equal(scripts[0].src,'./admin-local-99-unlimitedcodes.js');context.AuraAdminLocal=checked();scripts[0].onload();await new Promise(resolve=>setImmediate(resolve));
  assert.equal(context.UI.getClub().coins,before);assert.equal(notices.filter(s=>s.includes('ilimitadas')).length,1);
 });
 
@@ -82,8 +82,8 @@ test('both entries ship the private unlimited coins with identical tested UI cop
  const read=file=>fs.readFileSync(path.join(__dirname,'..',file),'utf8');
  for(const alias of ['ultimate-ui-61.js','ultimate-ui-62.js','ultimate-ui-63.js','ultimate-ui-64.js','ultimate-ui-65.js','ultimate-ui-66.js'])assert.equal(read(alias),read('ultimate-ui.js'));
  for(const file of ['index.html','mobile.html']){
-  const html=read(file);assert.ok(html.includes('./admin-local-99-sixcodes.js'));assert.ok(html.includes('./admin-local.css?v=local-2'));
-  assert.ok(html.includes('./ultimate-ui-99-cleanstart.js'));assert.ok(html.indexOf('admin-local-99-sixcodes.js')<html.indexOf('ultimate-ui-99-cleanstart.js'));
+  const html=read(file);assert.ok(html.includes('./admin-local-99-unlimitedcodes.js'));assert.ok(html.includes('./admin-local.css?v=local-2'));
+  assert.ok(html.includes('./ultimate-ui-99-starter80.js'));assert.ok(html.indexOf('admin-local-99-unlimitedcodes.js')<html.indexOf('ultimate-ui-99-starter80.js'));
  }
  assert.equal(read('admin-local-2.js'),read('admin-local.js'));
  assert.doesNotMatch(read('admin-local.js'),/AURA-(?:[A-F0-9]{4}-){4}[A-F0-9]{4}/);
@@ -119,11 +119,11 @@ test('all four event screens enable affordable purchases only for the local unli
  }
 });
 
-test('code 88 records each sixty-million reward and permits six saved uses',async()=>{
+test('code 88 records each sixty-million reward and permits repeated saved uses beyond six',async()=>{
  const f=fixture(),before=f.club.coins;
  const result=await Admin.redeem(f.storage,f.session,'88',forms);assert.equal(result.ok,true);assert.equal(result.coins,60000000);assert.equal(result.club.coins,before+60000000);assert.equal(U.hasUnlimited(result.club),false);
  const saved=Save.load(f.storage,forms).snapshot;assert.equal(saved.club.promoCode88Claimed,true);assert.equal(saved.club.coins,before+60000000);
  for(let n=2;n<=6;n++){const r=await Admin.redeem(f.storage,Save.load(f.storage,forms).snapshot,'88',forms);assert.equal(r.ok,true);assert.equal(r.uses,n);}
- assert.ok((await Admin.redeem(f.storage,Save.load(f.storage,forms).snapshot,'88',forms)).error);assert.equal(Save.load(f.storage,forms).snapshot.club.coins,before+360000000);
+ assert.equal((await Admin.redeem(f.storage,Save.load(f.storage,forms).snapshot,'88',forms)).uses,7);assert.equal(Save.load(f.storage,forms).snapshot.club.coins,before+420000000);
  const fail=fixture(),old=fail.storage.getItem(Save.KEY);fail.storage.setItem=()=>{throw Error('full');};assert.ok((await Admin.redeem(fail.storage,fail.session,'88',forms)).error);assert.equal(fail.storage.getItem(Save.KEY),old);assert.equal(fail.club.promoCode88Claimed,undefined);
 });
