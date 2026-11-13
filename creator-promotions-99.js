@@ -6,6 +6,7 @@
   const text=(s,n)=>typeof s==='string'&&s.trim().length>0&&s.length<=n;
   const time=s=>typeof s==='string'&&s.length<=32&&/Z$/.test(s)&&Number.isFinite(Date.parse(s));
   const clone=o=>JSON.parse(JSON.stringify(o));
+  const specials=new Map(),specialPlayers=new Map();
   function validateList(value){
     if(!Array.isArray(value)||value.length>MAX_PROMOS)return null;
     const seen=new Set(),result=[];
@@ -21,9 +22,17 @@
     return result;
   }
   function status(p,now=Date.now()){return p.paused?'paused':now<Date.parse(p.startsAt)?'upcoming':p.endsAt!==null&&now>=Date.parse(p.endsAt)?'ended':'live';}
-  function active(feed,now=Date.now()){return (validateList(feed?.promotions||[])||[]).filter(p=>status(p,now)==='live');}
+  function registerSpecial(promo,players){
+    const checked=validateList([promo]);
+    if(!checked||!Array.isArray(players)||specials.has(promo.id)||specials.size>=MAX_PROMOS)return false;
+    const catalog=new Map(players.filter(p=>p?.real&&text(p.id,200)&&text(p.name,200)&&text(p.pos,20)&&Number.isInteger(p.overall)&&p.overall>=1&&p.overall<=99).map(p=>[p.id,p]));
+    if(checked[0].cards.some(c=>!catalog.has(c.playerId)))return false;
+    for(const [id,player] of catalog)specialPlayers.set(id,clone(player));
+    specials.set(promo.id,checked[0]);return true;
+  }
+  function active(feed,now=Date.now()){return [...specials.values(),...(validateList(feed?.promotions||[])||[]).filter(p=>!specials.has(p.id))].filter(p=>status(p,now)==='live').map(clone);}
   function card(promo,entry,pool){
-    const base=pool.find(p=>p.id===entry.playerId);
+    const base=specialPlayers.get(entry.playerId)||pool.find(p=>p.id===entry.playerId);
     if(!base?.real||base.event==='champions'||String(base.id).startsWith('champions:'))return null;
     return {...clone(base),id:'promo:'+promo.id+':'+entry.id,originalId:base.originalId||base.id,event:'admin-promo',adminPromoId:promo.id,promoName:promo.name,promoAccent:promo.accent,promoPrice:entry.price,overall:entry.overall,tradeable:false};
   }
@@ -42,5 +51,5 @@
     if(!Save.save(storage,{...session,club}))return {error:'No se pudo guardar la compra. No se descontaron monedas.'};
     return {ok:true,club,player,cost:entry.price};
   }
-  return {MAX_PROMOS,MAX_CARDS,MAX_PRICE,accents,validateList,status,active,card,purchase};
+  return {MAX_PROMOS,MAX_CARDS,MAX_PRICE,accents,validateList,status,active,card,purchase,registerSpecial,isSpecialPromo:id=>specials.has(id)};
 });

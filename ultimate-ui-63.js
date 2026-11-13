@@ -139,7 +139,7 @@ const AuraUTUI=(()=>{
     try{
       if(action==='promo-buy'){
         if(tab!=='events')return true;
-        if(Date.now()-promotionFetchedAt>30000){notify('Actualiza el tablón antes de comprar esta promoción.');return true;}
+        if(!AuraPromotions.isSpecialPromo?.(d.promo)&&Date.now()-promotionFetchedAt>30000){notify('Actualiza el tablón antes de comprar esta promoción.');return true;}
         const session=AuraUTSave.load(localStorage).snapshot;
         const result=session&&JSON.stringify(session.club)===JSON.stringify(club)?AuraPromotions.purchase(localStorage,session,promotionFeed,d.promo,d.entry,pool(),U,AuraUTSave):{error:'Tu club cambió. Recarga antes de comprar.'};
         if(result.ok){Object.assign(club,result.club);renderMain();notify('¡'+result.player.name+' '+result.player.overall+' GRL añadido a tu club!');}
