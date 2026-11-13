@@ -7,12 +7,15 @@
   const array=a=>Array.isArray(a);
   const integer=n=>Number.isSafeInteger(n)&&n>=0;
   const string=s=>typeof s==="string"&&s.length>0&&s.length<=200;
+  // This one creator edition intentionally has a negative card rating.
+  // Keep normal players, imports and arbitrary promotions in the 1–99 range.
+  const validOverall=p=>Number.isInteger(p.overall)&&((p.overall>=1&&p.overall<=99)||(p.overall===-67&&p.id==='promo:autogoles-special:autogoles-minus67'&&p.originalId==='special:autogoles-minus67'&&p.name==='EL DE LOS AUTOGOLES'&&p.event==='admin-promo'&&p.adminPromoId==='autogoles-special'&&p.promoPrice===0&&p.tradeable===false));
   function validClub(u,allowedFormations){
     if(!u||typeof u!=="object"||array(u)||!string(u.name)||u.name.length>24||!Number.isSafeInteger(u.coins)||u.coins<0||u.coins>1e12)return false;
     if(!allowedFormations.has(u.formation)||!array(u.owned)||u.owned.length<11||u.owned.length>8000||!array(u.duplicates)||u.duplicates.length>8000||!array(u.xi)||u.xi.length!==11)return false;
     const ids=new Set(),identities=new Set();
     for(const p of u.owned){
-      if(!p||!string(p.id)||ids.has(p.id)||!string(p.name)||!string(p.pos)||!Number.isInteger(p.overall)||p.overall<1||p.overall>99)return false;
+      if(!p||!string(p.id)||ids.has(p.id)||!string(p.name)||!string(p.pos)||!validOverall(p))return false;
       ids.add(p.id);
     }
     for(const id of u.xi){
@@ -27,7 +30,7 @@
     }
     const uids=new Set();
     for(const p of u.duplicates){
-      if(!p||!string(p.uid)||uids.has(p.uid)||!string(p.id)||!string(p.name)||!string(p.pos)||!Number.isInteger(p.overall)||p.overall<1||p.overall>99)return false;
+      if(!p||!string(p.uid)||uids.has(p.uid)||!string(p.id)||!string(p.name)||!string(p.pos)||!validOverall(p))return false;
       uids.add(p.uid);
     }
     for(const name of ["objectives","claimed","lastPack","battlesClaimed"]){if(!array(u[name])||u[name].length>10000)return false;}

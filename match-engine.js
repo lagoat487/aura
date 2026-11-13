@@ -179,7 +179,8 @@
     if((!game.paused&&!automatic)||game.phase==="finished"||!Number.isInteger(index)||!game.players[index]||!incoming)return false;
     const p=game.players[index],team=p.team,bench=game.benches[team],candidate=bench.find(q=>q.id===incoming.id);
     if(p.id===game.playerLock||p.sentOff||(automatic&&team!==1))return false;
-    if(!candidate||!candidate.name||!candidate.pos||!Number.isFinite(candidate.overall)||candidate.overall<1||candidate.overall>99)return false;
+    const negativeSpecial=candidate?.id==='promo:autogoles-special:autogoles-minus67'&&candidate.originalId==='special:autogoles-minus67'&&candidate.overall===-67;
+    if(!candidate||!candidate.name||!candidate.pos||!Number.isFinite(candidate.overall)||(candidate.overall<1&&!negativeSpecial)||candidate.overall>99)return false;
     if(game.participants.flat().includes(candidate.id)||game.substitutions.filter(s=>s.team===team).length>=5)return false;
     if((p.index===0)!==(candidate.pos==="POR"))return false;
     const change={team,out:p.id,in:candidate.id,outName:p.name,inName:candidate.name,minute:Math.min(90,Math.floor(game.elapsed/game.seconds*90))};

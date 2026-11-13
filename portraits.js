@@ -43,8 +43,10 @@
     return numeric(linked?.id)||catalogueIdentity(p?.name);
   }
   const customPhoto='https://aura-admin-emilio-99.emilio-hilman.chatgpt.site/assets/cards/jose-jose-99.jpeg';
+  const autogolesPhoto='./assets/cards/el-de-los-autogoles-minus67.png';
   function sources(p){
     if(p?.real&&(p.originalId==='special:jose-jose-99'||p.id==='special:jose-jose-99'))return [customPhoto];
+    if(p?.real&&(p.originalId==='special:autogoles-minus67'||p.id==='special:autogoles-minus67'))return [autogolesPhoto];
     if(!p?.real)return [];const id=identity(p),urls=[];
     if(id){
       const padded=id.padStart(6,'0'),sofifa=year=>'https://cdn.sofifa.net/players/'+padded.slice(0,-3)+'/'+padded.slice(-3)+'/'+year+'_120.png';
@@ -59,7 +61,7 @@
   }
   function html(p,large=false){
     const urls=sources(p),initials=String(p.name||'AURA').split(/\s+/).slice(0,2).map(n=>n[0]).join(''),type=urls.length?'real':p.real?'missing':'created';
-    return '<span class="tour-face portrait-'+type+' '+(large?'large':'')+(urls[0]===customPhoto?' portrait-jose':'')+'" title="'+(urls.length?'Retrato real; requiere conexión':p.real?'Foto no disponible para esta identidad':'Jugador creado')+'"><span class="portrait-initials">'+escape(initials)+'</span>'+(urls.length?'<img src="'+escape(urls[0])+'" data-portrait-sources="'+escape(JSON.stringify(urls))+'" data-portrait-index="0" loading="lazy" decoding="async" referrerpolicy="no-referrer" alt="Retrato de '+escape(p.name)+'" onerror="AuraPortraits.fallback(this)">':'')+'<small class="portrait-missing-label">'+(p.real?'Sin foto':'Creado')+'</small></span>';
+    return '<span class="tour-face portrait-'+type+' '+(large?'large':'')+(urls[0]===customPhoto?' portrait-jose':urls[0]===autogolesPhoto?' portrait-autogoles':'')+'" title="'+(urls.length?'Retrato real; requiere conexión':p.real?'Foto no disponible para esta identidad':'Jugador creado')+'"><span class="portrait-initials">'+escape(initials)+'</span>'+(urls.length?'<img src="'+escape(urls[0])+'" data-portrait-sources="'+escape(JSON.stringify(urls))+'" data-portrait-index="0" loading="lazy" decoding="async" referrerpolicy="no-referrer" alt="Retrato de '+escape(p.name)+'" onerror="AuraPortraits.fallback(this)">':'')+'<small class="portrait-missing-label">'+(p.real?'Sin foto':'Creado')+'</small></span>';
   }
   function fallback(image){
     let urls=[];try{urls=JSON.parse(image.dataset.portraitSources||'[]');}catch{}

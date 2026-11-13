@@ -3,7 +3,8 @@
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),coins=n=>n.toLocaleString('es-EC');
   function card(player,promo,entry,club){
     const have=club.owned.some(p=>p.id===player.id),poor=!AuraUT.canAfford(club,entry.price);
-    return '<article class="creator-promo-product promo-theme-'+promo.accent+'"><div class="creator-promo-card"><span class="creator-promo-edition">'+esc(promo.name)+'</span><b class="creator-promo-rating">'+player.overall+'<small>'+esc(player.pos)+'</small></b>'+AuraPortraits.html(player)+'<strong>'+esc(player.name)+'</strong><small>'+esc(player.nationality||player.sourceClub||'')+'</small></div><div class="creator-promo-price"><b>'+coins(entry.price)+'</b> monedas</div><button type="button" class="btn primary" data-ut="promo-buy" data-promo="'+esc(promo.id)+'" data-entry="'+esc(entry.id)+'" '+(have||poor?'disabled':'')+'>'+(have?'✓ EN TU CLUB':poor?'MONEDAS INSUFICIENTES':entry.price===0?'RECLAMAR GRATIS →':'FICHAR →')+'</button></article>';
+    const price=entry.price===0?'<b>GRATIS</b>':'<b>'+coins(entry.price)+'</b> monedas';
+    return '<article class="creator-promo-product promo-theme-'+promo.accent+'"><div class="creator-promo-card"><span class="creator-promo-edition">'+esc(promo.name)+'</span><b class="creator-promo-rating">'+player.overall+'<small>'+esc(player.pos)+'</small></b>'+AuraPortraits.html(player)+'<strong>'+esc(player.name)+'</strong><small>'+esc(player.nationality||player.sourceClub||'')+'</small></div><div class="creator-promo-price">'+price+'</div><button type="button" class="btn primary" data-ut="promo-buy" data-promo="'+esc(promo.id)+'" data-entry="'+esc(entry.id)+'" '+(have||poor?'disabled':'')+'>'+(have?'✓ EN TU CLUB':poor?'MONEDAS INSUFICIENTES':entry.price===0?'RECLAMAR GRATIS →':'FICHAR →')+'</button></article>';
   }
   function view(club,pool,feed){
     const promos=P.active(feed);if(!promos.length)return '';

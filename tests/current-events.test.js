@@ -82,7 +82,7 @@ for(const runtime of ['ultimate-ui.js','ultimate-ui-61.js','ultimate-ui-62.js'])
 test('retirement release keeps card styling and uses fresh coherent UT sources on both entrypoints',()=>{
  for(const name of ['ultimate-team','ultimate-ui','ultimate-save','current-events']){
   assert.equal(read(name+'-62.js'),read(name+'.js'));
-  for(const entry of ['index.html','mobile.html'])assert.ok(read(entry).includes(name==='ultimate-team'?'./ultimate-team-99-promos.js':name==='ultimate-ui'?'./ultimate-ui-99-jose45.js':'./'+name+'-66.js?v=6.6-champions'));
+  for(const entry of ['index.html','mobile.html'])assert.ok(read(entry).includes(name==='ultimate-team'?'./ultimate-team-99-promos.js':name==='ultimate-ui'?'./ultimate-ui-99-jose45.js':'./'+name+(name==='ultimate-save'?'-99-specials.js':'-66.js?v=6.6-champions')));
  }
  assert.equal(read('evolution-ui-99-control2.js'),read('evolution-ui.js'));
  for(const entry of ['index.html','mobile.html']){

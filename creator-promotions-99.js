@@ -7,25 +7,27 @@
   const time=s=>typeof s==='string'&&s.length<=32&&/Z$/.test(s)&&Number.isFinite(Date.parse(s));
   const clone=o=>JSON.parse(JSON.stringify(o));
   const specials=new Map(),specialPlayers=new Map();
-  function validateList(value){
+  const autogolesEntry=(p,c)=>p.id==='autogoles-special'&&c.id==='autogoles-minus67'&&c.playerId==='special:autogoles-minus67'&&c.overall===-67&&c.price===0;
+  function validate(value,allowSpecial=false){
     if(!Array.isArray(value)||value.length>MAX_PROMOS)return null;
     const seen=new Set(),result=[];
     for(const p of value){
       if(!p||!id(p.id)||seen.has(p.id)||!text(p.name,70)||typeof p.description!=='string'||p.description.length>200||!accents.includes(p.accent)||typeof p.paused!=='boolean'||!time(p.startsAt)||(p.endsAt!==null&&(!time(p.endsAt)||Date.parse(p.endsAt)<=Date.parse(p.startsAt)))||!Array.isArray(p.cards)||!p.cards.length||p.cards.length>MAX_CARDS)return null;
       seen.add(p.id);const entries=new Set(),players=new Set(),cards=[];
       for(const c of p.cards){
-        if(!c||!id(c.id)||entries.has(c.id)||!text(c.playerId,200)||players.has(c.playerId)||!Number.isInteger(c.overall)||c.overall<1||c.overall>99||!Number.isSafeInteger(c.price)||c.price<0||c.price>MAX_PRICE)return null;
+        if(!c||!id(c.id)||entries.has(c.id)||!text(c.playerId,200)||players.has(c.playerId)||!Number.isInteger(c.overall)||(c.overall<1&&!(allowSpecial&&autogolesEntry(p,c)))||c.overall>99||!Number.isSafeInteger(c.price)||c.price<0||c.price>MAX_PRICE)return null;
         entries.add(c.id);players.add(c.playerId);cards.push({id:c.id,playerId:c.playerId,overall:c.overall,price:c.price});
       }
       result.push({id:p.id,name:p.name.trim(),description:p.description.trim(),accent:p.accent,paused:p.paused,startsAt:p.startsAt,endsAt:p.endsAt,cards});
     }
     return result;
   }
+  function validateList(value){return validate(value);}
   function status(p,now=Date.now()){return p.paused?'paused':now<Date.parse(p.startsAt)?'upcoming':p.endsAt!==null&&now>=Date.parse(p.endsAt)?'ended':'live';}
   function registerSpecial(promo,players){
-    const checked=validateList([promo]);
+    const checked=validate([promo],true);
     if(!checked||!Array.isArray(players)||specials.has(promo.id)||specials.size>=MAX_PROMOS)return false;
-    const catalog=new Map(players.filter(p=>p?.real&&text(p.id,200)&&text(p.name,200)&&text(p.pos,20)&&Number.isInteger(p.overall)&&p.overall>=1&&p.overall<=99).map(p=>[p.id,p]));
+    const catalog=new Map(players.filter(p=>p?.real&&text(p.id,200)&&text(p.name,200)&&text(p.pos,20)&&Number.isInteger(p.overall)&&((p.overall>=1&&p.overall<=99)||(p.overall===-67&&p.id==='special:autogoles-minus67'&&p.name==='EL DE LOS AUTOGOLES'))).map(p=>[p.id,p]));
     if(checked[0].cards.some(c=>!catalog.has(c.playerId)))return false;
     for(const [id,player] of catalog)specialPlayers.set(id,clone(player));
     specials.set(promo.id,checked[0]);return true;

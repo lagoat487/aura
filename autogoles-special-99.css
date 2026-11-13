@@ -1,0 +1,11 @@
+.tour-face.portrait-autogoles{overflow:hidden;border-color:#a0dcff;background:#151e2b}
+.tour-face.portrait-autogoles img{width:100%;height:100%;max-width:none;max-height:none;object-fit:cover;object-position:center center}
+.portrait-autogoles .portrait-initials,.portrait-autogoles .portrait-missing-label{display:none}
+.portrait-autogoles.portrait-missing .portrait-initials{display:block}
+.creator-promo-card:has(.portrait-autogoles){min-height:365px;border-color:#b1e5ff;box-shadow:inset 0 0 36px #89cfff23}
+.creator-promo-card>.tour-face.portrait-autogoles{display:block;position:relative;width:100%;height:225px;max-width:245px;margin:40px auto 12px;border-radius:14px;border:1px solid #c2e9ff66;box-shadow:0 6px 22px #0005}
+.creator-promo-card:has(.portrait-autogoles) .creator-promo-rating{top:33px;left:14px;text-shadow:0 2px 7px #000}
+.creator-promo-card:has(.portrait-autogoles)>strong{font-size:19px;line-height:1.15;letter-spacing:.5px;overflow-wrap:break-word}
+.creator-promo-product:has(.portrait-autogoles){border-color:#b1e5ff66}
+.ut-card:has(.portrait-autogoles)>strong{font-size:13px;white-space:normal;line-height:1.15}
+@media(max-width:600px){.creator-promo-card:has(.portrait-autogoles){min-height:310px}.creator-promo-card>.tour-face.portrait-autogoles{height:175px}.creator-promo-card:has(.portrait-autogoles)>strong{font-size:16px}}
