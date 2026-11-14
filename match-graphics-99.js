@@ -61,7 +61,7 @@ const AuraGraphics=(()=>{
       const entry=maskLibrary?.get(player);if(!entry)return null;
       if(!maskMaterials.has(entry.key)){const map=texture(entry.canvas),mat=basic({map,transparent:true,depthWrite:false,toneMapped:false,side:T.FrontSide});mat.visible=entry.ready;
         maskLibrary.get(player,()=>{if(!disposed){map.needsUpdate=true;mat.visible=true;}});maskMaterials.set(entry.key,mat);}
-      const mat=maskMaterials.get(entry.key).clone();materials.add(mat);const mask=new T.Mesh(geometry('face-mask-plane',()=>new T.PlaneGeometry(FM.width,FM.height)),mat);mask.userData.entry=entry;return mask;
+      const mat=maskMaterials.get(entry.key).clone();materials.add(mat);const mask=new T.Mesh(geometry('face-mask-contour-99',()=>FM.curve(new T.PlaneGeometry(FM.width,FM.height,12,12))),mat);mask.userData.entry=entry;return mask;
     }
     function faceMaterial(key){
       if(!faceMaps.has(key)){const entry=faceLibrary.get(key),map=texture(entry.canvas);map.flipY=false;
