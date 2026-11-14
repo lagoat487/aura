@@ -53,7 +53,22 @@ test('all 22 live heads are 40 percent larger and portrait masks attach to the h
 test('compatible masks follow every pose and viewing direction and are hidden from the back',()=>{
  const layout=require('../assets/models/head-mask-layout-99');assert.equal(layout.scale,1.4);assert.equal(layout.frames.length,22*16);
  const entry={ready:true,canvas:{}};let draws=0;const ctx=new Proxy({drawImage(){draws++;}},{get:(o,k)=>k in o?o[k]:()=>{}});
- for(let pose=0;pose<22;pose++)for(let angle=0;angle<16;angle++){const frame=layout.frames[pose*16+angle];assert.ok([...frame.pivot,...frame.quad,frame.front].every(Number.isFinite));assert.equal(Masks.draw(ctx,entry,frame.quad,frame.front),frame.front>.10);if(angle===8)assert.ok(frame.front<0);}
+ for(let pose=0;pose<22;pose++)for(let angle=0;angle<16;angle++){const frame=layout.frames[pose*16+angle];assert.ok([...frame.pivot,...frame.quad,frame.front].every(Number.isFinite));assert.equal(Masks.draw(ctx,entry,frame.quad,frame.front),Masks.alpha(frame.front)>0);if(angle===8)assert.ok(frame.front<0);}
  assert.ok(draws>100);assert.equal(Masks.draw(ctx,entry,[0,0,1,0,1,1,0,1],-1),false);
  for(let page=0;page<4;page++){const png=fs.readFileSync(path.join(root,'assets/models/human-head-mask-99-'+page+'.png'));assert.equal(png.readUInt32BE(16),1024);assert.equal(png.readUInt32BE(20),96*Math.min(6,22-page*6));}
+});
+
+test('AURA 9.9 portrait uses a smooth, front-only opacity shared by both renderers',()=>{
+ assert.equal(Masks.alpha(-1),0);
+ assert.equal(Masks.alpha(.49),0);
+ assert.equal(Masks.alpha(.6,false),0);
+ assert.equal(Masks.alpha(.88),1);
+ assert.equal(Masks.alpha(1),1);
+ assert.equal(Masks.alpha(NaN),0);
+ assert.ok(Masks.alpha(.7)>0&&Masks.alpha(.7)<1);
+ assert.ok(Masks.alpha(.65)<Masks.alpha(.75));
+ const gl=fs.readFileSync(path.join(root,'match-graphics-99.js'),'utf8');
+ const sprites=fs.readFileSync(path.join(root,'human-sprites-99.js'),'utf8');
+ assert.ok(gl.includes('FM.alpha(front,a.mask.userData.entry.ready)'));
+ assert.ok(sprites.includes('FM?.alpha(placement.front,face?.ready)'));
 });
