@@ -1,3 +1,7 @@
+## AURA VISION 9.9 · Cabezas 3D al girar
+
+Las estrellas reconocidas —incluido Lamine Yamal— conservan ahora su morfología facial 3D aun cuando se haya cargado una máscara fotográfica. De frente se puede ver el retrato; en perfil y de espaldas, el modelo 3D conserva los rasgos geométricos aproximados de cada estrella, en vez de usar la cara genérica. Sigue siendo un modelo aproximado: **no** un escaneo fotorrealista. Se mantiene la versión 9.9 y la misma URL.
+
 ## AURA 9.9 — Admin Abuse
 
 El panel entra con **42** y un navegador autorizado mediante el enlace privado de activación que recibe el propietario. No solicita cuenta ni token GitHub. La autorización usa cookies Secure, HttpOnly y SameSite; el código por sí solo no da acceso a otros dispositivos. La clave privada de activación se configura como secreto del servicio, nunca en este repositorio ni en el enlace público del juego.
