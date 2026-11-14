@@ -88,3 +88,20 @@ test('starred faces retain their real 3D face morph even while a photographic ma
  assert.ok(gfx.includes('if(mask)for(const slot of [2,5,7])'),
   'head morphs must keep the existing head material fade');
 });
+
+test('photo mask uses a curved 3D surface in front of the nose rather than a flat sheet inside the face',()=>{
+ const g=Masks.curve(new THREE.PlaneGeometry(Masks.width,Masks.height,12,12));
+ const p=g.getAttribute('position');let middle=null,temple=null;
+ for(let i=0;i<p.count;i++){
+  const x=p.getX(i),y=p.getY(i);
+  if(Math.abs(x)<1e-6&&Math.abs(y)<1e-6)middle=p.getZ(i);
+  if(Math.abs(x-Masks.width/2)<1e-6&&Math.abs(y)<1e-6)temple=p.getZ(i);
+ }
+ assert.ok(middle!==null&&temple!==null);
+ assert.ok(Masks.center[2]+middle>.1854,'photo centre must clear the original mesh nose');
+ assert.ok(temple<middle-.07,'temples curve backwards toward the 3D head');
+ assert.equal(g.index.count,12*12*6);
+ const source=fs.readFileSync(path.join(root,'match-graphics-99.js'),'utf8');
+ assert.ok(source.includes('FM.curve(new T.PlaneGeometry(FM.width,FM.height,12,12))'));
+ g.dispose();
+});
