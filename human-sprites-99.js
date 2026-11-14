@@ -99,7 +99,7 @@
     hx.putImageData(pixels,0,0);
    }
    ctx.putImageData(image,0,0);
-   const maskAlpha=face?.ready&&placement?Math.max(0,Math.min(1,(placement.front-.10)/.22)):0;
+   const maskAlpha=placement?FM?.alpha(placement.front,face?.ready)||0:0;
    if(head&&maskAlpha<1){ctx.save();ctx.globalAlpha=1-maskAlpha;const [px,py]=placement.pivot.map(n=>n*ratio);ctx.drawImage(head,px+(origin[0]*ratio-px)*scale,py+(origin[1]*ratio-py)*scale,head.width*scale,head.height*scale);ctx.restore();}
    if(face?.ready&&placement)FM.draw(ctx,face,placement.quad.map(n=>n*ratio),placement.front);
    cache.set(key,c);if(cache.size>limit)cache.delete(cache.keys().next().value);return c;
