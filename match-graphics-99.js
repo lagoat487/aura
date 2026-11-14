@@ -361,7 +361,7 @@ const AuraGraphics=(()=>{
       const mask=photoMask(p),headMaterials=[];
       if(mask)for(const slot of [2,5,7]){const mat=mats[slot].clone();mat.name='replaceable-head';mat.transparent=true;headMaterials.push(mat);materials.add(mat);mats.push(mat);}
       else if(look.faceKey&&F)mats.push(faceMaterial(look.faceKey));
-      const body=new T.SkinnedMesh(humanGeometry(look.hairStyle,look.faceShape||0,mask?null:look.faceKey,!!mask),mats),bones=boneDefs.map(()=>new T.Bone());
+      const body=new T.SkinnedMesh(humanGeometry(look.hairStyle,look.faceShape||0,look.faceKey,!!mask),mats),bones=boneDefs.map(()=>new T.Bone());
       boneDefs.forEach(([parent,x,y,z],i)=>{bones[i].position.set(x,y,z);if(parent>=0)bones[parent].add(bones[i]);});
       body.add(bones[0]);body.updateMatrixWorld(true);const skeleton=new T.Skeleton(bones);skeletons.add(skeleton);body.bind(skeleton);
       bones[4].scale.setScalar(look.headScale||1.4);
