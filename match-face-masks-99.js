@@ -8,6 +8,16 @@
   const t=Math.max(0,Math.min(1,(front-.50)/.38));
   return t*t*(3-2*t);
  }
+ // Shared curved photograph: the centre clears the 3D nose, the temples recede.
+ function curve(plane){
+  const positions=plane.getAttribute('position');
+  for(let i=0;i<positions.count;i++){
+   const x=positions.getX(i)/(width*.5),y=positions.getY(i)/(height*.5);
+   positions.setZ(i,.13-.08*x*x-.012*y*y);
+  }
+  positions.needsUpdate=true;plane.computeVertexNormals();
+  return plane;
+ }
  const local={'277643':'lamine-reference-99.png','158023':'messi-fc27.png','231747':'mbappe-fc27.png','238794':'vinicius-fc27.png','239085':'haaland-fc27.png'};
  function resolve(player){
   if(typeof player==='string')player={id:player.startsWith('real:')?player:'real:'+player};
@@ -61,5 +71,5 @@
   const q=Array.from({length:4},(_,i)=>quad.slice(i*2,i*2+2)),s=[[0,0],[256,0],[256,320],[0,320]];
   ctx.save();ctx.globalAlpha=opacity;drawTriangle(ctx,entry.canvas,[s[0],s[1],s[2]],[q[0],q[1],q[2]]);drawTriangle(ctx,entry.canvas,[s[0],s[2],s[3]],[q[0],q[2],q[3]]);ctx.restore();return true;
  }
- return {headScale,width,height,center,alpha,resolve,prepare,create,draw,limit};
+ return {headScale,width,height,center,alpha,curve,resolve,prepare,create,draw,limit};
 });
