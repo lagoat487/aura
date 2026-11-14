@@ -2,6 +2,12 @@
 (function(root,factory){const api=factory(root,typeof module==='object'&&module.exports?require('./portraits-fc27'):root.AuraPortraits,typeof module==='object'&&module.exports?require('./match-faces-98'):root.AuraFaces);if(typeof module==='object'&&module.exports)module.exports=api;else root.AuraFaceMasks=api;})(typeof globalThis!=='undefined'?globalThis:this,function(root,Portraits,Faces){
  'use strict';
  const headScale=1.4,width=.22,height=.30,center=[0,1.76,.065],limit=64;
+ // Only show a flat photo near a frontal view; fade into the 3D head at profile.
+ function alpha(front,ready=true){
+  if(!ready||!Number.isFinite(front))return 0;
+  const t=Math.max(0,Math.min(1,(front-.50)/.38));
+  return t*t*(3-2*t);
+ }
  const local={'277643':'lamine-reference-99.png','158023':'messi-fc27.png','231747':'mbappe-fc27.png','238794':'vinicius-fc27.png','239085':'haaland-fc27.png'};
  function resolve(player){
   if(typeof player==='string')player={id:player.startsWith('real:')?player:'real:'+player};
@@ -50,9 +56,10 @@
   const x=solve(0),y=solve(1);ctx.save();ctx.beginPath();ctx.moveTo(...p);ctx.lineTo(...q);ctx.lineTo(...r);ctx.closePath();ctx.clip();ctx.transform(x[0],y[0],x[1],y[1],x[2],y[2]);ctx.drawImage(image,0,0);ctx.restore();
  }
  function draw(ctx,entry,quad,front=1){
-  if(!entry?.ready||front<=.10||quad.length!==8||!quad.every(Number.isFinite))return false;
+  const opacity=alpha(front,entry?.ready);
+  if(opacity<=0||quad.length!==8||!quad.every(Number.isFinite))return false;
   const q=Array.from({length:4},(_,i)=>quad.slice(i*2,i*2+2)),s=[[0,0],[256,0],[256,320],[0,320]];
-  ctx.save();ctx.globalAlpha=Math.min(1,(front-.10)/.22);drawTriangle(ctx,entry.canvas,[s[0],s[1],s[2]],[q[0],q[1],q[2]]);drawTriangle(ctx,entry.canvas,[s[0],s[2],s[3]],[q[0],q[2],q[3]]);ctx.restore();return true;
+  ctx.save();ctx.globalAlpha=opacity;drawTriangle(ctx,entry.canvas,[s[0],s[1],s[2]],[q[0],q[1],q[2]]);drawTriangle(ctx,entry.canvas,[s[0],s[2],s[3]],[q[0],q[2],q[3]]);ctx.restore();return true;
  }
- return {headScale,width,height,center,resolve,prepare,create,draw,limit};
+ return {headScale,width,height,center,alpha,resolve,prepare,create,draw,limit};
 });
