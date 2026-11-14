@@ -17,3 +17,7 @@ Las rutas de motor, máscaras y presentación se publican como 9.9 para evitar l
 Pruebas de identidades de todo el catálogo, máscara de la foto adjunta, proveedores alternativos, caché/liberación, metadatos en sustituciones, escala y máscaras de los 22 modelos, matrices del esqueleto, las 352 proyecciones del modo compatible y ocultación desde atrás. Se ejecutan también la suite completa de AURA y la construcción de producción.
 
 La comprobación visual utiliza los mismos sprites y máscaras del partido. El navegador remoto tiene WebGL desactivado; la imagen final con aceleración y el rendimiento de iPhone requieren comprobación en ese dispositivo.
+
+## Ajuste de relieve de las máscaras (sin subir a 10.0)
+
+En WebGL, la fotografía frontal ya no está en un plano que atraviesa la nariz del modelo: utiliza una malla compartida de 12 × 12 segmentos, curvada hacia las sienes y situada delante del rostro. La textura sigue siendo una fotografía plana, no un escaneo 3D; al girar la cabeza aparece la geometría 3D. El renderizador compatible mantiene su proyección 2D y la misma transición de opacidad. No cambia el guardado, los equipos ni las monedas.
