@@ -72,3 +72,19 @@ test('AURA 9.9 portrait uses a smooth, front-only opacity shared by both rendere
  assert.ok(gl.includes('FM.alpha(front,a.mask.userData.entry.ready)'));
  assert.ok(sprites.includes('FM?.alpha(placement.front,face?.ready)'));
 });
+
+test('starred faces retain their real 3D face morph even while a photographic mask is available',()=>{
+ const Faces=require('../match-faces-98');
+ const Look=require('../match-look-99');
+ const lamine={id:'real:277643',name:'Lamine Yamal',real:true};
+ const look=Look.avatar(lamine,{skin:'#b79475',hair:'#25211f',height:1.8,build:1});
+ assert.equal(look.faceKey,'lamine');
+ assert.equal(look.faceMaskKey,'real:277643');
+ const original=[.045,1.68,.15];
+ assert.notDeepEqual(Faces.morph(...original,look.faceKey),original,'the side-view mesh must have a distinctive shape');
+ const gfx=fs.readFileSync(path.join(root,'match-graphics-99.js'),'utf8');
+ assert.ok(gfx.includes('humanGeometry(look.hairStyle,look.faceShape||0,look.faceKey,!!mask)'),
+  'do not turn off the face morph simply because a photograph was attached');
+ assert.ok(gfx.includes('if(mask)for(const slot of [2,5,7])'),
+  'head morphs must keep the existing head material fade');
+});
