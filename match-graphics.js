@@ -453,10 +453,10 @@ const AuraGraphics=(()=>{
           a.root.position.set(p.x,pose.jump+pose.saveLift-pose.crouch,p.z);a.root.rotation.set(0,a.yaw,pose.dive*1.12);a.root.visible=!p.sentOff;
           b[0].rotation.y=pose.hipTwist;b[2].rotation.y=pose.chestTwist;b[4].rotation.y=pose.headYaw;b[1].scale.y=1+pose.breath;
           if(a.mask){const vx=camera.position.x-p.x,vz=camera.position.z-p.z,front=(vx*Math.sin(a.yaw+b[4].rotation.y)+vz*Math.cos(a.yaw+b[4].rotation.y))/(Math.hypot(vx,vz)||1);
-            const alpha=a.mask.userData.entry.ready?Math.max(0,Math.min(1,(front-.10)/.22)):0;
+            const alpha=FM.alpha(front,a.mask.userData.entry.ready);
             a.mask.material.visible=alpha>0;a.mask.material.opacity=alpha;
             for(const mat of a.headMaterials){mat.opacity=1-alpha;mat.visible=alpha<1;mat.depthWrite=alpha===0;}
-            for(const object of a.headObjects)object.visible=alpha<.5;
+            for(const object of a.headObjects)object.visible=alpha<.98;
           }
           b[1].rotation.x=pose.lean-pose.kick*.13+pose.crouch*.30;b[2].rotation.z=pose.turn*.10*(p.faceZ>=0?1:-1);
           b[5].rotation.x=pose.stride-pose.kick*1.25-pose.tackle*.8-pose.crouch*.6;b[8].rotation.x=-pose.stride-pose.crouch*.6;
