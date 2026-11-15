@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <base href="../">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b1017">
+  <meta name="description" content="AURA DREAM. Tu club, tu historia. Un modo carrera independiente con fichajes, divisiones y fútbol 3D.">
+  <title>AURA 10.0 · DREAM / DLS PRO</title>
+  <link rel="icon" type="image/svg+xml" href="./dream/assets/mark.svg">
+  <link rel="stylesheet" href="./dream/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="./dream/index.html#inicio" aria-label="AURA DREAM inicio"><img src="./dream/assets/mark.svg" alt=""><span>AURA<span class="brand-dream">DREAM<span class="brand-dot">.</span></span></span></a>
+      <a class="dream-back-aura" href="./index.html" id="dream-back-aura">← Volver a AURA 10.0</a><div class="sidebar-rule"></div><span class="nav-label">MODO CARRERA</span>
+      <nav id="navigation" aria-label="Menú principal"></nav>
+      <div class="sidebar-bottom"><span class="status-dot"></span> VERSIÓN DE PRUEBA <span class="version-label">10.0</span><p>El comienzo de tu historia.</p><button class="text-button" id="data-info">Acerca de la base de jugadores ↗</button></div>
+    </aside>
+    <div class="app-main">
+      <header class="topbar"><div class="topbar-club"><div class="club-badge small">AD<span>FC</span></div><div><strong id="club-title">AURA DREAM FC</strong><span id="club-subtitle">Preparando tu carrera…</span></div></div><div class="topbar-actions"><span id="save-status" class="save-status"><i></i> Guardado local</span><div class="wallet"><span class="coin">A</span><strong id="wallet">—</strong><span class="wallet-label">MONEDAS</span></div><button class="icon-button" id="settings" aria-label="Configuración"></button></div></header>
+      <main id="content" tabindex="-1"><div class="loading"><span class="spinner"></span><h1>Tu historia empieza aquí.</h1><p>Cargando la base de jugadores…</p></div></main>
+      <footer class="app-footer"><span>AURA DREAM <b>10.0</b> · Modo carrera independiente</span><span id="catalogue-count">Base de jugadores</span></footer>
+    </div>
+  </div>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <dialog id="modal"><div id="modal-content"></div></dialog>
+  <section id="match-screen" hidden aria-label="Partido en tres dimensiones">
+    <div id="match-canvas"></div>
+    <div class="match-top"><div class="scoreboard"><div class="match-brand">AURA <b>DREAM</b></div><div class="score-teams"><span id="home-short">DREAM</span><strong id="match-score">0 <i>:</i> 0</strong><span id="away-short">RIVAL</span></div><div class="match-clock"><span id="match-clock">00:00</span><span id="half-label">1.ª PARTE</span></div></div><div class="match-top-right"><span class="beta-pill" id="match-fps">— FPS</span><span class="beta-pill" id="match-quality">VISION 10.0</span><button class="glass-button" id="pause-match" aria-label="Pausar partido"><svg viewBox="0 0 24 24" style="width:16px;height:16px;vertical-align:middle" aria-hidden="true"><path stroke-width="4" d="M8 4v16M16 4v16"/></svg></button></div></div>
+    <div id="match-event" aria-live="polite"></div><div id="match-instructions"><strong>WASD / FLECHAS</strong> mover <span>·</span> <strong>ESPACIO</strong> tirar <span>·</span> <strong>E</strong> pasar <span>·</span> <strong>Q</strong> cambiar <span>·</span> <strong>SHIFT</strong> sprint</div>
+    <div class="match-bottom"><div class="controlled-player"><span id="controlled-number">10</span><div><small>JUGADOR CONTROLADO</small><strong id="controlled-name">—</strong><div class="stamina-track"><i id="stamina-bar"></i></div></div></div><canvas id="minimap" width="188" height="120" aria-label="Minimapa del partido"></canvas><div class="attack-indicator">ATACAS HACIA LA DERECHA <span>→</span></div></div>
+    <div id="touch-controls"><div id="joystick" aria-label="Joystick de movimiento"><div id="joystick-knob"></div></div><div class="touch-actions"><button id="touch-switch">CAMBIAR</button><button id="touch-pass">B<span>PASE</span></button><button id="touch-shoot">A<span>TIRO</span></button><button id="touch-sprint">C<span>SPRINT</span></button></div></div>
+    <div id="match-overlay" hidden></div>
+  </section>
+  <script src="./vendor/three.min.js?v=10.0-cinema1"></script>
+  <script src="./portraits-fc27.js?v=10.0-cinema1"></script>
+  <script src="./assets/models/footballer-mesh.js?v=10.0-cinema1"></script>
+  <script src="./assets/models/jersey-landmarks-95.js?v=10.0-cinema1"></script>
+  <script src="./match-materials-96.js?v=10.0-cinema1"></script>
+  <script src="./assets/models/football-boots-96.js?v=10.0-cinema1"></script>
+  <script src="./assets/models/curly-hair-96.js?v=10.0-cinema1"></script>
+  <script src="./assets/models/human-details-96.js?v=10.0-cinema1"></script>
+  <script src="./match-faces-98.js?v=10.0-cinema1"></script>
+  <script src="./match-face-masks-99.js?v=10.0-cinema1"></script>
+  <script src="./assets/models/head-mask-layout-99.js?v=10.0-cinema1"></script>
+  <script src="./match-look-99.js?v=10.0-cinema1"></script>
+  <script src="./assets/models/arena-100.js?v=10.0-radical1"></script>
+  <script src="./arena-next-101.js?v=10.0-recovery4"></script>
+  <script src="./match-presentation-101.js?v=10.0-recovery4"></script>
+  <script src="./human-sprites-101.js?v=10.0-recovery4"></script>
+  <script src="./software-graphics-101.js?v=10.0-recovery4"></script>
+  <script src="./match-cinema-100.js?v=10.0-cinema1"></script>
+  <script src="./assets/models/hair-detail-101.js?v=10.0-recovery2"></script>
+  <script src="./match-renderer-101.js?v=10.0-recovery2"></script>
+  <script src="./match-graphics-101.js?v=10.0-recovery4"></script>
+  <script type="module" src="./dream/app-101.js?v=10.0-recovery4"></script>
+</body>
+</html>

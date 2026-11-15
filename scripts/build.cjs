@@ -2,6 +2,7 @@
 const fs=require("node:fs"),path=require("node:path");
 const root=path.resolve(__dirname,".."),out=path.join(root,"dist");
 const files=["index.html","mobile.html","vendor/THREE-LICENSE.txt"];
+if(fs.existsSync(path.join(root,"play.html")))files.push("play.html");
 const entries=files.filter(file=>file.endsWith(".html"));
 if(fs.existsSync(path.join(root,"admin-99.html"))){entries.push("admin-99.html");files.push("admin-99.html");}
 if(fs.existsSync(path.join(root,"dream/index.html")))entries.push("dream/index.html");
