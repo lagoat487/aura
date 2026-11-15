@@ -1,3 +1,11 @@
+## AURA 10.0 · DREAM dentro del juego
+
+DREAM es el octavo modo de AURA. Se abre desde la barra superior, la entrada del inicio o su tarjeta. Se ejecuta en el mismo origen bajo `dream/index.html`, con cabecera y botón para volver a AURA sin destruir los otros modos. La dirección `#dream` restaura la vista al recargar. Al regresar al menú, DREAM conserva su instancia y pausa el partido si estaba jugando.
+
+Se mantienen las claves de guardado existentes. El modo DREAM utiliza `aura_dream_career_v03` y sus archivos de jugadores están incluidos en la distribución. Las monedas, plantilla, resultados y mercado de DREAM siguen separados de UT y Carrera. Las comunicaciones entre la vista de DREAM y el menú se aceptan solo desde el marco y el origen esperados.
+
+El mismo paquete completo se publica en el acceso de ChatGPT que antes alojaba solo DREAM. Este acceso conserva la configuración privada existente y la partida de DREAM del mismo origen. Los guardados de otro dominio, incluido el enlace de GitHack, no se transfieren automáticamente.
+
 # AURA 10.0 · VISION CINE y AURA DREAM
 
 AURA principal conserva sus siete modos, enlace estable y claves de guardado. El inicio añade acceso directo al modo independiente AURA DREAM / DLS PRO.

@@ -143,7 +143,7 @@ function playMatch(suppliedScore=null,matchDetails=null) {
   $("continue").onclick=()=>{closeModal();render()};
 }
 function rank(){return seasonTable().findIndex(c=>c.id===state.club)+1}
-const nav=[["modes","Modos"],["home","Inicio"],["career","Carrera"],["squad","Plantilla"],["market","Mercado"],["calendar","Calendario"],["academy","Desarrollo"],["table","Clasificación"],["champions","Champions"],["tour","Premios"],["pro","Mi jugador"]];
+const nav=[["modes","Modos"],["dream","DREAM"],["home","Inicio"],["career","Carrera"],["squad","Plantilla"],["market","Mercado"],["calendar","Calendario"],["academy","Desarrollo"],["table","Clasificación"],["champions","Champions"],["tour","Premios"],["pro","Mi jugador"]];
 function notify(msg){let el=$("toast");el.textContent=msg;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),3500)}
 let modalReturnFocus=null;
 function openModal(title,body){if($("modal").hidden)modalReturnFocus=document.activeElement;$("modal").hidden=false;$("modal").innerHTML='<section class="modal" role="dialog" aria-modal="true" aria-label="'+title+'"><div class="row spread"><h2>'+title+'</h2><button class="btn small" id="closemodal" aria-label="Cerrar ventana">✕</button></div>'+body+'</section>';$("closemodal").onclick=closeModal;$("closemodal").focus?.()}
@@ -301,6 +301,7 @@ document.addEventListener("click",e=>{
   if(AuraEvolution.handleClick(t))return;
   if(state&&AuraProgressionUI.handleClick(t))return;
   if(state&&AuraCareerUI.handleClick(t))return;
+  if(t.dataset.nav==="dream"){AuraDream.open();return;}
   if(t.dataset.nav==="modes"){goToModes();return;}
   if(t.dataset.nav){
     if(!state&&t.dataset.nav!=="home"){notify("Primero crea una carrera");return}

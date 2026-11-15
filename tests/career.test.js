@@ -37,7 +37,7 @@ function boot(saved, utUI = "ultimate-ui.js") {
 }
 
 test("World Tour adds four working lobby modes while preserving manager, quick match and draft",()=>{
- const app=boot();assert.equal((app.html().match(/data-evo-mode=/g)||[]).length,7);
+ const app=boot();assert.equal((app.html().match(/data-evo-mode=/g)||[]).length,8);
  for(const [mode,label] of [["pro","TU NOMBRE. TU CAMINO."],["cup","EL MUNDO TE ESPERA."],["ultimate","TU CLUB. TUS CARTAS."],["street","LA CALLE TIENE SUS REGLAS."]]){app.click({evoMode:mode});assert.ok(app.html().includes(label));}
 });
 test("player career creation puts the protagonist in the XI and commits a locked match once",()=>{
@@ -88,7 +88,7 @@ test("roster refresh preserves the career protagonist, scouted youths and regene
 test("mode hub returns from UT and preserves both the existing career and the UT collection",()=>{
  const app=boot();app.click({action:'start'});app.click({action:'play'});const career=app.json('state');
  app.click({nav:'modes'});assert.equal(app.run('lobby'),true);assert.match(app.html(),/Continuar carrera/);app.click({evoMode:'ultimate'});app.click({ut:'create'});app.click({ut:'pack',pack:'gold'});app.click({ut:'reveal-skip'});const ut=app.json('AuraUTUI.getClub()');
- app.click({ut:'lobby'});assert.equal((app.html().match(/data-evo-mode=/g)||[]).length,7);app.click({nav:'career'});assert.equal(app.run('lobby'),false);assert.deepEqual(app.json('state'),career);app.click({nav:'modes'});app.click({evoMode:'ultimate'});assert.deepEqual(app.json('AuraUTUI.getClub()'),ut);
+ app.click({ut:'lobby'});assert.equal((app.html().match(/data-evo-mode=/g)||[]).length,8);app.click({nav:'career'});assert.equal(app.run('lobby'),false);assert.deepEqual(app.json('state'),career);app.click({nav:'modes'});app.click({evoMode:'ultimate'});assert.deepEqual(app.json('AuraUTUI.getClub()'),ut);
 });
 test("Champions fixtures are interleaved with the same career, use its XI, and never advance the domestic table",async()=>{
  const app=boot();app.run(fs.readFileSync(path.join(__dirname,'..','data/world-rosters.js'),'utf8'));await app.run('World.load(clubs,Competitions.definitions)');app.click({action:'start'});
@@ -845,12 +845,12 @@ test("real Cup matches finishing level use score-dependent penalty winners recor
  assert.equal(played.winner,played.penalties.home>played.penalties.away?played.home:played.away);
 });
 
-test("main menu presents seven large independent mode cards instead of shared tabs",()=>{
+test("main menu presents eight large independent mode cards instead of shared tabs",()=>{
  const app=boot(),html=app.html();
  assert.equal(app.run('AuraEvolution.getMode().mode'),"hub");
- assert.equal((html.match(/class="aura-mode-tile aura-mode-tile--/g)||[]).length,7);
- assert.equal((html.match(/data-evo-mode="/g)||[]).length,7);
- assert.match(html,/SIETE MODOS/);
+ assert.equal((html.match(/class="aura-mode-tile aura-mode-tile--/g)||[]).length,8);
+ assert.equal((html.match(/data-evo-mode="/g)||[]).length,8);
+ assert.match(html,/OCHO MODOS/);
  assert.doesNotMatch(html,/id="mode-content"/,"no mode can take over the hub until selected");
  assert.doesNotMatch(html,/data-evo="argentina-open"/,"retired event stays out of the lobby");
 });
@@ -877,7 +877,7 @@ test("every game mode gets its own full-width page, unique theme and a working b
    assert.equal((html.match(/data-evo-mode=/g)||[]).length,0,"no shared tabs inside a mode");
    app.click({evo:"mode-back"});
    assert.equal(app.run('AuraEvolution.getMode().mode'),"hub");
-   assert.equal((app.html().match(/data-evo-mode=/g)||[]).length,7);
+   assert.equal((app.html().match(/data-evo-mode=/g)||[]).length,8);
  }
 });
 test("favorite mode is separately selectable and its priority persists across menu visits",()=>{
@@ -903,7 +903,7 @@ test("return to the last mode preserves Draft XI selections and never restarts t
  assert.equal(app.run('AuraEvolution.getMode().mode'),"draft");
  assert.match(app.html(),/4 \/ 11/);
  app.click({evo:"mode-back"});
- assert.equal((app.html().match(/data-evo-mode=/g)||[]).length,7);
+ assert.equal((app.html().match(/data-evo-mode=/g)||[]).length,8);
 });
 test("existing career and Ultimate Team club remain intact after changing separate modes",()=>{
  const app=boot();app.click({evoMode:"career"});app.click({action:"start"});
@@ -913,7 +913,7 @@ test("existing career and Ultimate Team club remain intact after changing separa
  app.click({evoMode:"ultimate"});app.click({ut:"create"});
  const initial=app.json('AuraUTUI.getClub()');
  app.click({ut:"lobby"});
- assert.equal((app.html().match(/data-evo-mode=/g)||[]).length,7);
+ assert.equal((app.html().match(/data-evo-mode=/g)||[]).length,8);
  app.click({evoMode:"street"});app.click({evo:"mode-back"});
  app.click({evoMode:"ultimate"});
  assert.deepEqual(app.json('AuraUTUI.getClub()'),initial);

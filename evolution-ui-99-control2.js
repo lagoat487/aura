@@ -43,7 +43,8 @@ const AuraEvolution=(()=>{
     ["pro","04","CARRERA DE JUGADOR","TU NOMBRE EN LA CAMISETA","Controla a tu futbolista, suma minutos y haz historia.","Tu jugador · Experiencia · Goles","🌟"],
     ["cup","05","COPAS Y SELECCIONES","EL MUNDO EN JUEGO","Juega octavos, cuartos, semifinales y finales internacionales.","Champions · Libertadores · Mundial","🏆"],
     ["ultimate","06","ULTIMATE TEAM","TU CLUB. TUS CARTAS.","Colecciona, mejora tu once y juega los eventos especiales.","Mercado · Sobres · Eventos","💎"],
-    ["street","07","CALLE / VOLTA","LA CALLE ES TU ESTADIO","Partidos rápidos de tres contra tres: ritmo, técnica y espectáculo.","3 contra 3 · Fútbol urbano","🔥"]
+    ["street","07","CALLE / VOLTA","LA CALLE ES TU ESTADIO","Partidos rápidos de tres contra tres: ritmo, técnica y espectáculo.","3 contra 3 · Fútbol urbano","🔥"],
+    ["dream","08","AURA DREAM / DLS PRO","DE LA ACADEMIA A LA ÉLITE","Crea tu club, ficha estrellas y asciende por ocho divisiones.","Mercado rotativo · Partida guardada","⚽"]
   ];
   const savedFormations=typeof AuraQuickFormations!=="undefined"&&typeof localStorage!=="undefined"
     ?AuraQuickFormations.load(localStorage):{home:"4-3-3",away:"4-3-3"};
@@ -100,6 +101,7 @@ const AuraEvolution=(()=>{
   }catch{}
   function modeMeta(id){return modeCards.find(row=>row[0]===id)||modeCards[0];}
   function chooseMode(id){
+    if(id==="dream")return typeof AuraDream!=="undefined"&&AuraDream.open();
     if(!modeCards.some(row=>row[0]===id))return false;
     mode=id;modeOpen=true;recentMode=id;lobby=true;
     try{localStorage.setItem("aura-recent-mode-v1",id);}catch{}
@@ -119,14 +121,14 @@ const AuraEvolution=(()=>{
     const ordered=modeCards.slice().sort((a,b)=>Number(b[0]===pinnedMode)-Number(a[0]===pinnedMode));
     return '<section class="aura-mode-library" aria-labelledby="aura-mode-choose">'+
       '<div class="aura-mode-library-heading"><div><span class="eyebrow">AURA 27 · ELIGE TU MUNDO</span>'+
-      '<h2 id="aura-mode-choose">SIETE MODOS.<br><em>SIETE HISTORIAS.</em></h2></div>'+
+      '<h2 id="aura-mode-choose">OCHO MODOS.<br><em>OCHO HISTORIAS.</em></h2></div>'+
       '<p>Ya no son pestañas mezcladas. Cada modo abre su propio espacio y puedes volver sin perder el equipo que estabas preparando.</p></div>'+
       '<div class="mode-tabs aura-mode-cards">'+ordered.map(([id,num,title,slogan,description,feature,emoji])=>{
         const pin=pinnedMode===id;
         const status=typeof AuraModeProgress!=="undefined"?AuraModeProgress.progressLabel(id,progress):null;
         return '<article class="aura-mode-tile aura-mode-tile--'+id+'" data-mode-card="'+id+'">'+
           '<button class="aura-mode-launch" data-evo-mode="'+id+'" aria-label="Entrar a '+title+'">'+
-            '<span class="aura-mode-tile-top"><span class="aura-mode-number">'+num+' / 07</span><span class="aura-mode-emoji" aria-hidden="true">'+emoji+'</span></span>'+
+            '<span class="aura-mode-tile-top"><span class="aura-mode-number">'+num+' / 08</span><span class="aura-mode-emoji" aria-hidden="true">'+emoji+'</span></span>'+
             '<strong>'+title+'</strong><em>'+slogan+'</em><span class="aura-mode-description">'+description+'</span>'+
             '<span class="aura-mode-feature">'+feature+'</span>'+
             (status?'<span class="aura-mode-progress" role="status">'+text(status)+'</span>':'')+
@@ -149,7 +151,7 @@ const AuraEvolution=(()=>{
     return '<div class="season-intro"><span>AURA VISION 10.0 <b>/ CINE · NUEVA TEMPORADA</b></span>'+
       '<button data-evo="controls" class="club-controls-link">Controles y cómo jugar <span>→</span></button></div>'+
       '<section class="aura-mode-home-hero"><div class="aura-mode-home-mesh" aria-hidden="true"></div>'+
-      '<span class="eyebrow">AURA VISION 10.0 · UN JUEGO · SIETE EXPERIENCIAS</span>'+
+      '<span class="eyebrow">AURA VISION 10.0 · UN JUEGO · OCHO EXPERIENCIAS</span>'+
       '<h1>ELIGE CÓMO<br><em>HACER HISTORIA.</em></h1>'+
       '<p>Carrera, partidos, Draft, copas, fútbol callejero y Ultimate Team. Entra en cada uno desde su propia pantalla. Puedes iniciar nueva carrera entrando en Carrera Mánager.</p>'+
       '<div class="aura-mode-home-actions"><button class="btn primary" data-evo="events-open">EVENTOS ACTUALES UT →</button>'+
@@ -157,12 +159,12 @@ const AuraEvolution=(()=>{
       (recent?'<button class="btn" data-evo="mode-resume">↗ VOLVER A '+recent[2]+'</button>':'')+
       '<button class="btn" data-evo="skill-open">🎯 CENTRO DE ENTRENAMIENTO</button></div>'+
       '<div class="aura60-live-strip"><div><span>EN ULTIMATE TEAM</span><strong>EVENTOS ACTUALES. TUS COLORES.</strong></div><div class="aura60-event-shortcuts"><button data-evo="magia-open">✧ MAGIA</button><button data-evo="barcelona-open">🔵🔴 BARÇA</button><button data-evo="muralla-open">◈ MURALLA</button><button data-evo="flashback-open">✦ FLASHBACK</button></div></div>'+
-      '<div class="aura-mode-home-metrics"><span><strong>07</strong> MODOS</span>'+
+      '<div class="aura-mode-home-metrics"><span><strong>08</strong> MODOS</span>'+
       '<span><strong>'+(loaded?Number(stats.clubs||0).toLocaleString("es-ES"):'11×11')+'</strong> CLUBES O JUGADORES</span>'+
       '<span><strong>3D</strong> PARTIDOS JUGABLES</span></div></section>'+dreamEntrance()+modeTabs();
   }
   function dreamEntrance(){
-    return '<a class="aura-dream-entry" href="https://aura-dream-emilio.emilio-hilman.chatgpt.site"><div><span class="eyebrow">NUEVO · CARRERA INDEPENDIENTE</span><strong>AURA DREAM / DLS PRO</strong><p>Empieza desde abajo, ficha estrellas, renueva el mercado después de cada partido y asciende hasta la élite. Tu equipo se guarda en este modo.</p></div><span class="dream-launch">ENTRAR A DREAM ↗</span></a>';
+    return '<button type="button" class="aura-dream-entry" data-dream-open><div><span class="eyebrow">NUEVO MODO DENTRO DE AURA</span><strong>AURA DREAM / DLS PRO</strong><p>Empieza desde abajo, ficha estrellas, renueva el mercado después de cada partido y asciende hasta la élite. Tu equipo se guarda en este modo.</p></div><span class="dream-launch">ENTRAR A DREAM →</span></button>';
   }
   function leagueControls(){
     const definition=Competitions.getDefinition(selectedCompetition),featured=Competitions.definitions.filter(c=>c.id==="laliga"||c.id==="exhibition"||["Premier League","Bundesliga","Serie A Enilive","Ligue 1 McDonalds"].includes(c.name)).slice(0,7);
@@ -611,6 +613,7 @@ const AuraEvolution=(()=>{
     if(e.target.id==="evo-tactic"&&state){state.tactic=e.target.value;notify("Identidad de juego actualizada");}
   }
   return {welcome,dashboard,badge,handleClick,input,change,afterRender,stopPreview,playCareer,pool,setMode:name=>{
+    if(name==="dream"){if(typeof AuraDream!=="undefined")AuraDream.open();return;}
     if(name==="hub"){modeOpen=false;return;}
     if(modeCards.some(row=>row[0]===name)){mode=name;modeOpen=true;recentMode=name;}
   },getMode:()=>({mode:modeOpen?mode:"hub",recentMode,pinnedMode}),getRivalry:()=>quickRivalry};
