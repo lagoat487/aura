@@ -1,3 +1,13 @@
+# AURA 10.0 · VISION CINE y AURA DREAM
+
+AURA principal conserva sus siete modos, enlace estable y claves de guardado. El inicio añade acceso directo al modo independiente AURA DREAM / DLS PRO.
+
+En calidad Alto y Ultra se incorpora un pipeline de imagen con escena lineal, resplandor de las luces, oclusión de contacto en pantalla cuando se dispone de textura de profundidad, suavizado de bordes y salida ACES. Los dispositivos compatibles conservan las luces intensas en un búfer HDR. Las resoluciones del efecto se adaptan a las del renderizador; Equilibrado y Rendimiento siguen con render directo. Todos los efectos y sus texturas se liberan al salir del partido.
+
+AURA DREAM comparte los modelos humanos animados, uniformes, cabezas y retratos disponibles, césped, redes y estadio del proyecto. Mantiene su simulación, ocho divisiones, economía y guardado independientes. Incluye cinco cámaras, cuatro niveles de calidad y tres ambientes.
+
+Validación: 670 pruebas del proyecto principal y 20 de DREAM. Los dos programas de imagen se compilaron y enlazaron en un contexto GLSL ES de software. En navegador se probó la navegación, inicio y pausa del partido y el modo compatible. El navegador de QA no ofrece WebGL; queda pendiente comprobar el acabado acelerado y los FPS en la Mac del usuario. No son escaneos de jugadores ni los gráficos de FC 27.
+
 ## AURA VISION 9.9 · Cabezas 3D al girar
 
 Las estrellas reconocidas —incluido Lamine Yamal— conservan ahora su morfología facial 3D aun cuando se haya cargado una máscara fotográfica. De frente se puede ver el retrato; en perfil y de espaldas, el modelo 3D conserva los rasgos geométricos aproximados de cada estrella, en vez de usar la cara genérica. Sigue siendo un modelo aproximado: **no** un escaneo fotorrealista. Se mantiene la versión 9.9 y la misma URL.

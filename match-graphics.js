@@ -14,6 +14,7 @@ const AuraGraphics=(()=>{
     juventus:["#e9e9e1","#171d26","#cbb387"],atletico:["#d03b41","#eeece6","#24468b"]
   };
   function kit(club,away=false){
+    if(Array.isArray(club?.colors)&&club.colors.length===3&&club.colors.every(c=>/^#[0-9a-f]{6}$/i.test(c)))return club.colors.slice();
     if(away)return ["#ebe6d9","#cdbf9e","#26343c"];
     const name=((club?.id||'')+' '+(club?.name||'aura')).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
     const aliases=[[/barcelona sc/,'guayaquil'],[/atletico.*madrid/,'atletico'],[/real.*madrid/,'madrid'],[/ac milan/,'acmilan'],[/inter.*milan|internazionale/,'milan'],[/manchester united/,'united'],[/manchester city/,'city'],[/bayern/,'munich'],[/chelsea/,'london'],[/psg|paris saint/,'paris']];
@@ -36,7 +37,7 @@ const AuraGraphics=(()=>{
     renderer.setPixelRatio(basePixelRatio);renderer.outputColorSpace=T.SRGBColorSpace;
     renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=lighting?.exposure??(day?1.08:sunset?1.14:1.22);
     renderer.shadowMap.enabled=!low;renderer.shadowMap.type=T.PCFSoftShadowMap;
-    renderer.domElement.setAttribute('aria-label','AURA VISION: partido 3D, césped detallado y estadio lleno');
+    renderer.domElement.setAttribute('aria-label','AURA 10.0: partido 3D con iluminación de estadio y tratamiento cinematográfico');
     container.appendChild(renderer.domElement);
     const scene=new T.Scene(),camera=new T.PerspectiveCamera(44,1,.1,440);
     scene.background=new T.Color(lighting?.sky??(raining?(day?0x758087:0x182431):day?0x9ebac8:sunset?0x59576b:0x0b1425));
@@ -439,6 +440,7 @@ const AuraGraphics=(()=>{
     function optimizeResolution(ms){if(preview||low||!Number.isFinite(ms)||ms<=0)return;slowFrames=ms>28?slowFrames+1:0;fastFrames=ms<18?fastFrames+1:0;
       if(slowFrames>=35&&adaptiveRatio>Math.max(.75,basePixelRatio*.58)){adaptiveRatio=Math.max(.75,basePixelRatio*.58,adaptiveRatio-.15);renderer.setPixelRatio(adaptiveRatio);slowFrames=fastFrames=0;}
       else if(fastFrames>=180&&adaptiveRatio<basePixelRatio){adaptiveRatio=Math.min(basePixelRatio,adaptiveRatio+.1);renderer.setPixelRatio(adaptiveRatio);fastFrames=slowFrames=0;}}
+    const cinema=typeof AuraCinema!=='undefined'?AuraCinema.create(T,renderer,scene,camera,{quality,preview}):null;
     function resize(){if(disposed)return;const w=Math.max(1,container.clientWidth),h=Math.max(1,container.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
     observer=typeof ResizeObserver!=='undefined'?new ResizeObserver(resize):null;observer?.observe(container);resize();
     function render(game,cam=lastCamera,now=0){if(disposed)return;lastCamera=cam;const frameMs=lastTime===null?16.7:Math.max(0,now-lastTime),dt=Math.min(.1,frameMs/1000);optimizeResolution(frameMs);
@@ -475,10 +477,10 @@ const AuraGraphics=(()=>{
       const desired=P.cameraFrame(game,cam,camera.aspect,preview);cameraState=P.smoothCamera(cameraState,desired,dt);camera.position.fromArray(cameraState.position);camera.lookAt(new T.Vector3().fromArray(cameraState.target));
       if(Math.abs(camera.fov-cameraState.fov)>.01){camera.fov=cameraState.fov;camera.updateProjectionMatrix();}lastTime=now;
       if(scene.fog){const distance=Math.hypot(...cameraState.position);scene.fog.near=cam==='tactical'?distance+20:(raining?90:155);scene.fog.far=cam==='tactical'?distance+160:(raining?240:350);}
-      updateFlags(game?.visualTime??now*.001);cheerCrowd(now,game?.score);updateScreen(game);updateGoalNets(game);updateRain(now);updateGrass(game,cam);renderer.render(scene,camera);
+      updateFlags(game?.visualTime??now*.001);cheerCrowd(now,game?.score);updateScreen(game);updateGoalNets(game);updateRain(now);updateGrass(game,cam);if(cinema)cinema.render();else renderer.render(scene,camera);
     }
     function project(p){const v=new T.Vector3(p.x,2.2,p.z).project(camera);return {x:(v.x*.5+.5)*container.clientWidth,y:(-.5*v.y+.5)*container.clientHeight,visible:v.z>-1&&v.z<1&&Math.abs(v.x)<1&&Math.abs(v.y)<1};}
-    function dispose(){if(disposed)return;disposed=true;faceLibrary?.dispose();maskLibrary?.dispose();observer?.disconnect();skeletons.forEach(s=>s.dispose());geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());textures.forEach(t=>t.dispose());
+    function dispose(){if(disposed)return;disposed=true;cinema?.dispose();faceLibrary?.dispose();maskLibrary?.dispose();observer?.disconnect();skeletons.forEach(s=>s.dispose());geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());textures.forEach(t=>t.dispose());
       scene.traverse(o=>{if(o.isInstancedMesh)o.dispose();});renderer.dispose();renderer.forceContextLoss();renderer.domElement.remove();}
     return {render,resize,dispose,project,mapInput:input=>P.cameraInput(input,cameraState),renderer,kits};
   }
