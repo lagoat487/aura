@@ -13,14 +13,15 @@ test('the M5 rendering budget caps pixels on Retina and 4K displays and the clos
  assert.equal(N.cameraFrame({},'tactical',1.78,false),null);assert.equal(N.cameraFrame({},'stadium',1.78,true),null);
 });
 test('the active renderer builds Arena Next, 22 animated humans and four floodlights, then disposes the scene',()=>{
- const grad={addColorStop(){}};const ctx=new Proxy({createLinearGradient:()=>grad,createRadialGradient:()=>grad},{get:(o,k)=>k in o?o[k]:()=>{}});
+ const grad={addColorStop(){}};const ctx=new Proxy({createLinearGradient:()=>grad,createRadialGradient:()=>grad,createImageData:(w,h)=>({data:new Uint8ClampedArray(w*h*4)})},{get:(o,k)=>k in o?o[k]:()=>{}});
  const canvas=()=>({width:1,height:1,getContext:()=>ctx,setAttribute(){},remove(){}});let latest,disposed=0;
  class Renderer{constructor(){this.domElement=canvas();this.shadowMap={};this.capabilities={getMaxAnisotropy:()=>4};}setPixelRatio(){}setSize(){}render(s,c){latest=s;s.updateMatrixWorld(true);c.updateMatrixWorld(true);}dispose(){disposed++;}forceContextLoss(){}}
- const c=vm.createContext({THREE:{...T,WebGLRenderer:Renderer},AuraNext:N,AuraArenaMesh100:model,AuraHumanMesh:require('../assets/models/footballer-mesh'),document:{createElement:canvas}});
+ const c=vm.createContext({THREE:{...T,WebGLRenderer:Renderer},AuraNext:N,AuraArenaMesh100:model,AuraHumanMesh:require('../assets/models/footballer-mesh'),AuraFaces:require('../match-faces-98'),AuraFaceMasks:require('../match-face-masks-99'),AuraHairDetail:require('../assets/models/hair-detail-101'),AuraCurlMesh:require('../assets/models/curly-hair-96'),document:{createElement:canvas}});
  for(const file of ['arena-next-100.js','match-look-99.js','match-presentation-96.js','match-graphics-99.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'..',file),'utf8'),c);
- const team=id=>({id,name:id,players:Match.SHAPE.map((p,i)=>({id:id+i,name:id+i,pos:p[0],overall:80}))});c.game=Match.create({home:team('a'),away:team('b'),seed:10});c.container={clientWidth:1470,clientHeight:956,appendChild(){}};
+ const team=id=>({id,name:id,players:Match.SHAPE.map((p,i)=>({id:id+i,name:id+i,pos:p[0],overall:80}))});c.game=Match.create({home:team('a'),away:team('b'),seed:10});Object.assign(c.game.players[9],{id:'real:277643',name:'Lamine Yamal',real:true});c.container={clientWidth:1470,clientHeight:956,appendChild(){}};
  vm.runInContext("g=AuraGraphics.create(container,{quality:'high',stadium:'sunset'});g.render(game,'stadium',100)",c);
  assert.ok(latest.getObjectByName('arena-next-blender'));assert.equal(latest.getObjectsByProperty('name','arena-next-floodlight').length,4);assert.equal(latest.getObjectsByProperty('isSkinnedMesh',true).length,22);
  for(const body of latest.getObjectsByProperty('isSkinnedMesh',true)){assert.equal(body.skeleton.bones[4].scale.x,1.08);body.skeleton.update();assert.ok(body.skeleton.boneMatrices.every(Number.isFinite));}
+ const lamine=latest.getObjectByName('player:real:277643');assert.ok(lamine);assert.equal(lamine.getObjectByName('photo-face-mask:real:277643'),undefined);const body=lamine.getObjectsByProperty('isSkinnedMesh',true)[0];assert.ok(body.material.some(m=>m.name==='portrait-face:lamine'&&m.isMeshPhysicalMaterial));assert.ok(lamine.getObjectByName('curly-hair').geometry.getAttribute('position').count>9000);
  vm.runInContext('g.dispose()',c);assert.equal(disposed,1);
 });

@@ -97,7 +97,7 @@ async function play3D(){
   $('#modal').close();if(s.league.complete){go('league');return;}if(match)return;
   C.beginMatch(s);persist();const f=C.fixture(s);
   try{
-    const {SoccerMatch}=await import('./match.js');
+    const {SoccerMatch}=await import('./match.js?v=10.0-recovery2');
     const active=new SoccerMatch({state:s,byId,opponent:f.opponent,home:f.home,onFinish:recordMatch,onExit:()=>{match?.destroy();match=null;$('#match-screen').hidden=true;document.body.style.overflow='';render();}});
     match=active;$('#match-screen').hidden=false;document.body.style.overflow='hidden';active.start();
   }catch(e){match?.destroy();match=null;$('#match-screen').hidden=true;document.body.style.overflow='';toast('No se pudo iniciar el 3D. Puedes volver a intentarlo o simular el partido.',true);console.error('3D initialization failed',e);showPreMatch();}

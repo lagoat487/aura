@@ -3,7 +3,7 @@
  'use strict';
  const LOW_META={width:128,height:224,directions:16,poses:22,rows:6,pages:4,pixelsPerMeter:88,anchorY:205,elevation:.60};
  const META={...LOW_META,width:192,height:336,pixelsPerMeter:132,anchorY:307.5};
- const atlases=[[],[]],curls=[],headMasks=[],headMasksLoading=[],loaded=[false,false];let grass=null,pitch=null,terrace=null,ball=null,started=false,epoch=0;
+ const faceUV=[],faceUVLoading=[],atlases=[[],[]],curls=[],headMasks=[],headMasksLoading=[],loaded=[false,false];let grass=null,pitch=null,terrace=null,ball=null,started=false,epoch=0;
  const rgb=c=>[1,3,5].map(i=>parseInt(String(c).slice(i,i+2),16)||0);
  function tileCrowd(image){const c=document.createElement('canvas');c.width=4096;c.height=512;const ctx=c.getContext('2d');for(let y=0;y<2;y++)for(let i=0;i<8;i++)ctx.drawImage(image,i*512,y*256,512,256);return c;}
  function start(quality){
@@ -13,6 +13,7 @@
   if(quality){const tier=quality==='low'?0:1;if(!loaded[tier]){loaded[tier]=true;for(let page=0;page<4;page++){
    load('./assets/models/human-motion-'+(tier?'96':'94')+'-'+page+'.png',image=>{atlases[tier][page]=pixels(image);});
    if(tier)load('./assets/models/human-curls-96-'+page+'.png',image=>{curls[page]=pixels(image);});
+   if(typeof AuraNext!=='undefined'&&!faceUVLoading[page]){faceUVLoading[page]=true;load('./assets/models/human-face-uv-98-'+page+'.png',image=>{faceUV[page]=pixels(image);});}
    if(!headMasksLoading[page]){headMasksLoading[page]=true;load('./assets/models/human-head-mask-99-'+page+'.png',image=>{headMasks[page]=pixels(image);});}
   }}}
   if(started)return;started=true;
@@ -36,6 +37,7 @@
   const meta=options.quality==='low'?LOW_META:META,atlas=atlases[options.quality==='low'?0:1],detail=typeof AuraHumanDetail!=='undefined'?AuraHumanDetail:null;
   start(options.quality||'medium');const cache=new Map(),jerseys=new Map(),shadowCache=new Map(),M=typeof AuraMaterials!=='undefined'?AuraMaterials:null,landmarks=typeof AuraKitLandmarks!=='undefined'?AuraKitLandmarks:null,limit=options.quality==='low'?64:options.quality==='high'||options.quality==='ultra'?144:96;let disposed=false;
   const makeCanvas=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
+  const natural=typeof AuraNext!=='undefined'?AuraNext:null,projectedFaces=natural&&typeof AuraFaces!=='undefined'?AuraFaces.create(makeCanvas):null;
   const FM=typeof AuraFaceMasks!=='undefined'?AuraFaceMasks:null,faces=FM?.create(makeCanvas),layout=typeof AuraHeadMaskLayout!=='undefined'?AuraHeadMaskLayout:null;
   function playerJersey(p,colors,club,keeper){
    if(!M||!landmarks)return null;
@@ -52,8 +54,8 @@
    const angle=direction(p,view),boot=p.index%3===0?'#eee8d8':p.index%3===1?'#e09248':'#15232d';
    const jersey=playerJersey(p,colors,club,keeper),back=angle>4&&angle<12,shirtPixels=back?jersey?.backPixels:jersey?.frontPixels;
    const quad=landmarks?.quads[poseIndex*meta.directions+angle],mapper=M&&quad?M.shirtMapper(quad.slice(back?8:0,back?16:8).map(n=>n*meta.width/LOW_META.width)):null,uv=[0,0],shirtColor=[0,0,0];
-   const face=faces?.get(p);
-   const key=[epoch,faces?.revision||0,look.faceMaskKey,look.headScale,look.hairTop,p.id,p.originalId,p.name,p.number,jersey?.revision||0,colors.join(''),look.skin,look.hair,look.hairStyle,!!curls[Math.floor(poseIndex/meta.rows)],look.eye,!!look.beard,boot,poseIndex,angle,striped].join('|');
+   const projected=look.faceKey?projectedFaces?.get(look.faceKey):null,face=projected?null:faces?.get(p);
+   const key=[epoch,projectedFaces?.revision||0,faces?.revision||0,look.faceMaskKey,look.headScale,look.hairTop,p.id,p.originalId,p.name,p.number,jersey?.revision||0,colors.join(''),look.skin,look.hair,look.hairStyle,!!curls[Math.floor(poseIndex/meta.rows)],look.eye,!!look.beard,boot,poseIndex,angle,striped].join('|');
    if(cache.has(key)){const hit=cache.get(key);cache.delete(key);cache.set(key,hit);return hit;}
    const c=document.createElement('canvas');c.width=meta.width;c.height=meta.height;const ctx=c.getContext('2d'),image=ctx.createImageData(c.width,c.height),out=image.data;
    const palette=[colors[0],colors[1],look.skin,colors[0],boot,look.hairTop||look.hair,colors[2],'#e9e6de'].map(rgb),secondary=rgb(colors[1]),iris=rgb(look.eye||'#353929'),skin=palette[2],hair=rgb(look.hair),hairTop=look.hairTop?rgb(look.hairTop):hair;
@@ -73,8 +75,18 @@
     const shade=meta===LOW_META?.30+source[a+1]/255*.85:source[a+1]/255*1.25;
     out[b]=Math.min(255,color[0]*shade);out[b+1]=Math.min(255,color[1]*shade);out[b+2]=Math.min(255,color[2]*shade);out[b+3]=source[a+3];
    }
+   const facePage=faceUV[Math.floor(poseIndex/meta.rows)],headOrigin=detail?.origins[poseIndex*meta.directions+angle];
+   if(projected?.ready&&facePage&&headOrigin){
+    const ratio=meta.width/META.width;
+    for(let y=0;y<96;y++)for(let x=0;x<64;x++){
+     const a=((row*96+y)*facePage.width+angle*64+x)*4,alpha=facePage.pixels[a+3]/255;if(!alpha)continue;
+     const xx=Math.floor((headOrigin[0]+x)*ratio),yy=Math.floor((headOrigin[1]+y)*ratio);if(xx<0||xx>=w||yy<0||yy>=h)continue;
+     const u=facePage.pixels[a],v=facePage.pixels[a+1],sample=(v*projected.size+u)*4,b=(yy*w+xx)*4,shade=facePage.pixels[a+2]/255*1.25;
+     for(let k=0;k<3;k++)out[b+k]=projected.pixels[sample+k]*shade*alpha+out[b+k]*(1-alpha);
+    }
+   }
    const curl=curls[Math.floor(poseIndex/meta.rows)],origin=detail?.origins[poseIndex*meta.directions+angle];
-   if(meta!==LOW_META&&look.hairStyle===4&&curl&&origin){
+   if(!natural&&meta!==LOW_META&&look.hairStyle===4&&curl&&origin){
     for(let y=0;y<96;y++)for(let x=0;x<64;x++){
      const a=((row*96+y)*curl.width+angle*64+x)*4,alpha=curl.pixels[a+3]/255,shrink=look.faceKey==='lamine'?.78:1,xx=Math.round(origin[0]+32+(x-32)*shrink),yy=Math.round(origin[1]+12+(y-12)*shrink);
      if(!alpha||xx<0||xx>=w||yy<0||yy>=h)continue;
@@ -85,13 +97,13 @@
    }
    const headPage=headMasks[Math.floor(poseIndex/meta.rows)],placement=layout?.frames[poseIndex*meta.directions+angle];
    let head=null;
-   const ratio=meta.width/META.width,scale=look.headScale||FM?.headScale||1.4;
+   const ratio=meta.width/META.width,scale=natural?.headScale||look.headScale||FM?.headScale||1.4;
    if(headPage&&origin&&placement){
     const hw=Math.ceil(64*ratio),hh=Math.ceil(96*ratio);head=makeCanvas(hw,hh);const hx=head.getContext('2d'),pixels=hx.createImageData(hw,hh);
     for(let y=0;y<hh;y++)for(let x=0;x<hw;x++){
      const mx=Math.min(63,Math.floor(x/ratio)),my=Math.min(95,Math.floor(y/ratio)),a=((row*96+my)*headPage.width+angle*64+mx)*4;
      const curlAt=curl?((row*96+my)*curl.width+angle*64+mx)*4:0;
-     const coverage=Math.max(headPage.pixels[a+3],meta!==LOW_META&&look.hairStyle===4&&curl?curl.pixels[curlAt+3]:0);
+     const coverage=Math.max(headPage.pixels[a+3],!natural&&meta!==LOW_META&&look.hairStyle===4&&curl?curl.pixels[curlAt+3]:0);
      const xx=Math.floor(origin[0]*ratio)+x,yy=Math.floor(origin[1]*ratio)+y;if(!coverage||xx<0||xx>=w||yy<0||yy>=h)continue;
      const at=(yy*w+xx)*4,b=(y*hw+x)*4;for(let k=0;k<3;k++)pixels.data[b+k]=out[at+k];pixels.data[b+3]=out[at+3]*coverage/255;
      out[at+3]*=1-coverage/255;
@@ -99,9 +111,9 @@
     hx.putImageData(pixels,0,0);
    }
    ctx.putImageData(image,0,0);
-   const maskAlpha=placement?FM?.alpha(placement.front,face?.ready)||0:0;
+   const maskAlpha=face&&placement?FM?.alpha(placement.front,face?.ready)||0:0;
    if(head&&maskAlpha<1){ctx.save();ctx.globalAlpha=1-maskAlpha;const [px,py]=placement.pivot.map(n=>n*ratio);ctx.drawImage(head,px+(origin[0]*ratio-px)*scale,py+(origin[1]*ratio-py)*scale,head.width*scale,head.height*scale);ctx.restore();}
-   if(face?.ready&&placement)FM.draw(ctx,face,placement.quad.map(n=>n*ratio),placement.front);
+   if(face?.ready&&placement){const maskScale=natural?scale/(FM?.headScale||1.4):1;FM.draw(ctx,face,placement.quad.map((n,i)=>(placement.pivot[i%2]+(n-placement.pivot[i%2])*maskScale)*ratio),placement.front);}
    cache.set(key,c);if(cache.size>limit)cache.delete(cache.keys().next().value);return c;
   }
   function draw(ctx,p,pose,look,view,ground){
@@ -133,7 +145,7 @@
    ctx.save();ctx.globalAlpha=Math.max(0,Math.min(1,opacity/(1+(pose.jump||0)*1.8)));
    ctx.transform(a,b,c,d,ground.x-a*image.width/2-c*meta.anchorY/2,ground.y-b*image.width/2-d*meta.anchorY/2);ctx.drawImage(image,0,0);ctx.restore();return true;
   }
-  return {draw,drawShadow,dispose(){disposed=true;faces?.dispose();cache.clear();jerseys.clear();shadowCache.clear();},get cacheSize(){return cache.size;},get shadowCacheSize(){return shadowCache.size;}};
+  return {draw,drawShadow,dispose(){disposed=true;faces?.dispose();projectedFaces?.dispose();cache.clear();jerseys.clear();shadowCache.clear();},get cacheSize(){return cache.size;},get shadowCacheSize(){return shadowCache.size;}};
  }
  return {create,frame,direction,tileCrowd,meta:META,lowMeta:LOW_META,assets(){start();return {grass,pitch,terrace,ball,ballMeta:{width:64,height:64,frames:24},epoch};}};
 });

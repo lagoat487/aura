@@ -1,3 +1,11 @@
+## AURA 10.0 · Recuperación de entrada y detalle del jugador
+
+AURA y DREAM comparten ahora la recuperación de gráficos: un fallo del tratamiento de imagen prueba primero el render directo; un fallo al dibujar o una pérdida de contexto pasa al modo compatible con el mismo estado del partido. Los errores que también afecten al modo compatible abren una pausa con reintento y salida, sin detener silenciosamente los controles. La salida al menú está siempre disponible en la cabecera de AURA. Se liberan los contextos y los listeners al salir y reintentar.
+
+En Pausa, **Ver jugador en primer plano** muestra el modelo del jugador controlado dentro del estadio, con el partido detenido; P vuelve al juego. Las estrellas conocidas conservan una cabeza opaca con la foto proyectada sobre su geometría, en lugar de sustituirla por una foto delante del rostro. Alto/Ultra incorporan detalle normal y reflejo de piel; el render acelerado usa rizos finos con geometría original. El modo compatible comparte las proporciones y la proyección facial con los recursos de animación disponibles; el primer plano se reserva al render acelerado para evitar ampliar una animación 2D de baja resolución.
+
+La imagen de Lamine con los rótulos «Mac», «Ultra» y «60 FPS» que se utilizó como referencia **es una imagen generada, no una captura de AURA ni una medición de rendimiento**. No se presenta como una promesa del resultado actual. Esta revisión no reproduce su calidad fotorrealista. El navegador de QA carece de WebGL; se comprueban escenas y recuperaciones con pruebas automatizadas y la navegación y el modo compatible en navegador. El rendimiento en una Mac física sigue sin medirse.
+
 ## AURA 10.0 · Arena Next para M5
 
 El partido de AURA y DREAM carga ahora un estadio original construido en Blender: gradas continuas de tres niveles, cubierta y cerchas, público instanciado, cinta LED y cuatro focos locales. El césped tiene una textura original de 2048 × 1328 y detalle normal de superficie en Alto/Ultra. Los jugadores usan proporciones de cabeza más naturales y un ciclo de carrera ajustado; las máscaras de retrato responden a las luces.

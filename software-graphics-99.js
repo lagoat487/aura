@@ -233,8 +233,9 @@ const AuraSoftwareGraphics=(()=>{
       flags(game?.visualTime??now*.001);
       if(game){
         if(M)ballSpin=M.ballSpin(ballSpin,game.ball,game.visualTime||0);
-        game.players.filter(p=>!p.sentOff).forEach(p=>castShadow(p,game));
-        const entities=game.players.filter(p=>!p.sentOff).map(p=>({depth:point(p.x,0,p.z).depth,draw:()=>player(p,game.players[game.controlled]===p||(game.localTwoPlayer&&game.players[game.awayControlled]===p),game)}));
+        const visiblePlayers=game.players.filter(p=>!p.sentOff&&(cam!=='portrait'||p===game.players[game.controlled]));
+        visiblePlayers.forEach(p=>castShadow(p,game));
+        const entities=visiblePlayers.map(p=>({depth:point(p.x,0,p.z).depth,draw:()=>player(p,game.players[game.controlled]===p||(game.localTwoPlayer&&game.players[game.awayControlled]===p),game)}));
         entities.push({depth:point(game.ball.x,game.ball.y,game.ball.z).depth,draw:()=>{
           const ball=game.ball,b=point(ball.x,ball.y,ball.z),shadow=point(ball.x,.025,ball.z),radius=Math.max(2.2,b.scale*.18);
           if(b.depth<.35)return;

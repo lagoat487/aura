@@ -53,3 +53,13 @@ test('compatible sprites recolour the actual atlas and bound their cache across 
  for(let i=0;i<192;i++)assert.equal(s.drawShadow(shadowCtx,p,{...pose,speed:1,cycle:Math.floor(i/16)*Math.PI*2/12},{build:1},[Math.sin(i%16*Math.PI/8)*30,20,Math.cos(i%16*Math.PI/8)*30],{x:200,y:300},{x:230,y:310},{x:225,y:300},.2),true);
  assert.equal(s.shadowCacheSize,64);s.dispose();assert.equal(s.shadowCacheSize,0);assert.equal(s.cacheSize,0);assert.equal(s.draw(ctx,p,pose,{},[0,20,40],{x:0,y:0,scale:1}),false);
 });
+
+test('natural star heads stay visible while their projected portrait is still loading',()=>{
+ const makeCanvas=()=>{const c={width:1,height:1};const ctx=new Proxy({draws:[],drawImage(image){this.draws.push(image);},createImageData:(w,h)=>({data:new Uint8ClampedArray(w*h*4)}),getImageData(){const out=new Uint8ClampedArray(c.width*c.height*4);for(let i=0;i<out.length;i+=4){out[i]=3;out[i+1]=180;out[i+3]=255;}return {data:out};}},{get:(o,k)=>k in o?o[k]:()=>{}});c.getContext=()=>ctx;return c;};
+ class Image{set src(src){this.width=src.includes('head-mask')||src.includes('face-uv')?1024:2048;this.height=src.includes('head-mask')||src.includes('face-uv')?576:1344;this.onload();}}
+ const c=vm.createContext({Image,document:{createElement:makeCanvas},AuraNext:{headScale:1.08},AuraHumanDetail:{origins:Array.from({length:352},()=>[64,96])},AuraHeadMaskLayout:{frames:Array.from({length:352},()=>({pivot:[96,110],quad:[70,90,120,90,120,130,70,130],front:1}))},AuraFaces:{create:()=>({get:()=>({ready:false}),dispose(){}})},AuraFaceMasks:{alpha:(front,ready=true)=>ready?1:0,create:()=>({get:()=>({ready:true}),dispose(){}})}});
+ vm.runInContext(fs.readFileSync(path.join(__dirname,'../human-sprites.js'),'utf8'),c);
+ const sprites=vm.runInContext('AuraHumanSprites.create({quality:"low",kits:[["#aa2233","#112244","#ffffff"],["#ffffff","#ffffff","#ffffff"]]})',c);let image;
+ sprites.draw({drawImage:c=>{image=c;}},{index:1,team:0,x:0,z:0,faceX:0,faceZ:1},{speed:0,jump:0,saveLift:0,crouch:0},{faceKey:'lamine',skin:'#ad7a58',hair:'#221e1a',height:1.8,build:1},[0,20,40],{x:200,y:300,scale:25});
+ assert.ok(image.getContext('2d').draws.some(c=>c.width===43&&c.height===64),'the actual head must be pasted even without a loaded portrait');sprites.dispose();
+});

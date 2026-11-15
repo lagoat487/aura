@@ -33,7 +33,11 @@ const AuraGraphics=(()=>{
     const profile={pixel:ultra?2:high?1.75:low?1:1.5,texture:ultra?4096:low?1024:2048,rows:ultra?16:high?13:low?5:9,columns:ultra?172:high?150:low?76:124};
     let renderer;
     try{renderer=new T.WebGLRenderer({antialias:!low,alpha:false,powerPreference:'high-performance'});}
-    catch(error){webglUnavailable=true;throw error;}
+    catch(error){
+      // Retry the normal browser GPU choice before assuming that all 3D is unavailable.
+      try{renderer=new T.WebGLRenderer({antialias:false,alpha:false,powerPreference:'default'});}
+      catch{webglUnavailable=true;throw error;}
+    }
     const basePixelRatio=N?N.budget(quality,container.clientWidth,container.clientHeight,globalThis.devicePixelRatio||1):Math.min(globalThis.devicePixelRatio||1,profile.pixel);
     renderer.setPixelRatio(basePixelRatio);renderer.outputColorSpace=T.SRGBColorSpace;
     renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=lighting?.exposure??(day?1.08:sunset?1.14:1.22);
@@ -65,10 +69,21 @@ const AuraGraphics=(()=>{
         maskLibrary.get(player,()=>{if(!disposed){map.needsUpdate=true;mat.visible=true;}});maskMaterials.set(entry.key,mat);}
       const mat=maskMaterials.get(entry.key).clone();materials.add(mat);const mask=new T.Mesh(geometry('face-mask-contour-99',()=>FM.curve(new T.PlaneGeometry(FM.width,FM.height,12,12))),mat);mask.userData.entry=entry;return mask;
     }
+    let skinNormal=null;
+    function skinDetail(){
+      if(!N||low)return null;if(skinNormal)return skinNormal;
+      const c=canvas(128,128),ctx=c.getContext('2d'),pixels=ctx.createImageData(128,128);let seed=371;
+      for(let i=0;i<pixels.data.length;i+=4){seed=(Math.imul(seed,1664525)+1013904223)>>>0;pixels.data[i]=124+(seed&7);pixels.data[i+1]=124+((seed>>>8)&7);pixels.data[i+2]=254;pixels.data[i+3]=255;}
+      ctx.putImageData(pixels,0,0);skinNormal=texture(c,false);skinNormal.wrapS=skinNormal.wrapT=T.RepeatWrapping;skinNormal.repeat.set(9,9);return skinNormal;
+    }
+    function skinMaterial(color,extra={}){
+      if(!N)return material(color,extra);
+      const m=new T.MeshPhysicalMaterial({color,roughness:.58,clearcoat:.16,clearcoatRoughness:.5,normalMap:skinDetail(),normalScale:new T.Vector2(.20,.20),...extra});materials.add(m);return m;
+    }
     function faceMaterial(key){
       if(!faceMaps.has(key)){const entry=faceLibrary.get(key),map=texture(entry.canvas);map.flipY=false;
         faceLibrary.get(key,()=>{if(!disposed)map.needsUpdate=true;});
-        const mat=material(0xffffff,{map,roughness:.78,metalness:0});mat.name='portrait-face:'+key;faceMaps.set(key,mat);}
+        const mat=skinMaterial(0xffffff,{map,roughness:N?.57:.78,metalness:0});mat.name='portrait-face:'+key;faceMaps.set(key,mat);}
       return faceMaps.get(key);
     }
     let seed=8721;const rnd=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
@@ -372,8 +387,8 @@ const AuraGraphics=(()=>{
       const cloth={bumpMap:low?null:weaveMap,bumpScale:.009,roughness:.91,vertexColors:!!anatomical};
       const club=p.team===0?options.home:options.away,shirtMap=shirtTexture(colors,club,keeper,p),shirt=material(0xffffff,{map:shirtMap,...cloth});
       const surface={vertexColors:!!anatomical};
-      const mats=[shirt,material(colors[1],cloth),material(look.skin,{...surface,roughness:N?.60:.46,metalness:.015}),material(colors[0],cloth),material(p.index%3===0?0xefebe3:p.index%3===1?0xe49a55:0x182436,{...surface,roughness:.48}),material(look.hairTop||look.hair,{...surface,roughness:.96}),material(colors[2],surface),material(anatomical?0xe8e6df:0x17202a,surface),M?.design(club,keeper,p.team===1&&kits[1][0]!==kit(options.away)[0])==='sleeves'?material(colors[1],cloth):shirt];
-      const mask=photoMask(p),headMaterials=[];
+      const mats=[shirt,material(colors[1],cloth),skinMaterial(look.skin,{...surface,roughness:N?.58:.46,metalness:.015}),material(colors[0],cloth),material(p.index%3===0?0xefebe3:p.index%3===1?0xe49a55:0x182436,{...surface,roughness:.48}),material(look.hairTop||look.hair,{...surface,roughness:.96}),material(colors[2],surface),material(anatomical?0xe8e6df:0x17202a,surface),M?.design(club,keeper,p.team===1&&kits[1][0]!==kit(options.away)[0])==='sleeves'?material(colors[1],cloth):shirt];
+      const mask=N&&look.faceKey?null:photoMask(p),headMaterials=[];
       if(mask)for(const slot of [2,5,7]){const mat=mats[slot].clone();mat.name='replaceable-head';mat.transparent=true;headMaterials.push(mat);materials.add(mat);mats.push(mat);}
       else if(look.faceKey&&F)mats.push(faceMaterial(look.faceKey));
       const body=new T.SkinnedMesh(humanGeometry(look.hairStyle,look.faceShape||0,look.faceKey,!!mask),mats),bones=boneDefs.map(()=>new T.Bone());
@@ -402,7 +417,7 @@ const AuraGraphics=(()=>{
         for(const bone of [7,10]){const boot=new T.Mesh(g,bootMat);boot.name='football-boot';boot.castShadow=!low;bones[bone].add(boot);}
       }
       if(look.hairStyle===4&&typeof AuraCurlMesh!=='undefined'){
-        const d=AuraCurlMesh,g=geometry('curly-hair-98:'+look.hair+':'+look.hairTop,()=>{const q=new T.BufferGeometry(),p=new Float32Array(d.positions);for(let i=0;i<p.length;i++)p[i]-=d.head[i%3];q.setAttribute('position',new T.BufferAttribute(p,3));q.setAttribute('normal',new T.Float32BufferAttribute(d.normals,3));
+        const d=N&&typeof AuraHairDetail!=='undefined'?AuraHairDetail:AuraCurlMesh,g=geometry('curly-hair-98:'+look.hair+':'+look.hairTop,()=>{const q=new T.BufferGeometry(),p=new Float32Array(d.positions);for(let i=0;i<p.length;i++)p[i]-=d.head[i%3];q.setAttribute('position',new T.BufferAttribute(p,3));q.setAttribute('normal',new T.Float32BufferAttribute(d.normals,3));
           const base=new T.Color(look.hair),top=new T.Color(look.hairTop||look.hair),colors=new Float32Array(p.length);
           for(let i=0;i<p.length;i+=3){const t=Math.max(0,Math.min(1,(d.positions[i+1]-1.810)/.035));const c=base.clone().lerp(top,t);colors.set([c.r,c.g,c.b],i);}q.setAttribute('color',new T.BufferAttribute(colors,3));
           q.setIndex(new T.BufferAttribute(d.indices,1));return q;});
@@ -454,7 +469,9 @@ const AuraGraphics=(()=>{
     function optimizeResolution(ms){if(preview||low||!Number.isFinite(ms)||ms<=0)return;slowFrames=ms>28?slowFrames+1:0;fastFrames=ms<18?fastFrames+1:0;
       if(slowFrames>=35&&adaptiveRatio>Math.max(.75,basePixelRatio*.58)){adaptiveRatio=Math.max(.75,basePixelRatio*.58,adaptiveRatio-.15);renderer.setPixelRatio(adaptiveRatio);slowFrames=fastFrames=0;}
       else if(fastFrames>=180&&adaptiveRatio<basePixelRatio){adaptiveRatio=Math.min(basePixelRatio,adaptiveRatio+.1);renderer.setPixelRatio(adaptiveRatio);fastFrames=slowFrames=0;}}
-    const cinema=typeof AuraCinema!=='undefined'?AuraCinema.create(T,renderer,scene,camera,{quality,preview}):null;
+    let cinema=null;
+    if(typeof AuraCinema!=='undefined')try{cinema=AuraCinema.create(T,renderer,scene,camera,{quality,preview});}catch{}
+    function disableEffects(){if(!cinema)return false;cinema.dispose();cinema=null;return true;}
     function resize(){if(disposed)return;const w=Math.max(1,container.clientWidth),h=Math.max(1,container.clientHeight);if(N){const cap=N.budget(quality,w,h,globalThis.devicePixelRatio||1);if(adaptiveRatio>cap){adaptiveRatio=cap;renderer.setPixelRatio(adaptiveRatio);}}renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
     observer=typeof ResizeObserver!=='undefined'?new ResizeObserver(resize):null;observer?.observe(container);resize();
     function render(game,cam=lastCamera,now=0){if(disposed)return;lastCamera=cam;const frameMs=lastTime===null?16.7:Math.max(0,now-lastTime),dt=Math.min(.1,frameMs/1000);optimizeResolution(frameMs);
@@ -466,7 +483,7 @@ const AuraGraphics=(()=>{
         actorShadows.count=game.players.length;
         game.players.forEach((p,i)=>{if(actors[i].id!==p.id){releaseActor(actors[i]);actors[i]=footballer(p);}
           const a=actors[i],basePose=P.pose(p,game),pose=N?N.pose(p,game,basePose):basePose,b=a.bones,angle=Math.atan2(p.faceX,p.faceZ);a.yaw+=Math.atan2(Math.sin(angle-a.yaw),Math.cos(angle-a.yaw))*(1-Math.exp(-dt*14));
-          a.root.position.set(p.x,pose.jump+pose.saveLift-pose.crouch,p.z);a.root.rotation.set(0,a.yaw,pose.dive*1.12);a.root.visible=!p.sentOff;
+          a.root.position.set(p.x,pose.jump+pose.saveLift-pose.crouch,p.z);a.root.rotation.set(0,a.yaw,pose.dive*1.12);a.root.visible=!p.sentOff&&(cam!=='portrait'||i===game.controlled);
           b[0].rotation.y=pose.hipTwist;b[2].rotation.y=pose.chestTwist;b[4].rotation.y=pose.headYaw;b[1].scale.y=1+pose.breath;
           if(a.mask){const vx=camera.position.x-p.x,vz=camera.position.z-p.z,front=(vx*Math.sin(a.yaw+b[4].rotation.y)+vz*Math.cos(a.yaw+b[4].rotation.y))/(Math.hypot(vx,vz)||1);
             const alpha=FM.alpha(front,a.mask.userData.entry.ready);
@@ -496,7 +513,7 @@ const AuraGraphics=(()=>{
     function project(p){const v=new T.Vector3(p.x,2.2,p.z).project(camera);return {x:(v.x*.5+.5)*container.clientWidth,y:(-.5*v.y+.5)*container.clientHeight,visible:v.z>-1&&v.z<1&&Math.abs(v.x)<1&&Math.abs(v.y)<1};}
     function dispose(){if(disposed)return;disposed=true;cinema?.dispose();faceLibrary?.dispose();maskLibrary?.dispose();observer?.disconnect();skeletons.forEach(s=>s.dispose());geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());textures.forEach(t=>t.dispose());
       scene.traverse(o=>{if(o.isInstancedMesh)o.dispose();});renderer.dispose();renderer.forceContextLoss();renderer.domElement.remove();}
-    return {render,resize,dispose,project,mapInput:input=>P.cameraInput(input,cameraState),renderer,kits};
+    return {render,resize,dispose,disableEffects,project,mapInput:input=>P.cameraInput(input,cameraState),renderer,kits};
   }
   function fallback(container,options={}){
     if(typeof AuraSoftwareGraphics!=="undefined")return AuraSoftwareGraphics.create(container,options);

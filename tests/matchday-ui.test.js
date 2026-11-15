@@ -26,7 +26,8 @@ function boot(options={}){
   if(id)nodes.set(id,n);return n;
  }
  const home={id:'home',name:'Home FC',players:Match.SHAPE.map((s,i)=>({id:'home'+i,name:'Local '+i,pos:s[0],overall:80})),bench:options.bench||[]},away={...home,id:'away',name:'Away FC',players:home.players.map((p,i)=>({...p,id:'away'+i,name:'Rival '+i})),bench:[]};
- const graphics={kits:[['#bb2233'],['#eeeedd']],render:g=>{lastView=g;},mapInput:input=>Presentation.cameraInput(input,options.cameraFrame),project:()=>({visible:true,x:100,y:100}),dispose(){}};
+ let renderFailure=!!options.renderFailure;
+ const graphics={kits:[['#bb2233'],['#eeeedd']],render:g=>{if(renderFailure)throw Error('render failed');lastView=g;},retry(){renderFailure=false;return true;},mapInput:input=>Presentation.cameraInput(input,options.cameraFrame),project:()=>({visible:true,x:100,y:100}),dispose(){}};
  const context=vm.createContext({AuraMatch:Match,AuraPresentation:Presentation,AuraGraphics:{kit:()=>['#bb2233'],create:()=>graphics},AuraEvolution:{stopPreview(){},badge:()=>''},AuraBadges:{get:()=>null},
   document:{createElement:()=>node(),body:node('body'),activeElement:node('focus'),addEventListener:(name,fn)=>{docEvents[name]=fn;},removeEventListener(){}},
   window:{addEventListener:(name,fn)=>{windowEvents[name]=fn;},removeEventListener:(name)=>{delete windowEvents[name];}},navigator:{getGamepads:()=>[]},performance:{now:()=>now},
@@ -514,4 +515,15 @@ test('sideline and immersive keyboard, touch and gamepads map movement and actio
   for(const aim of aims){assert.ok(Math.abs(aim.x-expected.x)<1e-8);assert.ok(Math.abs(aim.z-expected.z)<1e-8);}
   a.click('pause');a.click('exit');a.click('confirm-exit');
  }
+});
+
+test('a fatal graphics failure keeps the match UI responsive and retries without replacing its football state',()=>{
+ const a=boot({renderFailure:true}),g=a.session.game;g.score=[1,0];a.frame();
+ assert.equal(a.session.renderFailed,true);assert.equal(g.paused,true);assert.match(a.node('arena-layer').innerHTML,/Reintentar gráficos/);
+ a.frame();a.click('retry-render');assert.equal(a.session.renderFailed,false);a.frame();assert.equal(a.session.game,g);assert.equal(g.score[0],1);
+ a.click('exit');assert.equal(a.node('arena-layer').hidden,false);a.click('confirm-exit');assert.equal(a.cancels(),1);
+});
+test('player inspection pauses the same match and the always visible menu action can exit without a render',()=>{
+ const a=boot(),g=a.session.game;a.frame();a.click('pause');a.click('inspect');assert.equal(g.paused,true);assert.equal(a.session.inspect,true);assert.equal(a.node('arena-layer').hidden,true);a.frame();
+ a.click('pause');assert.equal(a.session.inspect,false);assert.equal(g.paused,false);a.click('exit');assert.equal(g.paused,true);assert.equal(a.node('arena-layer').hidden,false);a.click('confirm-exit');assert.equal(a.cancels(),1);
 });

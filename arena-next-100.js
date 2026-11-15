@@ -7,6 +7,11 @@
  function budget(quality,width,height,dpr=1){const maxPixels=quality==='ultra'?3600000:quality==='high'?2400000:quality==='low'?1000000:1600000,ceiling=quality==='ultra'?1.8:quality==='high'?1.5:1.25;return Math.max(.1,Math.min(Number.isFinite(dpr)&&dpr>0?dpr:1,ceiling,Math.sqrt(maxPixels/Math.max(1,(Number.isFinite(width)&&width>0?width:1)*(Number.isFinite(height)&&height>0?height:1)))));}
  function cameraFrame(game,mode,aspect,preview){
   if(preview)return null;
+  if(mode==='portrait'){
+   const p=game?.players?.[game.controlled]||game?.players?.[0];if(!p)return null;
+   const x=Number.isFinite(p.x)?p.x:0,z=Number.isFinite(p.z)?p.z:0,fx=Number.isFinite(p.faceX)?p.faceX:0,fz=Number.isFinite(p.faceZ)?p.faceZ:1,len=Math.hypot(fx,fz)||1;
+   return {position:[x+fx/len*2.6+fz/len*.85,1.72,z+fz/len*2.6-fx/len*.85],target:[x,1.46,z],fov:aspect<1?40:31};
+  }
   if(!['stadium','broadcast','tele'].includes(mode))return null;
   const ball=game?.ball||{},x=clamp(Number.isFinite(ball.x)?ball.x:0,-53,53),z=clamp(Number.isFinite(ball.z)?ball.z:0,-35,35),d=game?.half===2?-1:1;
   const portrait=aspect<1?1.42:aspect<1.3?1.16:1,lead=clamp((ball.vx||0)*.12,-3,3);
