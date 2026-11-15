@@ -13,7 +13,7 @@ function fixture(){
 }
 test('DREAM opens within the game origin, returns to AURA, and reuses its loaded career',()=>{
  const f=fixture();assert.equal(f.api.open(),true);assert.equal(f.api.isOpen(),true);assert.equal(f.app.inert,true);assert.equal(f.location.hash,'#dream');
- const frame=f.created.find(x=>x.tag==='iframe');assert.equal(new URL(frame.src).origin,f.location.origin);assert.equal(new URL(frame.src).pathname,'/game/dream/index.html');
+ const frame=f.created.find(x=>x.tag==='iframe');assert.equal(new URL(frame.src).origin,f.location.origin);assert.equal(new URL(frame.src).pathname,'/game/dream/index.html');assert.equal(new URL(frame.src).searchParams.get('v'),'10.0-recovery3');
  f.api.close();assert.equal(f.api.isOpen(),false);assert.equal(f.app.inert,false);assert.equal(f.messages[0].type,'AURA_DREAM_PAUSE');assert.equal(f.restored(),1);
  f.api.open();assert.equal(f.created.filter(x=>x.tag==='iframe').length,1,'returning to DREAM keeps the same loaded mode');
 });

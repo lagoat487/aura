@@ -7,7 +7,7 @@
   if(shell)return;
   shell=document.createElement('section');shell.id='aura-dream-mode';shell.className='aura-dream-mode';shell.hidden=true;shell.setAttribute('role','dialog');shell.setAttribute('aria-modal','true');shell.setAttribute('aria-label','AURA DREAM / DLS PRO');
   shell.innerHTML='<header class="aura-dream-toolbar"><button type="button" data-dream-close>← VOLVER A AURA</button><strong>AURA <span>10.0</span> / DREAM</strong><span class="aura-dream-toolbar-note">TU CARRERA · TU CLUB</span></header><div class="aura-dream-loading" role="status">Preparando AURA DREAM…</div>';
-  frame=document.createElement('iframe');frame.id='aura-dream-frame';frame.title='AURA DREAM / DLS PRO';frame.setAttribute('allow','fullscreen; gamepad');frame.src=new URL('./dream/index.html?v=10.0-integrated1',document.baseURI).href;
+  frame=document.createElement('iframe');frame.id='aura-dream-frame';frame.title='AURA DREAM / DLS PRO';frame.setAttribute('allow','fullscreen; gamepad');frame.src=new URL('./dream/index.html?v=10.0-recovery3',document.baseURI).href;
   frame.addEventListener('load',()=>{shell.querySelector('.aura-dream-loading').hidden=true;});
   shell.appendChild(frame);document.body.appendChild(shell);
   shell.querySelector('[data-dream-close]').addEventListener('click',()=>close());
