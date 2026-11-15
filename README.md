@@ -1,3 +1,13 @@
+## AURA 10.0 · Arena Next para M5
+
+El partido de AURA y DREAM carga ahora un estadio original construido en Blender: gradas continuas de tres niveles, cubierta y cerchas, público instanciado, cinta LED y cuatro focos locales. El césped tiene una textura original de 2048 × 1328 y detalle normal de superficie en Alto/Ultra. Los jugadores usan proporciones de cabeza más naturales y un ciclo de carrera ajustado; las máscaras de retrato responden a las luces.
+
+En la preparación de AURA, **M5 · ARENA NEXT** selecciona Alto, Atardecer y la nueva cámara cercana **Arena Next · Pro Live**. DREAM ofrece esa cámara en Configuración y comparte el motor y los materiales. Los perfiles Alto y Ultra limitan la resolución de dibujo a 2,4 y 3,6 millones de píxeles respectivamente, también en pantallas Retina. No es detección automática del chip ni una promesa de FPS. Se conservan los ajustes y guardados existentes.
+
+Verificación: **696 pruebas pasan**, incluidos el modelo completo, los límites de resolución, cámaras en esquinas y la construcción y liberación de la escena con 22 humanos animados. Se recorrió un partido real en el navegador de QA usando el modo compatible, que comparte el nuevo estadio, cámara y textura de césped. Ese navegador no permite WebGL; el acabado acelerado y el rendimiento en una Mac M5 física quedan por comprobar.
+
+Los scripts `scripts/build-arena-100.py` y `scripts/build-turf-100.py` regeneran los nuevos recursos originales. No son escaneos de futbolistas ni gráficos de FC 27.
+
 ## AURA 10.0 · DREAM dentro del juego
 
 DREAM es el octavo modo de AURA. Se abre desde la barra superior, la entrada del inicio o su tarjeta. Se ejecuta en el mismo origen bajo `dream/index.html`, con cabecera y botón para volver a AURA sin destruir los otros modos. La dirección `#dream` restaura la vista al recargar. Al regresar al menú, DREAM conserva su instancia y pausa el partido si estaba jugando.

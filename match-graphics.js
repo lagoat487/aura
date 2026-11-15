@@ -25,7 +25,8 @@ const AuraGraphics=(()=>{
   }
   function create(container,options={}){
     if(!globalThis.THREE||webglUnavailable)throw Error('WebGL no está disponible.');
-    const T=THREE,P=AuraPresentation,M=typeof AuraMaterials!=='undefined'?AuraMaterials:null,L=typeof AuraLook!=='undefined'?AuraLook:null,lighting=L?L.light(options.stadium,options.weather):null,quality=options.quality||'medium',preview=!!options.preview;
+    const N=typeof AuraNext!=='undefined'?AuraNext:null;
+    const T=THREE,P=AuraPresentation,M=typeof AuraMaterials!=='undefined'?AuraMaterials:null,L=typeof AuraLook!=='undefined'?AuraLook:null,lighting=N?N.lighting(options.stadium,options.weather):L?L.light(options.stadium,options.weather):null,quality=options.quality||'medium',preview=!!options.preview;
     const F=typeof AuraFaces!=='undefined'?AuraFaces:null,FM=typeof AuraFaceMasks!=='undefined'?AuraFaceMasks:null;
     const low=quality==='low',ultra=quality==='ultra',high=ultra||quality==='high';
     const raining=options.weather==='rain',day=options.stadium==='day',sunset=options.stadium==='sunset';
@@ -33,11 +34,11 @@ const AuraGraphics=(()=>{
     let renderer;
     try{renderer=new T.WebGLRenderer({antialias:!low,alpha:false,powerPreference:'high-performance'});}
     catch(error){webglUnavailable=true;throw error;}
-    const basePixelRatio=Math.min(globalThis.devicePixelRatio||1,profile.pixel);
+    const basePixelRatio=N?N.budget(quality,container.clientWidth,container.clientHeight,globalThis.devicePixelRatio||1):Math.min(globalThis.devicePixelRatio||1,profile.pixel);
     renderer.setPixelRatio(basePixelRatio);renderer.outputColorSpace=T.SRGBColorSpace;
     renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=lighting?.exposure??(day?1.08:sunset?1.14:1.22);
     renderer.shadowMap.enabled=!low;renderer.shadowMap.type=T.PCFSoftShadowMap;
-    renderer.domElement.setAttribute('aria-label','AURA 10.0: partido 3D con iluminación de estadio y tratamiento cinematográfico');
+    renderer.domElement.setAttribute('aria-label','AURA 10.0 Arena Next: estadio nuevo, césped y jugadores animados');
     container.appendChild(renderer.domElement);
     const scene=new T.Scene(),camera=new T.PerspectiveCamera(44,1,.1,440);
     scene.background=new T.Color(lighting?.sky??(raining?(day?0x758087:0x182431):day?0x9ebac8:sunset?0x59576b:0x0b1425));
@@ -60,7 +61,7 @@ const AuraGraphics=(()=>{
     const faceLibrary=F?.create(canvas,typeof Image==='function'?Image:null),faceMaps=new Map(),maskLibrary=FM?.create(canvas,typeof Image==='function'?Image:null),maskMaterials=new Map();
     function photoMask(player){
       const entry=maskLibrary?.get(player);if(!entry)return null;
-      if(!maskMaterials.has(entry.key)){const map=texture(entry.canvas),mat=basic({map,transparent:true,depthWrite:false,toneMapped:false,side:T.FrontSide});mat.visible=entry.ready;
+      if(!maskMaterials.has(entry.key)){const map=texture(entry.canvas),mat=N?material(0xffffff,{map,transparent:true,depthWrite:false,roughness:.78,side:T.FrontSide}):basic({map,transparent:true,depthWrite:false,toneMapped:false,side:T.FrontSide});mat.visible=entry.ready;
         maskLibrary.get(player,()=>{if(!disposed){map.needsUpdate=true;mat.visible=true;}});maskMaterials.set(entry.key,mat);}
       const mat=maskMaterials.get(entry.key).clone();materials.add(mat);const mask=new T.Mesh(geometry('face-mask-contour-99',()=>FM.curve(new T.PlaneGeometry(FM.width,FM.height,12,12))),mat);mask.userData.entry=entry;return mask;
     }
@@ -103,13 +104,19 @@ const AuraGraphics=(()=>{
     if(typeof Image==='function'){
       const photo=new Image();photo.crossOrigin='anonymous';photo.onload=()=>{if(disposed)return;
         ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.drawImage(photo,0,0,tw,th);turfMap.needsUpdate=true;
-      };photo.src='./assets/textures/pitch-cinema-96.webp';
+      };photo.src=N?'./assets/textures/pitch-next-100.webp':'./assets/textures/pitch-cinema-96.webp';
     }
     const fibres=canvas(256,256),fc=fibres.getContext('2d');fc.fillStyle='#808080';fc.fillRect(0,0,256,256);
     for(let i=0;i<12000;i++){fc.fillStyle=rnd()>.5?'#afafaf':'#505050';fc.fillRect(rnd()*256,rnd()*256,.7,.6+rnd()*4);}
     const fibreMap=texture(fibres,false);fibreMap.wrapS=fibreMap.wrapT=T.RepeatWrapping;fibreMap.repeat.set(75,49);
     const pitch=mesh(geometry('pitch',()=>new T.PlaneGeometry(105,68)),material(0xffffff,{map:turfMap,bumpMap:low?null:fibreMap,bumpScale:raining?.026:.052,roughness:raining?.58:.96}),0,.015,0);
     pitch.rotation.x=-Math.PI/2;pitch.receiveShadow=true;
+    if(N&&!low){
+      const normalCanvas=canvas(512,512),nc=normalCanvas.getContext('2d');nc.fillStyle='#8080ff';nc.fillRect(0,0,512,512);
+      const normalMap=texture(normalCanvas,false);normalMap.wrapS=normalMap.wrapT=T.RepeatWrapping;normalMap.repeat.set(75,49);
+      pitch.material.normalMap=normalMap;pitch.material.normalScale=new T.Vector2(.28,.28);pitch.material.roughness=raining?.48:.87;
+      if(typeof Image==='function'){const image=new Image();image.crossOrigin='anonymous';image.onload=()=>{if(disposed)return;nc.drawImage(image,0,0,512,512);normalMap.needsUpdate=true;};image.src='./assets/textures/turf-normal-100.webp';}
+    }
     // World-space painted line widths stay readable without depending on GL line width.
     const paint=[];
     function line(x1,z1,x2,z2,width=.105){const dx=x2-x1,dz=z2-z1,length=Math.hypot(dx,dz)||1,ox=dz/length*width/2,oz=-dx/length*width/2;
@@ -135,9 +142,12 @@ const AuraGraphics=(()=>{
     }
     function updateGoalNets(game){for(const net of goalNets){const impulse=P.goalNetImpulse(game,net.sign);if(Math.abs(impulse-net.last)<.002)continue;net.last=impulse;
       const a=net.geometry.attributes.position.array;for(let i=0;i<a.length;i+=3){const x=net.base[i],y=net.base[i+1],z=net.base[i+2];a[i]=x+net.sign*impulse*(Math.abs(x)>53.2?1:.1)*(1-Math.abs(z)/8)*(.5+y/4);}net.geometry.attributes.position.needsUpdate=true;}}
+    const dummy=new T.Object3D(),color=new T.Color();
+    const nextStadium=N?.stadium(T,{scene,material,geometry,mesh,basic,texture,canvas,options});
+    const stadium=nextStadium||(()=>{
     // Dense stepped seating: shared instanced bodies and heads replace floating spheres.
     const seatPositions=[],tiers=low?2:3,rows=profile.rows,cols=profile.columns;
-    const seatMat=material(0xffffff),dummy=new T.Object3D(),color=new T.Color();
+    const seatMat=material(0xffffff);
     for(const side of [-1,1])for(let tier=0;tier<tiers;tier++){
       for(let row=0;row<rows;row++){
         const z=side*(42+tier*(rows*.72+2)+row*.72),y=1.4+tier*(rows*.43+1.7)+row*.43;
@@ -193,6 +203,10 @@ const AuraGraphics=(()=>{
       cylinder(.16,25,rail,x,12.5,z);box(8,.65,.65,black,x,25,z);
       for(let j=0;j<10;j++)box(.54,.34,.18,luminous,x-3.3+j*.73,25.02,z+.4);
     }
+
+      return {roofY,roofZ,update:cheerCrowd};
+    })();
+    const {roofY,roofZ}=stadium,cheerCrowd=(time,score)=>stadium.update(time,score);
     function banner(text){const c=canvas(1024,96),cx=c.getContext('2d'),gradient=cx.createLinearGradient(0,0,1024,0);
       gradient.addColorStop(0,'#11283b');gradient.addColorStop(.5,'#182242');gradient.addColorStop(1,'#191c34');cx.fillStyle=gradient;cx.fillRect(0,0,1024,96);
       cx.fillStyle='#45e2e2';cx.fillRect(0,90,1024,6);cx.fillStyle='#eef6ff';cx.textAlign='center';cx.font='italic bold 46px Arial';cx.fillText(text,512,66);
@@ -358,14 +372,14 @@ const AuraGraphics=(()=>{
       const cloth={bumpMap:low?null:weaveMap,bumpScale:.009,roughness:.91,vertexColors:!!anatomical};
       const club=p.team===0?options.home:options.away,shirtMap=shirtTexture(colors,club,keeper,p),shirt=material(0xffffff,{map:shirtMap,...cloth});
       const surface={vertexColors:!!anatomical};
-      const mats=[shirt,material(colors[1],cloth),material(look.skin,{...surface,roughness:.46,metalness:.015}),material(colors[0],cloth),material(p.index%3===0?0xefebe3:p.index%3===1?0xe49a55:0x182436,{...surface,roughness:.48}),material(look.hairTop||look.hair,{...surface,roughness:.96}),material(colors[2],surface),material(anatomical?0xe8e6df:0x17202a,surface),M?.design(club,keeper,p.team===1&&kits[1][0]!==kit(options.away)[0])==='sleeves'?material(colors[1],cloth):shirt];
+      const mats=[shirt,material(colors[1],cloth),material(look.skin,{...surface,roughness:N?.60:.46,metalness:.015}),material(colors[0],cloth),material(p.index%3===0?0xefebe3:p.index%3===1?0xe49a55:0x182436,{...surface,roughness:.48}),material(look.hairTop||look.hair,{...surface,roughness:.96}),material(colors[2],surface),material(anatomical?0xe8e6df:0x17202a,surface),M?.design(club,keeper,p.team===1&&kits[1][0]!==kit(options.away)[0])==='sleeves'?material(colors[1],cloth):shirt];
       const mask=photoMask(p),headMaterials=[];
       if(mask)for(const slot of [2,5,7]){const mat=mats[slot].clone();mat.name='replaceable-head';mat.transparent=true;headMaterials.push(mat);materials.add(mat);mats.push(mat);}
       else if(look.faceKey&&F)mats.push(faceMaterial(look.faceKey));
       const body=new T.SkinnedMesh(humanGeometry(look.hairStyle,look.faceShape||0,look.faceKey,!!mask),mats),bones=boneDefs.map(()=>new T.Bone());
       boneDefs.forEach(([parent,x,y,z],i)=>{bones[i].position.set(x,y,z);if(parent>=0)bones[parent].add(bones[i]);});
       body.add(bones[0]);body.updateMatrixWorld(true);const skeleton=new T.Skeleton(bones);skeletons.add(skeleton);body.bind(skeleton);
-      bones[4].scale.setScalar(look.headScale||1.4);
+      bones[4].scale.setScalar(N?.headScale||look.headScale||1.4);
       if(mask){const head=boneDefs.slice(0,5).reduce((a,b)=>a.map((v,i)=>v+b[i+1]),[0,0,0]);mask.name='photo-face-mask:'+look.faceMaskKey;mask.position.set(...FM.center.map((n,i)=>n-head[i]));bones[4].add(mask);}
       if(anatomical&&(!look.faceKey||mask)){
         const group=anatomical.groups.find(g=>g[2]===7),eyes=[[],[]];
@@ -418,7 +432,7 @@ const AuraGraphics=(()=>{
     let nearGrass=null,grassCell='';
     if(high&&!preview){
       const blade=new T.BufferGeometry();blade.setAttribute('position',new T.Float32BufferAttribute([-.009,0,0,.009,0,0,.012,.105,.026,0,0,-.009,0,0,.009,-.02,.083,.007],3));blade.computeVertexNormals();
-      nearGrass=new T.InstancedMesh(blade,material(0x638847,{side:T.DoubleSide,roughness:1}),ultra?6000:2600);nearGrass.name='near-turf-blades';nearGrass.frustumCulled=false;nearGrass.receiveShadow=true;scene.add(nearGrass);geometries.add(blade);
+      nearGrass=new T.InstancedMesh(blade,material(N?0x527b31:0x638847,{side:T.DoubleSide,roughness:1}),N?(ultra?14000:7000):(ultra?6000:2600));nearGrass.name='near-turf-blades';nearGrass.frustumCulled=false;nearGrass.receiveShadow=true;scene.add(nearGrass);geometries.add(blade);
     }
     function updateGrass(game,cam){
       if(!nearGrass)return;nearGrass.visible=cam==='immersive'||cam==='tele'||cam==='replay'||cam==='stadium';if(!nearGrass.visible)return;
@@ -441,7 +455,7 @@ const AuraGraphics=(()=>{
       if(slowFrames>=35&&adaptiveRatio>Math.max(.75,basePixelRatio*.58)){adaptiveRatio=Math.max(.75,basePixelRatio*.58,adaptiveRatio-.15);renderer.setPixelRatio(adaptiveRatio);slowFrames=fastFrames=0;}
       else if(fastFrames>=180&&adaptiveRatio<basePixelRatio){adaptiveRatio=Math.min(basePixelRatio,adaptiveRatio+.1);renderer.setPixelRatio(adaptiveRatio);fastFrames=slowFrames=0;}}
     const cinema=typeof AuraCinema!=='undefined'?AuraCinema.create(T,renderer,scene,camera,{quality,preview}):null;
-    function resize(){if(disposed)return;const w=Math.max(1,container.clientWidth),h=Math.max(1,container.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
+    function resize(){if(disposed)return;const w=Math.max(1,container.clientWidth),h=Math.max(1,container.clientHeight);if(N){const cap=N.budget(quality,w,h,globalThis.devicePixelRatio||1);if(adaptiveRatio>cap){adaptiveRatio=cap;renderer.setPixelRatio(adaptiveRatio);}}renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
     observer=typeof ResizeObserver!=='undefined'?new ResizeObserver(resize):null;observer?.observe(container);resize();
     function render(game,cam=lastCamera,now=0){if(disposed)return;lastCamera=cam;const frameMs=lastTime===null?16.7:Math.max(0,now-lastTime),dt=Math.min(.1,frameMs/1000);optimizeResolution(frameMs);
       if(game){
@@ -451,7 +465,7 @@ const AuraGraphics=(()=>{
         if(!actors.length)actors=game.players.map(footballer);
         actorShadows.count=game.players.length;
         game.players.forEach((p,i)=>{if(actors[i].id!==p.id){releaseActor(actors[i]);actors[i]=footballer(p);}
-          const a=actors[i],pose=P.pose(p,game),b=a.bones,angle=Math.atan2(p.faceX,p.faceZ);a.yaw+=Math.atan2(Math.sin(angle-a.yaw),Math.cos(angle-a.yaw))*(1-Math.exp(-dt*14));
+          const a=actors[i],basePose=P.pose(p,game),pose=N?N.pose(p,game,basePose):basePose,b=a.bones,angle=Math.atan2(p.faceX,p.faceZ);a.yaw+=Math.atan2(Math.sin(angle-a.yaw),Math.cos(angle-a.yaw))*(1-Math.exp(-dt*14));
           a.root.position.set(p.x,pose.jump+pose.saveLift-pose.crouch,p.z);a.root.rotation.set(0,a.yaw,pose.dive*1.12);a.root.visible=!p.sentOff;
           b[0].rotation.y=pose.hipTwist;b[2].rotation.y=pose.chestTwist;b[4].rotation.y=pose.headYaw;b[1].scale.y=1+pose.breath;
           if(a.mask){const vx=camera.position.x-p.x,vz=camera.position.z-p.z,front=(vx*Math.sin(a.yaw+b[4].rotation.y)+vz*Math.cos(a.yaw+b[4].rotation.y))/(Math.hypot(vx,vz)||1);
@@ -477,7 +491,7 @@ const AuraGraphics=(()=>{
       const desired=P.cameraFrame(game,cam,camera.aspect,preview);cameraState=P.smoothCamera(cameraState,desired,dt);camera.position.fromArray(cameraState.position);camera.lookAt(new T.Vector3().fromArray(cameraState.target));
       if(Math.abs(camera.fov-cameraState.fov)>.01){camera.fov=cameraState.fov;camera.updateProjectionMatrix();}lastTime=now;
       if(scene.fog){const distance=Math.hypot(...cameraState.position);scene.fog.near=cam==='tactical'?distance+20:(raining?90:155);scene.fog.far=cam==='tactical'?distance+160:(raining?240:350);}
-      updateFlags(game?.visualTime??now*.001);cheerCrowd(now,game?.score);updateScreen(game);updateGoalNets(game);updateRain(now);updateGrass(game,cam);if(cinema)cinema.render();else renderer.render(scene,camera);
+      updateFlags(game?.visualTime??now*.001);cheerCrowd(N?(game?.visualTime??now*.001)*1000:now,game?.score);updateScreen(game);updateGoalNets(game);updateRain(now);updateGrass(game,cam);if(cinema)cinema.render();else renderer.render(scene,camera);
     }
     function project(p){const v=new T.Vector3(p.x,2.2,p.z).project(camera);return {x:(v.x*.5+.5)*container.clientWidth,y:(-.5*v.y+.5)*container.clientHeight,visible:v.z>-1&&v.z<1&&Math.abs(v.x)<1&&Math.abs(v.y)<1};}
     function dispose(){if(disposed)return;disposed=true;cinema?.dispose();faceLibrary?.dispose();maskLibrary?.dispose();observer?.disconnect();skeletons.forEach(s=>s.dispose());geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());textures.forEach(t=>t.dispose());

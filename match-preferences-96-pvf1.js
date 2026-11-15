@@ -9,6 +9,7 @@
  const DEFAULTS=Object.freeze({seconds:180,difficulty:1,stadium:"night",weather:"clear",
   quality:"high",camera:"stadium",sound:true,localTwoPlayer:false,controls:"provision"});
  const presets=Object.freeze({
+  m5:Object.freeze({seconds:180,difficulty:1,stadium:"sunset",weather:"clear",quality:"high",camera:"stadium"}),
   fast:Object.freeze({seconds:120,difficulty:1,stadium:"day",weather:"clear",quality:"low",camera:"wide"}),
   classic:Object.freeze({seconds:180,difficulty:1,stadium:"night",weather:"clear",quality:"medium",camera:"broadcast"}),
   epic:Object.freeze({seconds:480,difficulty:1.16,stadium:"sunset",weather:"clear",quality:"high",camera:"tele"}),

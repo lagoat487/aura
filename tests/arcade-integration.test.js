@@ -5,10 +5,10 @@ test("Mobile and canonical entries load practice and match preferences before de
  for(const html of [read("index.html"),read("mobile.html")]){
   assert.match(html,/skill-games\.js\?v=7\.5/);
   assert.match(html,/skill-games\.css\?v=7\.7/);
-  assert.match(html,/match-preferences-96-pvf1\.js\?v=9\.9-pvf1/);
+  assert.match(html,/match-preferences-96-pvf1\.js\?v=10\.0-radical1/);
   assert.match(html,/matchday\.css\?v=7\.1/);
   assert.match(html,/match-engine-99-specials\.js/);
-  assert.match(html,/match-ui-99-control2\.js\?v=10\.0-cinema1/);
+  assert.match(html,/match-ui-99-control2\.js\?v=10\.0-radical1/);
   assert.match(html,/quick-formations\.js\?v=7\.6/);
   assert.match(html,/quick-formations\.css\?v=7\.4/);
   assert.ok(html.indexOf("skill-games.js")<html.indexOf("evolution-ui-99-control2.js"));

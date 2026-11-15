@@ -5,6 +5,7 @@
   function hash(id){let n=2166136261;for(const c of String(id))n=Math.imul(n^c.charCodeAt(0),16777619);return n>>>0;}
   function appearance(p){const n=hash(p.id),base={skin:['#c6926c','#9a6547','#e2b28b','#754a34','#c9a17d','#573b2d'][n%6],hair:['#201c19','#34271e','#191c20','#72513a'][n%4],height:1.74+(n%18)/100,build:.94+(n%12)/100,hairStyle:n%4,eye:['#43382b','#34423a','#45516a'][n%3],beard:n%5===0};return typeof AuraLook!=='undefined'?AuraLook.avatar(p,base):base;}
   function cameraFrame(game,mode='broadcast',aspect=16/9,preview=false){
+    const next=typeof AuraNext!=='undefined'?AuraNext.cameraFrame(game,mode,aspect,preview):null;if(next)return next;
     const b=game?.ball||{},x=clamp(finite(b.x),-53,53),z=clamp(finite(b.z),-35,35),vx=clamp(finite(b.vx),-35,35);
     const look=clamp(x+vx*.18,-46,46),portrait=aspect<1?1.52:aspect<1.3?1.17:1;
     const urgency=clamp((Math.abs(x)-24)/27,0,1);

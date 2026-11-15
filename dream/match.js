@@ -25,7 +25,7 @@ export class SoccerMatch {
       container.replaceChildren();
       try{this.shared=AuraGraphics.create(container,options);}
       catch{this.shared=AuraGraphics.fallback(container,{...options,quality:'medium'});}
-      this.visionFrame=new VisionFrame();$('#match-quality').textContent=this.shared.fallback?'VISTA COMPATIBLE':'VISION 10.0';
+      this.visionFrame=new VisionFrame();$('#match-quality').textContent=this.shared.fallback?'VISTA COMPATIBLE':'ARENA NEXT 10.0';
       if(this.shared.renderer)this.listen(this.shared.renderer.domElement,'webglcontextlost',e=>{e.preventDefault();this.pause();this.showEvent('3D INTERRUMPIDO','Sal del partido y vuelve a entrar para recuperar la imagen.',5000);});
       return;
     }
